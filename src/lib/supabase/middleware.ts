@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseEnv } from "./env";
 
-const PROTECTED_PATHS = ["/dashboard", "/roadmap"];
+const PROTECTED_PATHS = ["/dashboard", "/roadmap", "/profile"];
 const AUTH_ONLY_PATHS = ["/login", "/register"];
 
 /**

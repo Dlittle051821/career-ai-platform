@@ -6,7 +6,16 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { DemoNotice } from "@/components/ui/DemoNotice";
 import { LinkButton } from "@/components/ui/Button";
+import { ProfileProgressBar } from "@/components/sections/profile/ProfileProgressBar";
 import { getCurrentProfile, firstNameFrom } from "@/lib/supabase/profile";
+import { getStudentProfileSnapshot } from "@/lib/supabase/student-profile";
+import { calculateCompletion } from "@/lib/profile/completion";
+
+const STUDENT_PROFILE_STATUS_LABEL: Record<string, string> = {
+  not_started: "Not started",
+  in_progress: "In progress",
+  completed: "Complete",
+};
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -25,6 +34,11 @@ export default async function DashboardPage() {
   // fetch just gets the real, logged-in student's data to display.
   const profile = await getCurrentProfile();
   const firstName = firstNameFrom(profile);
+
+  const studentSnapshot = await getStudentProfileSnapshot();
+  const studentCompletion = studentSnapshot
+    ? calculateCompletion(studentSnapshot)
+    : { percent: 0, status: "not_started" as const, sections: [] };
 
   return (
     <Section tone="muted" className="pt-10 sm:pt-14">
@@ -123,9 +137,45 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
+      <Card className="mt-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
+              <UserRound aria-hidden="true" className="h-5 w-5" />
+            </span>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-lg font-semibold text-primary">Student Digital Profile</h2>
+                <Badge tone={studentCompletion.status === "completed" ? "success" : studentCompletion.status === "in_progress" ? "info" : "neutral"}>
+                  {STUDENT_PROFILE_STATUS_LABEL[studentCompletion.status] ?? studentCompletion.status}
+                </Badge>
+              </div>
+              <p className="mt-1 text-sm text-muted">
+                {studentCompletion.status === "not_started"
+                  ? "Tell us about yourself so we can personalise your career guidance later."
+                  : `${studentCompletion.percent}% complete — pick up where you left off.`}
+              </p>
+            </div>
+          </div>
+          <LinkButton
+            href={studentCompletion.status === "completed" ? "/profile" : "/profile/onboarding"}
+            size="sm"
+            className="shrink-0"
+          >
+            {studentCompletion.status === "not_started"
+              ? "Start my profile"
+              : studentCompletion.status === "completed"
+                ? "View profile"
+                : "Continue profile"}
+          </LinkButton>
+        </div>
+        <ProfileProgressBar percent={studentCompletion.percent} className="mt-4" />
+      </Card>
+
       <DemoNotice className="mt-8">
         Career discovery status, roadmap content, and counselling activity shown here are illustrative demo data.
-        Your account details above (name, email, phone) are real and stored securely.
+        Your account details above (name, email, phone) are real and stored securely. Your Student Digital Profile
+        below is real and stored securely too.
       </DemoNotice>
     </Section>
   );
