@@ -15,6 +15,10 @@ const ROUTES = [
   "/privacy",
   "/terms",
   "/refund-policy",
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
 ];
 const WIDTHS = [320, 375, 768, 1024, 1280, 1440, 1920];
 

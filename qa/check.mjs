@@ -15,6 +15,12 @@ const ROUTES = [
   "/privacy",
   "/terms",
   "/refund-policy",
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/dashboard",
+  "/roadmap",
   "/this-route-does-not-exist",
 ];
 

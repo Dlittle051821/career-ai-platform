@@ -1,11 +1,14 @@
-# CareerPath AI — Milestone 1
+# CareerPath AI — Milestone 1 + Milestone 2
 
 **CareerPath AI** is a temporary working brand name for a career-first education and guidance platform for
-students and families in Odisha, India, with an initial international focus on Europe. This repository contains
-**Milestone 1**: a polished, responsive public website and reusable UI foundation.
+students and families in Odisha, India, with an initial international focus on Europe. This repository contains:
 
-Milestone 1 is frontend-only. There is no backend, database, authentication, payments, or AI integration yet — see
-[What's not implemented yet](#whats-not-implemented-yet) below.
+- **Milestone 1**: a polished, responsive public website and reusable UI foundation.
+- **Milestone 2**: real student accounts — registration, login, logout, password reset, and protected pages —
+  backed by Supabase Auth and a `profiles` database table.
+
+Career discovery results, roadmap content, and counselling activity are still demo/illustrative data — see
+[What's not implemented yet](#whats-not-implemented-yet) below. Accounts and login themselves are real.
 
 ## Stack
 
@@ -14,12 +17,14 @@ Milestone 1 is frontend-only. There is no backend, database, authentication, pay
 - Tailwind CSS v4 (CSS-first theme, design tokens as CSS variables in `src/app/globals.css`)
 - [Lucide React](https://lucide.dev) for icons
 - `next/font` (Plus Jakarta Sans for body text, Fraunces for headings) for typography — no external font CDNs
-
-No backend services, databases, or paid APIs are required to run this project.
+- [Supabase](https://supabase.com) (`@supabase/supabase-js` + `@supabase/ssr`) for authentication and the
+  `profiles` table — see [Milestone 2 — Supabase setup](#milestone-2--supabase-setup) below
 
 ## Prerequisites
 
 - Node.js 20+ and npm
+- A free [Supabase](https://supabase.com) project (only required to test registration/login — the site still
+  builds and the public pages still work without one)
 
 ## Getting started
 
@@ -28,7 +33,52 @@ npm install
 npm run dev
 ```
 
-Then open http://localhost:3000.
+Then open http://localhost:3000. To test registration/login, complete
+[Milestone 2 — Supabase setup](#milestone-2--supabase-setup) first.
+
+## Milestone 2 — Supabase setup
+
+You only need to do this once. Everything below happens in your Supabase project's dashboard at
+[supabase.com/dashboard](https://supabase.com/dashboard) — no coding required.
+
+**Step 1 — Get your project's API keys.**
+Open your Supabase project → **Settings** (gear icon, bottom of the left sidebar) → **API**. You'll see a
+**Project URL** and a **Publishable key** (sometimes shown as `anon` / `public`). You'll need both in Step 2.
+
+**Step 2 — Add them to this project.**
+In the project folder, copy `.env.example` to a new file named `.env.local`, then fill in the two values:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=<your Project URL>
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<your Publishable key>
+```
+
+`.env.local` is already excluded from Git (see `.gitignore`) — it will never be committed or shared. Never put a
+**service_role** / **secret** key here; only the public/publishable pair belongs in this file.
+
+**Step 3 — Create the database table.**
+1. In the Supabase dashboard, click **SQL Editor** in the left sidebar.
+2. Click **New query**.
+3. Open `supabase/migrations/0001_profiles.sql` from this project, and paste its entire contents into the query
+   editor.
+4. Click **Run**.
+
+This creates the `profiles` table, turns on Row Level Security (so students can only ever see their own data), and
+sets up automatic profile creation whenever someone registers.
+
+**Step 4 — Check your email confirmation setting (optional).**
+Supabase → **Authentication** → **Providers** → **Email**. If **"Confirm email"** is turned on, new students must
+click a link in their email before they can log in — this is the recommended setting for production. For quicker
+local testing, you can turn it off; just remember to turn it back on before real students use the site. Either way,
+this app handles both cases automatically (see the Milestone 2 summary you were given for details).
+
+**Step 5 — Set your site URL (needed for email links to work).**
+Supabase → **Authentication** → **URL Configuration**. Set **Site URL** to `http://localhost:3000` for local
+testing. Under **Redirect URLs**, add `http://localhost:3000/auth/callback`. When you later deploy the site (e.g.
+to Vercel) with a real domain, come back here and update both to your real domain — `https://yourdomain.com` and
+`https://yourdomain.com/auth/callback`.
+
+That's it — `npm run dev` and try registering a student account.
 
 ## Available scripts
 
@@ -60,11 +110,22 @@ codebase before delivery.
 | `/privacy` | Privacy Policy (placeholder) |
 | `/terms` | Terms of Service (placeholder) |
 | `/refund-policy` | Refund Policy (placeholder) |
+| `/register` | Create a student account (real, Supabase-backed) |
+| `/login` | Log in (real) |
+| `/forgot-password` | Request a password reset email (real) |
+| `/reset-password` | Choose a new password from a reset email link (real) |
+| `/auth/callback` | Internal route — completes email confirmation / password reset links |
+| `/dashboard` | Student dashboard — **protected**, logged-out visitors are redirected to `/login` |
+| `/roadmap` | Illustrative career roadmap — **protected** |
 | *(any unmatched path)* | Custom 404 |
 
-## Everything here is mock/demo data
+## What's real vs. demo data
 
-This milestone intentionally ships with **no live backend**. Specifically:
+**Real (Milestone 2):** registration, login, logout, password reset, and session handling are fully wired to
+Supabase Auth. A student's name/email/phone (shown on `/dashboard`) is their real, securely stored data — protected
+by Row Level Security so no student can read another student's profile.
+
+**Still demo/mock data:**
 
 - All pricing, package scope, FAQs, journey stages, trust-verification items, and team placeholders live in typed
   config/data files under `src/config/` and `src/data/` — edit those files to change content sitewide.
@@ -74,7 +135,8 @@ This milestone intentionally ships with **no live backend**. Specifically:
   logged to the console.
 - The Trust Center defaults every unverified claim (company registration, team credentials, etc.) to **Pending
   verification** or **Planned** — never "Verified" — until real, owner-supplied documentation exists.
-- "Student login" opens an honest **coming soon** dialog rather than a fake sign-in form.
+- The dashboard's "Career discovery" and "Counselling" status, and everything on `/roadmap`, are illustrative —
+  clearly labelled with a demo notice — until Milestone 3 adds real career discovery data.
 - Pricing is explicitly labelled **provisional/sample** throughout, and every pricing CTA links to
   `/book-counselling`, never to a payment flow.
 
@@ -82,12 +144,12 @@ This milestone intentionally ships with **no live backend**. Specifically:
 
 By design, this milestone does **not** include:
 
-- Backend, database, or Supabase integration
-- Real user authentication or student accounts
+- The Student Digital Profile questionnaire, education history, skills, or career scoring (Milestone 3+)
 - Claude API / AI calls of any kind (no live career-recommendation engine or assessment scoring)
+- Google/OAuth login (the groundwork is in place — see the Milestone 2 summary — but not enabled)
 - Payment processing
 - Real appointment booking, calendar integration, or CRM
-- Email/SMS/WhatsApp integration
+- Email/SMS/WhatsApp integration beyond Supabase's own auth emails (confirmation, password reset)
 - Admin backend or file/document uploads
 - Verified legal documents (Privacy Policy, Terms, Refund Policy are structural placeholders pending legal review)
 - Real university, visa, salary, scholarship, or employment data/claims

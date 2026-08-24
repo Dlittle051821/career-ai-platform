@@ -108,13 +108,13 @@ function check(name, condition) {
   await page.close();
 }
 
-// 7. Student login modal (dialog) + Trust badges present
+// 7. Header account control (M2): logged-out shows Log in / Register links
 {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   await page.goto(BASE + "/", { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: "Student login" }).click();
-  await page.waitForTimeout(150);
-  check("student login dialog opens with coming-soon message", (await page.getByText("coming soon").count()) > 0);
+  await page.waitForTimeout(300);
+  check("header shows a Log in link when logged out", (await page.locator('a[href="/login"]').count()) > 0);
+  check("header shows a Register link when logged out", (await page.locator('a[href="/register"]').count()) > 0);
   await page.close();
 }
 

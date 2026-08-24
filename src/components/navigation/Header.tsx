@@ -6,7 +6,7 @@ import { PRIMARY_NAV, UTILITY_NAV } from "@/config/site";
 import { Container } from "@/components/layout/Container";
 import { LinkButton } from "@/components/ui/Button";
 import { LanguageSelector } from "./LanguageSelector";
-import { StudentLoginModal } from "./StudentLoginModal";
+import { AccountMenu } from "./AccountMenu";
 import { MobileNav } from "./MobileNav";
 import { Logo } from "./Logo";
 import { cn } from "@/lib/utils";
@@ -58,7 +58,7 @@ export function Header() {
 
         <div className="hidden shrink-0 items-center gap-2 xl:flex">
           <LanguageSelector />
-          <StudentLoginModal />
+          <AccountMenu />
           <LinkButton href="/book-counselling" size="sm">
             Book free counselling
           </LinkButton>

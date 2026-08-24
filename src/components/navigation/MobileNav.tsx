@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { LayoutDashboard, LogIn, LogOut, Menu, UserPlus, X } from "lucide-react";
 import type { NavLink } from "@/types";
 import { LinkButton } from "@/components/ui/Button";
+import { logout } from "@/lib/supabase/actions";
+import { firstNameOf, useAuthUser } from "@/lib/supabase/use-auth-user";
 import { LanguageSelector } from "./LanguageSelector";
 import { Logo } from "./Logo";
 
@@ -19,6 +21,7 @@ export function MobileNav({ primaryLinks, utilityLinks }: MobileNavProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const [lastPathname, setLastPathname] = useState(pathname);
+  const { user, ready } = useAuthUser();
 
   // Close whenever the route changes (adjust state during render rather
   // than in an effect, per https://react.dev/learn/you-might-not-need-an-effect).
@@ -104,6 +107,52 @@ export function MobileNav({ primaryLinks, utilityLinks }: MobileNavProps) {
                 </li>
               ))}
             </ul>
+
+            {ready ? (
+              <div className="mt-6 border-t border-border pt-6">
+                <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wide text-muted">Account</p>
+                {user ? (
+                  <div className="space-y-1">
+                    <p className="truncate px-3 text-sm text-muted">
+                      Signed in as <span className="font-medium text-text">{firstNameOf(user)}</span>
+                    </p>
+                    <Link
+                      href="/dashboard"
+                      className="flex items-center gap-2.5 rounded-md px-3 py-3 text-base font-medium text-text hover:bg-surface-alt"
+                    >
+                      <LayoutDashboard aria-hidden="true" className="h-4 w-4" />
+                      Dashboard
+                    </Link>
+                    <form action={logout}>
+                      <button
+                        type="submit"
+                        className="flex w-full items-center gap-2.5 rounded-md px-3 py-3 text-left text-base font-medium text-error hover:bg-error-light"
+                      >
+                        <LogOut aria-hidden="true" className="h-4 w-4" />
+                        Log out
+                      </button>
+                    </form>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <Link
+                      href="/login"
+                      className="flex items-center gap-2.5 rounded-md px-3 py-3 text-base font-medium text-text hover:bg-surface-alt"
+                    >
+                      <LogIn aria-hidden="true" className="h-4 w-4" />
+                      Log in
+                    </Link>
+                    <Link
+                      href="/register"
+                      className="flex items-center gap-2.5 rounded-md px-3 py-3 text-base font-medium text-secondary-dark hover:bg-surface-alt"
+                    >
+                      <UserPlus aria-hidden="true" className="h-4 w-4" />
+                      Register
+                    </Link>
+                  </div>
+                )}
+              </div>
+            ) : null}
 
             <div className="mt-6 border-t border-border pt-6">
               <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wide text-muted">Language</p>

@@ -68,3 +68,19 @@ export interface ContactPurpose {
   description: string;
   icon: "student" | "parent" | "partner" | "complaint";
 }
+
+/**
+ * A student's profile record (Milestone 2). Mirrors the `profiles` table —
+ * see supabase/migrations/0001_profiles.sql. Intentionally minimal:
+ * education/career/skills fields are Milestone 3+.
+ */
+export interface Profile {
+  id: string;
+  fullName: string | null;
+  email: string | null;
+  phone: string | null;
+  marketingConsent: boolean;
+  accountType: string;
+  createdAt: string;
+  updatedAt: string;
+}

@@ -23,3 +23,14 @@ export function isValidIndianPhone(value: string): boolean {
 export function minLength(value: string, min: number): boolean {
   return value.trim().length >= min;
 }
+
+/**
+ * Minimum viable password policy for Milestone 2: at least 8 characters,
+ * containing both a letter and a number. Intentionally not more
+ * demanding than that — Supabase Auth itself enforces its own minimum
+ * length server-side, and overly strict client rules mostly just
+ * frustrate students without meaningfully improving security.
+ */
+export function isValidPassword(value: string): boolean {
+  return value.length >= 8 && /[a-zA-Z]/.test(value) && /\d/.test(value);
+}
