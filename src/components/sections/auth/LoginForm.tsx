@@ -25,7 +25,11 @@ export function LoginForm() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(() =>
+    searchParams.get("authError")
+      ? "That confirmation link is invalid or has expired. Please register again, or log in below if you've already confirmed your email."
+      : null
+  );
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));

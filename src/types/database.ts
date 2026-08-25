@@ -208,6 +208,188 @@ type StudentExperienceRow = {
   updated_at: string;
 };
 
+// ---------------------------------------------------------------------------
+// career_families (Milestone 4)
+// ---------------------------------------------------------------------------
+type CareerFamiliesRow = {
+  id: string;
+  family_key: string;
+  name: string;
+  description: string | null;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// careers
+// ---------------------------------------------------------------------------
+type CareersRow = {
+  id: string;
+  career_key: string;
+  family_id: string;
+  title: string;
+  short_title: string | null;
+  slug: string;
+  summary: string;
+  what_you_do: string;
+  typical_environment: string;
+  career_outlook_summary: string | null;
+  typical_entry_level: string;
+  minimum_education_key: string | null;
+  international_mobility_score: number | null;
+  remote_work_score: number | null;
+  entrepreneurship_score: number | null;
+  salary_potential_score: number | null;
+  job_security_score: number | null;
+  creativity_score: number | null;
+  social_impact_score: number | null;
+  leadership_opportunity_score: number | null;
+  travel_score: number | null;
+  research_intensity_score: number | null;
+  technical_depth_score: number | null;
+  is_active: boolean;
+  is_featured: boolean;
+  data_quality_status: string;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// career_subject_requirements
+// ---------------------------------------------------------------------------
+type CareerSubjectRequirementsRow = {
+  id: string;
+  career_id: string;
+  subject_key: string;
+  importance: number;
+  minimum_strength: number | null;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// career_interest_requirements
+// ---------------------------------------------------------------------------
+type CareerInterestRequirementsRow = {
+  id: string;
+  career_id: string;
+  interest_key: string;
+  importance: number;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// career_skill_requirements
+// ---------------------------------------------------------------------------
+type CareerSkillRequirementsRow = {
+  id: string;
+  career_id: string;
+  skill_key: string;
+  importance: number;
+  recommended_level: string;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// career_work_preference_profile
+// ---------------------------------------------------------------------------
+type CareerWorkPreferenceProfileRow = {
+  id: string;
+  career_id: string;
+  preference_key: string;
+  score: number;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// career_priority_profile
+// ---------------------------------------------------------------------------
+type CareerPriorityProfileRow = {
+  id: string;
+  career_id: string;
+  priority_key: string;
+  score: number;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// career_education_routes
+// ---------------------------------------------------------------------------
+type CareerEducationRoutesRow = {
+  id: string;
+  career_id: string;
+  education_level: string;
+  field_key: string;
+  specialization_key: string | null;
+  relevance: string;
+  notes: string | null;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// industries
+// ---------------------------------------------------------------------------
+type IndustriesRow = {
+  id: string;
+  industry_key: string;
+  name: string;
+  description: string | null;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// career_industries (junction, composite PK — no id column)
+// ---------------------------------------------------------------------------
+type CareerIndustriesRow = {
+  career_id: string;
+  industry_id: string;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// career_tags
+// ---------------------------------------------------------------------------
+type CareerTagsRow = {
+  id: string;
+  tag_key: string;
+  label: string;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// career_tag_map (junction, composite PK — no id column)
+// ---------------------------------------------------------------------------
+type CareerTagMapRow = {
+  career_id: string;
+  tag_id: string;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// career_aliases
+// ---------------------------------------------------------------------------
+type CareerAliasesRow = {
+  id: string;
+  career_id: string;
+  alias: string;
+  normalized_alias: string;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// career_related (junction, composite PK — no id column)
+// ---------------------------------------------------------------------------
+type CareerRelatedRow = {
+  career_id: string;
+  related_career_id: string;
+  display_order: number;
+  created_at: string;
+};
+
 export interface Database {
   public: {
     // No views or functions are defined for this project — these two
@@ -320,6 +502,109 @@ export interface Database {
         Insert: Omit<StudentExperienceRow, "id" | "created_at" | "updated_at"> &
           TimestampedInsert & { id?: string };
         Update: Partial<Omit<StudentExperienceRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      // -----------------------------------------------------------------
+      // Milestone 4 — Career Knowledge Base. Master data, not student-owned:
+      // read-only from the app (see 0003_career_database.sql RLS). Insert/
+      // Update types exist for completeness and any future admin tooling.
+      // -----------------------------------------------------------------
+      career_families: {
+        Row: CareerFamiliesRow;
+        Insert: Omit<CareerFamiliesRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<CareerFamiliesRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      careers: {
+        Row: CareersRow;
+        Insert: Omit<CareersRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<CareersRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      career_subject_requirements: {
+        Row: CareerSubjectRequirementsRow;
+        Insert: Omit<CareerSubjectRequirementsRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<CareerSubjectRequirementsRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      career_interest_requirements: {
+        Row: CareerInterestRequirementsRow;
+        Insert: Omit<CareerInterestRequirementsRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<CareerInterestRequirementsRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      career_skill_requirements: {
+        Row: CareerSkillRequirementsRow;
+        Insert: Omit<CareerSkillRequirementsRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<CareerSkillRequirementsRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      career_work_preference_profile: {
+        Row: CareerWorkPreferenceProfileRow;
+        Insert: Omit<CareerWorkPreferenceProfileRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<CareerWorkPreferenceProfileRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      career_priority_profile: {
+        Row: CareerPriorityProfileRow;
+        Insert: Omit<CareerPriorityProfileRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<CareerPriorityProfileRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      career_education_routes: {
+        Row: CareerEducationRoutesRow;
+        Insert: Omit<CareerEducationRoutesRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<CareerEducationRoutesRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      industries: {
+        Row: IndustriesRow;
+        Insert: Omit<IndustriesRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<IndustriesRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      career_industries: {
+        Row: CareerIndustriesRow;
+        Insert: Omit<CareerIndustriesRow, "created_at"> & { created_at?: string };
+        Update: Partial<Omit<CareerIndustriesRow, "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      career_tags: {
+        Row: CareerTagsRow;
+        Insert: Omit<CareerTagsRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<CareerTagsRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      career_tag_map: {
+        Row: CareerTagMapRow;
+        Insert: Omit<CareerTagMapRow, "created_at"> & { created_at?: string };
+        Update: Partial<Omit<CareerTagMapRow, "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      career_aliases: {
+        Row: CareerAliasesRow;
+        Insert: Omit<CareerAliasesRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<CareerAliasesRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      career_related: {
+        Row: CareerRelatedRow;
+        Insert: Omit<CareerRelatedRow, "created_at"> & { created_at?: string };
+        Update: Partial<Omit<CareerRelatedRow, "created_at">> & { created_at?: string };
         Relationships: [];
       };
     };

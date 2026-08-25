@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Compass, Mail, Map, Phone, Sparkles, UserRound } from "lucide-react";
+import { Compass, LibraryBig, Mail, Map, Phone, Sparkles, UserRound } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -136,6 +136,26 @@ export default async function DashboardPage() {
           </LinkButton>
         </Card>
       </div>
+
+      <Card className="mt-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
+              <LibraryBig aria-hidden="true" className="h-5 w-5" />
+            </span>
+            <div>
+              <h2 className="text-lg font-semibold text-primary">Career Explorer</h2>
+              <p className="mt-1 text-sm text-muted">
+                Browse a structured library of careers — what each one involves, relevant subjects and skills, and
+                common education routes. Not a personalised match yet.
+              </p>
+            </div>
+          </div>
+          <LinkButton href="/careers" size="sm" variant="outline" className="shrink-0">
+            Explore careers
+          </LinkButton>
+        </div>
+      </Card>
 
       <Card className="mt-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

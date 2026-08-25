@@ -22,6 +22,7 @@ export const CURRENT_YEAR = new Date().getFullYear();
 export const PRIMARY_NAV: NavLink[] = [
   { label: "How It Works", href: "/how-it-works" },
   { label: "Career Discovery", href: "/career-discovery" },
+  { label: "Career Explorer", href: "/careers" },
   { label: "Study Options", href: "/study-options" },
   { label: "For Parents", href: "/parents" },
   { label: "Pricing", href: "/pricing" },
