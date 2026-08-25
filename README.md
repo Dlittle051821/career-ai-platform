@@ -2,7 +2,7 @@
 
 **CareerPath AI** is a temporary working brand name for a career-first education and guidance platform for
 students and families in Odisha, India, with an initial international focus on Europe. This repository currently
-contains five milestones:
+contains six milestones:
 
 - **Milestone 1**: a polished, responsive public website and reusable UI foundation.
 - **Milestone 2**: real student accounts — registration, login, logout, password reset, and protected pages —
@@ -15,6 +15,9 @@ contains five milestones:
 - **Milestone 5**: the Explainable Career Recommendation Engine — a deterministic, non-AI scoring engine at
   `/recommendations` that ranks the Milestone 4 career library against a student's real Milestone 3 profile, with
   plain-language reasons for each result.
+- **Milestone 6**: Career Comparison — a `/compare` tool that puts two or three careers side by side (subjects,
+  skills, education routes, characteristics), optionally overlaying each one's own Milestone 5 match band when the
+  viewer is signed in with a profile. Read-only, no new database table, no new dependency.
 
 Roadmap content and counselling activity on the dashboard are still demo/illustrative data — see
 [What's real vs. demo data](#whats-real-vs-demo-data) below. Everything else listed above is real.
@@ -28,8 +31,8 @@ Roadmap content and counselling activity on the dashboard are still demo/illustr
 - `next/font` (Plus Jakarta Sans for body text, Fraunces for headings) for typography — no external font CDNs
 - [Supabase](https://supabase.com) (`@supabase/supabase-js` + `@supabase/ssr`) for authentication and every
   database table — see [Database setup](#database-setup) below
-- [Vitest](https://vitest.dev) for the recommendation engine's unit tests (the only automated test suite in this
-  repo — see [Available scripts](#available-scripts))
+- [Vitest](https://vitest.dev) for unit tests — the recommendation engine and the career-comparison matrix builder
+  are the only automated test suites in this repo (see [Available scripts](#available-scripts))
 
 ## Prerequisites
 
@@ -77,8 +80,8 @@ contents and click **Run**, in this exact order:
 3. `supabase/migrations/0003_career_database.sql` — the 14 `career_*` / `industries` tables (Milestone 4).
 
 Each migration turns on Row Level Security and sets up any needed triggers — see the comments inside each file for
-exactly what it does. Milestone 5 (recommendations) needs no new migration — it's computed live from the tables
-above.
+exactly what it does. Milestones 5 (recommendations) and 6 (comparison) need no new migration — both are computed
+live, read-only, from the tables above.
 
 **Step 4 — Seed the career library.**
 Career data is authored as TypeScript and generated into SQL — see `docs/career-data-guide.md` for the full
@@ -97,8 +100,9 @@ Supabase → **Authentication** → **URL Configuration**. Set **Site URL** to `
 testing. Under **Redirect URLs**, add `http://localhost:3000/auth/callback`. When you later deploy the site (e.g.
 to Vercel) with a real domain, come back here and update both to your real domain.
 
-That's it — `npm run dev`, register a student account, complete a few steps of the profile wizard, and visit
-`/recommendations` to see it rank the career library against your own data.
+That's it — `npm run dev`, register a student account, complete a few steps of the profile wizard, visit
+`/recommendations` to see it rank the career library against your own data, and visit `/compare` to put two or
+three careers side by side.
 
 ## Available scripts
 
@@ -111,7 +115,7 @@ That's it — `npm run dev`, register a student account, complete a few steps of
 | `npm run typecheck` | Run `tsc --noEmit` |
 | `npm run validate:careers` | Validate every career in `src/data/careers/` against the shared taxonomy |
 | `npm run seed:generate` | Regenerate `supabase/seed/0001_careers_seed.sql` from `src/data/careers/` |
-| `npm run test` | Run the recommendation engine's unit tests (Vitest) |
+| `npm run test` | Run the recommendation engine's and career-comparison's unit tests (Vitest) |
 
 All of `lint`, `typecheck`, `validate:careers`, `test`, `build`, and a manual route/interaction QA pass (see `qa/`)
 are run against this codebase before every milestone is delivered.
@@ -144,6 +148,7 @@ are run against this codebase before every milestone is delivered.
 | `/careers` | Career Explorer — search/browse the career library, public, real (Milestone 4) |
 | `/careers/[slug]` | Career detail page — public, real (Milestone 4) |
 | `/recommendations` | Personalised career recommendations — **protected**, real (Milestone 5) |
+| `/compare` | Compare 2-3 careers side by side — public, real (Milestone 6). Shows a personalised match row too when signed in with a profile. |
 | `/roadmap` | Illustrative career roadmap — **protected**, still demo content |
 | *(any unmatched path)* | Custom 404 |
 
@@ -165,6 +170,8 @@ are run against this codebase before every milestone is delivered.
   AI-generated, randomized, or a scientifically validated assessment — see
   `docs/recommendation-engine-guide.md` and the disclaimer shown on the page itself. Nothing is persisted:
   every load recomputes from current data, so results can never go stale.
+- Career comparison (Milestone 6) — `/compare` reads the same real career library and, for signed-in students,
+  reuses the same real Milestone 5 engine output. See `docs/career-comparison-guide.md`.
 
 **Still demo/mock data:**
 
@@ -197,6 +204,8 @@ By design, this repository does **not** include:
   editorial content, not verified market data.
 - Field-of-study matching in the recommendation engine (education-level matching only — see
   `docs/recommendation-engine-guide.md` §3 for why).
+- Comparing more than 3 careers at once, or saving/exporting a comparison (see
+  `docs/career-comparison-guide.md` §8–9).
 
 ## Directory structure
 
@@ -210,7 +219,7 @@ src/
                             GuidanceNotice, ComingSoon
     sections/              Reusable page sections plus page-specific subfolders — home/, contact/,
                             book-counselling/, career-discovery/, legal/, profile/ (onboarding wizard),
-                            careers/ (Career Explorer), recommendations/
+                            careers/ (Career Explorer), recommendations/, compare/ (Career Comparison)
     forms/                Form primitives: FormField, Input, Select, Textarea, Checkbox
   config/                site.ts — brand name, nav, contact placeholders, legal status, languages
   data/                  Typed content: pricing/FAQs/journey/trust items, profile-options.ts (Milestone 3
@@ -219,7 +228,8 @@ src/
     supabase/             Supabase clients, auth actions, and all database read/write functions
     recommendations/       Milestone 5 scoring engine — see docs/recommendation-engine-guide.md
     profile/               Profile-completion calculator, onboarding draft helpers
-    careers/               Career label/characteristic helpers
+    careers/               Career label/characteristic helpers + compare.ts (Milestone 6 comparison-matrix
+                            builder) — see docs/career-comparison-guide.md
     utils.ts, validation.ts
   types/                 Shared TypeScript types (student-profile.ts, career.ts, database.ts)
 qa/                      Small Playwright smoke-test scripts used to verify routes, interactions, and
@@ -228,7 +238,7 @@ scripts/                 validate-career-data.ts, generate-career-seed-sql.ts (M
 supabase/
   migrations/            0001_profiles.sql, 0002_student_profile.sql, 0003_career_database.sql
   seed/                  0001_careers_seed.sql — generated, never hand-edited (see docs/career-data-guide.md)
-docs/                    career-data-guide.md, recommendation-engine-guide.md
+docs/                    career-data-guide.md, recommendation-engine-guide.md, career-comparison-guide.md
 ```
 
 ### Renaming the brand
@@ -258,3 +268,5 @@ part of the app and are not required to run the site. To re-run them, install Pl
 - Career recommendations never show a raw score or percentage to a student — only one of four fixed qualitative
   bands (Strong match / Promising match / Worth exploring / Limited evidence). See
   `docs/recommendation-engine-guide.md` §6.
+- The `/compare` table wraps in its own `overflow-x-auto` container rather than letting the page scroll
+  horizontally — the same pattern any wide table in this app should follow at narrow viewports.

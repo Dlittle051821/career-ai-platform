@@ -2,12 +2,14 @@ import path from "node:path";
 import { defineConfig } from "vitest/config";
 
 /**
- * Milestone 5 test runner. Scoped deliberately narrow: the recommendation
- * engine under `src/lib/recommendations/` is the only pure, framework-free
- * logic in this codebase worth unit testing with a fast Node-based runner.
- * Everything else (pages, server actions) is exercised by the manual/QA
- * checks described in the README and `qa/` scripts — no React/DOM test
- * environment is configured here because nothing under test needs one.
+ * Test runner for this project's pure, framework-free logic — no
+ * React/DOM environment is configured because nothing under test needs
+ * one; everything else (pages, server actions) is exercised by the
+ * manual/QA checks described in the README and `qa/` scripts. Currently
+ * covers:
+ *   - src/lib/recommendations/  — Milestone 5's scoring engine
+ *   - src/lib/careers/          — Milestone 6's comparison-matrix builder
+ * (plus label/characteristic helpers those tests exercise indirectly)
  */
 export default defineConfig({
   resolve: {
@@ -20,6 +22,6 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["src/lib/recommendations/**/*.test.ts"],
+    include: ["src/lib/recommendations/**/*.test.ts", "src/lib/careers/**/*.test.ts"],
   },
 });

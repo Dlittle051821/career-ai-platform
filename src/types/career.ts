@@ -163,6 +163,19 @@ export interface CareerSearchResult {
  * `src/lib/supabase/careers.ts` — never fetch this shape one career at a
  * time (see that function's docblock for why).
  */
+/**
+ * Milestone 6: the minimal shape needed to populate a career picker (e.g.
+ * the Career Comparison tool's `<select>` inputs) without paying for a
+ * full `CareerSummary`/`CareerDetail` join per career. Returned in one
+ * bulk query by `getCareerOptionsForComparison()` in
+ * `src/lib/supabase/careers.ts`.
+ */
+export interface CareerOption {
+  slug: string;
+  title: string;
+  familyName: string;
+}
+
 export interface CareerMatchProfile {
   id: string;
   careerKey: string;

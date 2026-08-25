@@ -35,13 +35,18 @@ export function CareerCard({ career }: { career: CareerSummary }) {
         </div>
       ) : null}
 
-      <Link
-        href={`/careers/${career.slug}`}
-        className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-secondary-dark transition-colors hover:text-primary"
-      >
-        Explore Career
-        <ArrowRight aria-hidden="true" className="h-4 w-4" />
-      </Link>
+      <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <Link
+          href={`/careers/${career.slug}`}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-secondary-dark transition-colors hover:text-primary"
+        >
+          Explore Career
+          <ArrowRight aria-hidden="true" className="h-4 w-4" />
+        </Link>
+        <Link href={`/compare?a=${career.slug}`} className="text-sm font-medium text-muted transition-colors hover:text-primary">
+          Compare
+        </Link>
+      </div>
     </Card>
   );
 }

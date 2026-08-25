@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
@@ -40,13 +41,18 @@ export default async function ProfilePage() {
           <p className="text-sm font-semibold uppercase tracking-wide text-secondary">Student Digital Profile</p>
           <h1 className="mt-2 text-3xl font-semibold text-primary balance sm:text-4xl">Your Profile</h1>
           <p className="mt-2 max-w-2xl text-muted">
-            This is what you&apos;ve told us so far. It&apos;s private to you and will shape your personalised
-            career guidance in a later milestone. Edit any section below at any time.
+            This is what you&apos;ve told us so far. It&apos;s private to you, and it already shapes your career
+            recommendations below. Edit any section below at any time.
           </p>
         </div>
-        <LinkButton href="/profile/onboarding" variant="outline" className="shrink-0">
-          {completion.status === "completed" ? "Open in wizard" : "Continue setup"}
-        </LinkButton>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <LinkButton href="/recommendations" variant="outline">
+            View recommendations
+          </LinkButton>
+          <LinkButton href="/profile/onboarding">
+            {completion.status === "completed" ? "Open in wizard" : "Continue setup"}
+          </LinkButton>
+        </div>
       </div>
 
       <Card className="mb-6">
@@ -65,8 +71,8 @@ export default async function ProfilePage() {
       <ProfileView draft={draft} completion={completion} />
 
       <DemoNotice className="mt-8">
-        Career matches, university recommendations, and other personalised guidance based on this profile arrive in
-        a later milestone — this page only stores and displays what you&apos;ve entered.
+        University recommendations and roadmap content are still illustrative demo data. Your profile itself, and
+        the career recommendations built from it at <Link href="/recommendations" className="font-medium underline underline-offset-2">/recommendations</Link>, are real.
       </DemoNotice>
     </Section>
   );

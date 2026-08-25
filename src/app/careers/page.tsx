@@ -3,7 +3,7 @@ import Link from "next/link";
 import { SearchX } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
-import { DemoNotice } from "@/components/ui/DemoNotice";
+import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
 import { CareerCard } from "@/components/sections/careers/CareerCard";
 import { CareerFilterBar } from "@/components/sections/careers/CareerFilterBar";
 import { Pagination } from "@/components/sections/careers/Pagination";
@@ -99,10 +99,11 @@ export default async function CareersPage({ searchParams }: CareersPageProps) {
         </>
       )}
 
-      <DemoNotice className="mt-8">
-        Careers shown here are structured profile data only — there are no match scores or personalised rankings
-        yet. That arrives in a later milestone, built on top of your Student Digital Profile.
-      </DemoNotice>
+      <GuidanceNotice className="mt-8">
+        Careers shown here are structured profile data — this is a browsing tool, not a personalised ranking. Sign
+        in and complete your Student Digital Profile to see personalised, explained matches at{" "}
+        <Link href="/recommendations" className="font-medium underline underline-offset-2">/recommendations</Link>.
+      </GuidanceNotice>
     </Section>
   );
 }

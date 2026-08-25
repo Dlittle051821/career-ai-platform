@@ -51,13 +51,18 @@ export function RecommendationCard({ result }: { result: RecommendationResult })
 
       <p className="mt-4 text-xs text-muted">{EVIDENCE_LEVEL_LABELS[result.evidenceLevel]}.</p>
 
-      <Link
-        href={`/careers/${result.slug}`}
-        className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-secondary-dark transition-colors hover:text-primary"
-      >
-        View full career profile
-        <ArrowRight aria-hidden="true" className="h-4 w-4" />
-      </Link>
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <Link
+          href={`/careers/${result.slug}`}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-secondary-dark transition-colors hover:text-primary"
+        >
+          View full career profile
+          <ArrowRight aria-hidden="true" className="h-4 w-4" />
+        </Link>
+        <Link href={`/compare?a=${result.slug}`} className="text-sm font-medium text-muted transition-colors hover:text-primary">
+          Compare
+        </Link>
+      </div>
     </Card>
   );
 }

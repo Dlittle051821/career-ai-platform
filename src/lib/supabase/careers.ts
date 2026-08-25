@@ -13,6 +13,7 @@ import type {
   CareerFitRelevance,
   DataQualityStatus,
   CareerMatchProfile,
+  CareerOption,
 } from "@/types/career";
 
 /**
@@ -678,4 +679,35 @@ export async function getCareersForMatching(): Promise<CareerMatchProfile[]> {
         .filter((k): k is string => Boolean(k)),
     };
   });
+}
+
+// ---------------------------------------------------------------------------
+// getCareerOptionsForComparison — Milestone 6's lightweight picker source
+// for the Career Comparison tool. Deliberately not built on `searchCareers`
+// (capped at MAX_PAGE_SIZE = 50, half the catalogue) or on
+// `getCareersForMatching`/`getCompleteCareerProfile` (both pull every
+// child table, far more than a `<select>` option list needs) — this is one
+// small query returning just enough to populate a picker, same "smallest
+// query that does the job" spirit as `getCareerFamilies`.
+// ---------------------------------------------------------------------------
+export async function getCareerOptionsForComparison(): Promise<CareerOption[]> {
+  const supabase = await createClient();
+
+  const [careersRes, familiesRes] = await Promise.all([
+    supabase.from("careers").select("slug, title, family_id").order("title", { ascending: true }),
+    supabase.from("career_families").select("id, name"),
+  ]);
+
+  if (careersRes.error) {
+    logCareerDbError("getCareerOptionsForComparison", careersRes.error);
+    return [];
+  }
+
+  const familyNameById = new Map((familiesRes.data ?? []).map((f) => [f.id, f.name]));
+
+  return (careersRes.data ?? []).map((row) => ({
+    slug: row.slug,
+    title: row.title,
+    familyName: familyNameById.get(row.family_id) ?? "",
+  }));
 }

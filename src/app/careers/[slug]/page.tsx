@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { LinkButton } from "@/components/ui/Button";
-import { DemoNotice } from "@/components/ui/DemoNotice";
+import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
 import { CareerCard } from "@/components/sections/careers/CareerCard";
 import { getCareerBySlug, getRelatedCareers } from "@/lib/supabase/careers";
 import { subjectLabel, interestLabel, skillLabel, educationLevelLabel, fieldLabel, SKILL_LEVEL_LABELS, RELEVANCE_LABELS } from "@/lib/careers/labels";
@@ -81,6 +81,9 @@ export default async function CareerDetailPage({ params }: CareerDetailPageProps
             Also known as: <span className="text-text-soft">{career.aliases.join(", ")}</span>
           </p>
         ) : null}
+        <LinkButton href={`/compare?a=${career.slug}`} size="sm" variant="outline" className="mt-4">
+          Compare with another career
+        </LinkButton>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -208,10 +211,11 @@ export default async function CareerDetailPage({ params }: CareerDetailPageProps
         </div>
       ) : null}
 
-      <DemoNotice className="mt-8">
-        This page describes the career itself — it isn&apos;t a personalised match for you. Career recommendations
-        based on your Student Digital Profile arrive in a later milestone.
-      </DemoNotice>
+      <GuidanceNotice className="mt-8">
+        This page describes the career itself — it isn&apos;t a personalised match for you. See how well it matches
+        your own Student Digital Profile at <Link href="/recommendations" className="font-medium underline underline-offset-2">/recommendations</Link>, or{" "}
+        <Link href={`/compare?a=${career.slug}`} className="font-medium underline underline-offset-2">compare it</Link> against another career.
+      </GuidanceNotice>
 
       <div className="mt-6">
         <Link href="/careers" className="text-sm font-semibold text-secondary-dark hover:text-primary">

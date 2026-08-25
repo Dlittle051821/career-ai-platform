@@ -23,6 +23,7 @@ export const PRIMARY_NAV: NavLink[] = [
   { label: "How It Works", href: "/how-it-works" },
   { label: "Career Discovery", href: "/career-discovery" },
   { label: "Career Explorer", href: "/careers" },
+  { label: "Compare Careers", href: "/compare" },
   { label: "Study Options", href: "/study-options" },
   { label: "For Parents", href: "/parents" },
   { label: "Pricing", href: "/pricing" },
