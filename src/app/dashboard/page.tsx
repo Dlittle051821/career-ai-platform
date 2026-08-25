@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Compass, LibraryBig, Mail, Map, Phone, Sparkles, UserRound } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
@@ -48,8 +47,8 @@ export default async function DashboardPage() {
           {greeting()}, {firstName}.
         </h1>
         <p className="mt-2 max-w-2xl text-muted">
-          This is your account home. Career readiness scores and personalised recommendations below are demo
-          content for now — real career discovery results arrive in a later milestone.
+          This is your account home. Your Career Recommendations below are real and based on your Student Digital
+          Profile — the roadmap and counselling sections are still illustrative demo content.
         </p>
       </div>
 
@@ -111,13 +110,16 @@ export default async function DashboardPage() {
               <Compass aria-hidden="true" className="h-5 w-5" />
             </span>
             <div className="flex-1">
-              <h2 className="text-lg font-semibold text-primary">Career discovery</h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-lg font-semibold text-primary">Career recommendations</h2>
+                <Badge tone="success">Real</Badge>
+              </div>
               <p className="mt-1 text-sm leading-relaxed text-muted">
-                You haven&apos;t started career discovery yet. It&apos;s the first step toward a roadmap built
-                around your interests, not just your marks.
+                Careers ranked against your Student Digital Profile, with plain-language reasons for each one — a
+                structured decision-support tool, not a scientific or AI-generated assessment.
               </p>
-              <LinkButton href="/career-discovery" size="sm" className="mt-4">
-                Start career discovery
+              <LinkButton href="/recommendations" size="sm" className="mt-4">
+                View my recommendations
               </LinkButton>
             </div>
           </div>
@@ -193,9 +195,8 @@ export default async function DashboardPage() {
       </Card>
 
       <DemoNotice className="mt-8">
-        Career discovery status, roadmap content, and counselling activity shown here are illustrative demo data.
-        Your account details above (name, email, phone) are real and stored securely. Your Student Digital Profile
-        below is real and stored securely too.
+        Roadmap content and counselling activity shown here are illustrative demo data. Your account details (name,
+        email, phone), Student Digital Profile, and Career Recommendations are all real and stored securely.
       </DemoNotice>
     </Section>
   );

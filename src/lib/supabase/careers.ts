@@ -12,6 +12,7 @@ import type {
   CareerSkillLevel,
   CareerFitRelevance,
   DataQualityStatus,
+  CareerMatchProfile,
 } from "@/types/career";
 
 /**
@@ -531,4 +532,150 @@ export async function getRelatedCareers(careerId: string, limit: number = DEFAUL
   // Preserve curated/derived order rather than whatever order the `in` query returned.
   const bySummaryId = new Map(summaries.map((s) => [s.id, s]));
   return finalIds.map((id) => bySummaryId.get(id)).filter((s): s is CareerSummary => s !== undefined);
+}
+
+// ---------------------------------------------------------------------------
+// getCareersForMatching — Milestone 5's bulk data-access entry point for the
+// recommendation engine.
+//
+// `getCompleteCareerProfile` above is deliberately per-career: it's what
+// the career-detail page needs, and one career per page load is fine.
+// The recommendation engine is the opposite shape — it needs EVERY
+// eligible career's full profile on one page load, and calling
+// `getCompleteCareerProfile` once per career (~100 careers x ~10 queries
+// each) would mean roughly a thousand round trips for a single
+// `/recommendations` render. This function does the same join in a fixed
+// number of bulk queries (one per table, each filtered with `.in(...)`)
+// regardless of how many careers exist, so cost stays flat as the catalogue
+// grows. RLS still applies — `careers` only returns rows that are
+// `is_active = true AND data_quality_status = 'approved'`, exactly as
+// every other read in this file.
+// ---------------------------------------------------------------------------
+export async function getCareersForMatching(): Promise<CareerMatchProfile[]> {
+  const supabase = await createClient();
+
+  // Column list kept as one literal (not built via string concatenation) —
+  // Supabase's TypeScript client infers each selected column's type by
+  // parsing this string as a literal at compile time; a concatenated
+  // string is just `string` to the type checker, which collapses the
+  // whole result to an untyped error shape (`GenericStringError`).
+  const { data: careerRows, error: careersErr } = await supabase
+    .from("careers")
+    .select(
+      "id, career_key, family_id, title, short_title, slug, summary, is_featured, minimum_education_key, international_mobility_score, remote_work_score, entrepreneurship_score, salary_potential_score, job_security_score, creativity_score, social_impact_score, leadership_opportunity_score, travel_score, research_intensity_score, technical_depth_score"
+    );
+
+  if (careersErr) {
+    logCareerDbError("getCareersForMatching (careers)", careersErr);
+    return [];
+  }
+  if (!careerRows || careerRows.length === 0) return [];
+
+  const careerIds = careerRows.map((c) => c.id);
+
+  const [
+    familiesRes,
+    subjectsRes,
+    interestsRes,
+    skillsRes,
+    workPrefsRes,
+    prioritiesRes,
+    routesRes,
+    industryLinksRes,
+    tagLinksRes,
+    industriesRes,
+    tagsRes,
+  ] = await Promise.all([
+    supabase.from("career_families").select("id, family_key, name"),
+    supabase.from("career_subject_requirements").select("*").in("career_id", careerIds),
+    supabase.from("career_interest_requirements").select("*").in("career_id", careerIds),
+    supabase.from("career_skill_requirements").select("*").in("career_id", careerIds),
+    supabase.from("career_work_preference_profile").select("*").in("career_id", careerIds),
+    supabase.from("career_priority_profile").select("*").in("career_id", careerIds),
+    supabase.from("career_education_routes").select("*").in("career_id", careerIds),
+    supabase.from("career_industries").select("career_id, industry_id").in("career_id", careerIds),
+    supabase.from("career_tag_map").select("career_id, tag_id").in("career_id", careerIds),
+    supabase.from("industries").select("id, industry_key"),
+    supabase.from("career_tags").select("id, tag_key"),
+  ]);
+
+  const familyById = new Map((familiesRes.data ?? []).map((f) => [f.id, { key: f.family_key, name: f.name }]));
+  const industryKeyById = new Map((industriesRes.data ?? []).map((i) => [i.id, i.industry_key]));
+  const tagKeyById = new Map((tagsRes.data ?? []).map((t) => [t.id, t.tag_key]));
+
+  const groupByCareer = <T extends { career_id: string }>(rows: T[] | null): Map<string, T[]> => {
+    const map = new Map<string, T[]>();
+    for (const row of rows ?? []) {
+      const list = map.get(row.career_id) ?? [];
+      list.push(row);
+      map.set(row.career_id, list);
+    }
+    return map;
+  };
+
+  const subjectsByCareer = groupByCareer(subjectsRes.data);
+  const interestsByCareer = groupByCareer(interestsRes.data);
+  const skillsByCareer = groupByCareer(skillsRes.data);
+  const workPrefsByCareer = groupByCareer(workPrefsRes.data);
+  const prioritiesByCareer = groupByCareer(prioritiesRes.data);
+  const routesByCareer = groupByCareer(routesRes.data);
+  const industryLinksByCareer = groupByCareer(industryLinksRes.data);
+  const tagLinksByCareer = groupByCareer(tagLinksRes.data);
+
+  return careerRows.map((career): CareerMatchProfile => {
+    const family = familyById.get(career.family_id);
+    const scores: CareerScores = {
+      internationalMobility: career.international_mobility_score,
+      remoteWork: career.remote_work_score,
+      entrepreneurship: career.entrepreneurship_score,
+      salaryPotential: career.salary_potential_score,
+      jobSecurity: career.job_security_score,
+      creativity: career.creativity_score,
+      socialImpact: career.social_impact_score,
+      leadershipOpportunity: career.leadership_opportunity_score,
+      travel: career.travel_score,
+      researchIntensity: career.research_intensity_score,
+      technicalDepth: career.technical_depth_score,
+    };
+
+    return {
+      id: career.id,
+      careerKey: career.career_key,
+      slug: career.slug,
+      title: career.title,
+      shortTitle: career.short_title,
+      summary: career.summary,
+      familyKey: family?.key ?? "",
+      familyName: family?.name ?? "",
+      isFeatured: career.is_featured,
+      minimumEducationKey: career.minimum_education_key,
+      scores,
+      subjects: (subjectsByCareer.get(career.id) ?? []).map((r) => ({
+        subjectKey: r.subject_key,
+        importance: r.importance,
+        minimumStrength: r.minimum_strength,
+      })),
+      interests: (interestsByCareer.get(career.id) ?? []).map((r) => ({ interestKey: r.interest_key, importance: r.importance })),
+      skills: (skillsByCareer.get(career.id) ?? []).map((r) => ({
+        skillKey: r.skill_key,
+        importance: r.importance,
+        recommendedLevel: r.recommended_level as CareerSkillLevel,
+      })),
+      workPreferences: (workPrefsByCareer.get(career.id) ?? []).map((r) => ({ preferenceKey: r.preference_key, score: r.score })),
+      careerPriorities: (prioritiesByCareer.get(career.id) ?? []).map((r) => ({ priorityKey: r.priority_key, score: r.score })),
+      educationRoutes: (routesByCareer.get(career.id) ?? []).map((r) => ({
+        educationLevel: r.education_level,
+        fieldKey: r.field_key,
+        specializationKey: r.specialization_key,
+        relevance: r.relevance as CareerFitRelevance,
+        notes: r.notes,
+      })),
+      industryKeys: (industryLinksByCareer.get(career.id) ?? [])
+        .map((r) => industryKeyById.get(r.industry_id))
+        .filter((k): k is string => Boolean(k)),
+      tagKeys: (tagLinksByCareer.get(career.id) ?? [])
+        .map((r) => tagKeyById.get(r.tag_id))
+        .filter((k): k is string => Boolean(k)),
+    };
+  });
 }

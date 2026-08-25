@@ -152,3 +152,35 @@ export interface CareerSearchResult {
   page: number;
   pageSize: number;
 }
+
+/**
+ * Milestone 5: the subset of a career's full profile the recommendation
+ * engine needs to score it against a student profile. A trimmed sibling of
+ * `CareerDetail` — it omits `aliases` (search-only, irrelevant to scoring)
+ * and returns industries/tags as bare key lists rather than joined
+ * `Industry[]` / `CareerTag[]` objects, since the engine only ever compares
+ * keys. Returned in bulk by `getCareersForMatching()` in
+ * `src/lib/supabase/careers.ts` — never fetch this shape one career at a
+ * time (see that function's docblock for why).
+ */
+export interface CareerMatchProfile {
+  id: string;
+  careerKey: string;
+  slug: string;
+  title: string;
+  shortTitle: string | null;
+  summary: string;
+  familyKey: string;
+  familyName: string;
+  isFeatured: boolean;
+  minimumEducationKey: string | null;
+  scores: CareerScores;
+  subjects: CareerSubjectFit[];
+  interests: CareerInterestFit[];
+  skills: CareerSkillFit[];
+  workPreferences: CareerWorkPreferenceFit[];
+  careerPriorities: CareerPriorityFit[];
+  educationRoutes: CareerEducationRoute[];
+  industryKeys: string[];
+  tagKeys: string[];
+}
