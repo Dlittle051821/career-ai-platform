@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Compass, LibraryBig, Mail, Map, Phone, Sparkles, UserRound } from "lucide-react";
+import { Compass, LibraryBig, Mail, Map, Phone, Receipt, Sparkles, UserRound } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -9,6 +9,9 @@ import { ProfileProgressBar } from "@/components/sections/profile/ProfileProgres
 import { getCurrentProfile, firstNameFrom } from "@/lib/supabase/profile";
 import { getStudentProfileSnapshot } from "@/lib/supabase/student-profile";
 import { calculateCompletion } from "@/lib/profile/completion";
+import { listMyInvoices } from "@/lib/supabase/payments/student-invoices";
+import { PAYABLE_INVOICE_STATUSES } from "@/types/payments";
+import { formatMoney } from "@/lib/admin/money";
 
 const STUDENT_PROFILE_STATUS_LABEL: Record<string, string> = {
   not_started: "Not started",
@@ -38,6 +41,10 @@ export default async function DashboardPage() {
   const studentCompletion = studentSnapshot
     ? calculateCompletion(studentSnapshot)
     : { percent: 0, status: "not_started" as const, sections: [] };
+
+  const invoices = await listMyInvoices();
+  const payableInvoices = invoices.filter((inv) => PAYABLE_INVOICE_STATUSES.includes(inv.status));
+  const totalDueMinorUnits = payableInvoices.reduce((sum, inv) => sum + inv.dueMinorUnits, 0);
 
   return (
     <Section tone="muted" className="pt-10 sm:pt-14">
@@ -138,6 +145,32 @@ export default async function DashboardPage() {
           </LinkButton>
         </Card>
       </div>
+
+      <Card className="mt-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
+              <Receipt aria-hidden="true" className="h-5 w-5" />
+            </span>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-lg font-semibold text-primary">Payments</h2>
+                {payableInvoices.length > 0 ? <Badge tone="warning">{payableInvoices.length} due</Badge> : null}
+              </div>
+              <p className="mt-1 text-sm text-muted">
+                {payableInvoices.length > 0
+                  ? `${formatMoney(totalDueMinorUnits, payableInvoices[0].currency)} due across ${payableInvoices.length} invoice${payableInvoices.length === 1 ? "" : "s"}.`
+                  : invoices.length > 0
+                    ? "No outstanding invoices right now."
+                    : "No invoices yet — they will appear here once one is issued to you."}
+              </p>
+            </div>
+          </div>
+          <LinkButton href="/payments" size="sm" variant="outline" className="shrink-0">
+            View payments
+          </LinkButton>
+        </div>
+      </Card>
 
       <Card className="mt-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

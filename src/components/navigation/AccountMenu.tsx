@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, LayoutDashboard, LogIn, LogOut, Settings, UserCircle, UserPlus } from "lucide-react";
+import { ChevronDown, LayoutDashboard, LogIn, LogOut, Receipt, Settings, UserCircle, UserPlus } from "lucide-react";
 import { logout } from "@/lib/supabase/actions";
 import { firstNameOf, useAuthUser } from "@/lib/supabase/use-auth-user";
 
@@ -114,6 +114,14 @@ export function AccountMenu() {
           >
             <LayoutDashboard aria-hidden="true" className="h-4 w-4" />
             Dashboard
+          </Link>
+          <Link
+            href="/payments"
+            role="menuitem"
+            className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-text-soft hover:bg-surface-alt hover:text-primary"
+          >
+            <Receipt aria-hidden="true" className="h-4 w-4" />
+            Payments
           </Link>
           <button
             type="button"

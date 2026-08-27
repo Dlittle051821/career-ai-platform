@@ -390,6 +390,405 @@ type CareerRelatedRow = {
   created_at: string;
 };
 
+// ---------------------------------------------------------------------------
+// Generic JSON type for jsonb columns (Milestone 7 uses this for
+// admin_audit_log.changes/context and applications.deadlines).
+// ---------------------------------------------------------------------------
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+
+// ---------------------------------------------------------------------------
+// admin_roles (Milestone 7)
+// ---------------------------------------------------------------------------
+type AdminRolesRow = {
+  user_id: string;
+  role: string;
+  granted_by: string | null;
+  granted_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// counsellors (Milestone 7)
+// ---------------------------------------------------------------------------
+type CounsellorsRow = {
+  id: string;
+  user_id: string | null;
+  display_name: string;
+  email: string | null;
+  phone: string | null;
+  specializations: string[];
+  regions: string[];
+  is_active: boolean;
+  capacity: number | null;
+  internal_notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// universities (Milestone 7)
+// ---------------------------------------------------------------------------
+type UniversitiesRow = {
+  id: string;
+  name: string;
+  slug: string;
+  country: string | null;
+  city: string | null;
+  website: string | null;
+  institution_type: string | null;
+  summary: string | null;
+  accreditation_status: string;
+  is_active: boolean;
+  is_visible: boolean;
+  internal_notes: string | null;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// courses (Milestone 7)
+// ---------------------------------------------------------------------------
+type CoursesRow = {
+  id: string;
+  university_id: string;
+  name: string;
+  slug: string;
+  education_level: string | null;
+  field_of_study: string | null;
+  duration_text: string | null;
+  delivery_mode: string | null;
+  campus_location: string | null;
+  intake_info: string | null;
+  tuition_amount_minor_units: number | null;
+  tuition_currency: string;
+  tuition_period: string | null;
+  entry_requirements_summary: string | null;
+  application_url: string | null;
+  is_active: boolean;
+  is_visible: boolean;
+  data_quality_status: string;
+  internal_notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// admin_student_meta / admin_student_notes (Milestone 7)
+// ---------------------------------------------------------------------------
+type AdminStudentMetaRow = {
+  student_user_id: string;
+  status: string;
+  assigned_counsellor_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type AdminStudentNotesRow = {
+  id: string;
+  student_user_id: string;
+  author_user_id: string | null;
+  note: string;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// leads / lead_status_history (Milestone 7)
+// ---------------------------------------------------------------------------
+type LeadsRow = {
+  id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  source: string | null;
+  campaign: string | null;
+  stage: string;
+  priority: string;
+  assigned_counsellor_id: string | null;
+  next_follow_up_date: string | null;
+  last_contact_date: string | null;
+  consent_marketing: boolean;
+  notes: string | null;
+  converted_student_user_id: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  landing_page: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type LeadStatusHistoryRow = {
+  id: string;
+  lead_id: string;
+  from_stage: string | null;
+  to_stage: string;
+  changed_by: string | null;
+  note: string | null;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// applications / application_status_history (Milestone 7)
+// ---------------------------------------------------------------------------
+type ApplicationsRow = {
+  id: string;
+  student_user_id: string;
+  university_id: string | null;
+  course_id: string | null;
+  assigned_counsellor_id: string | null;
+  stage: string;
+  intake: string | null;
+  submission_date: string | null;
+  decision_status: string;
+  offer_type: string | null;
+  deadlines: Json;
+  next_action: string | null;
+  next_action_date: string | null;
+  last_contact_date: string | null;
+  internal_notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type ApplicationStatusHistoryRow = {
+  id: string;
+  application_id: string;
+  from_status: string | null;
+  to_status: string;
+  changed_by: string | null;
+  note: string | null;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// payments (Milestone 7 — operational tracking only, see 0004 migration)
+// ---------------------------------------------------------------------------
+type PaymentsRow = {
+  id: string;
+  student_user_id: string | null;
+  application_id: string | null;
+  invoice_reference: string | null;
+  amount_minor_units: number;
+  currency: string;
+  payment_type: string | null;
+  payment_method_label: string | null;
+  status: string;
+  due_date: string | null;
+  paid_date: string | null;
+  external_transaction_reference: string | null;
+  refund_status: string;
+  refund_amount_minor_units: number | null;
+  internal_notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// agreements (Milestone 7)
+// ---------------------------------------------------------------------------
+type AgreementsRow = {
+  id: string;
+  agreement_type: string;
+  student_user_id: string | null;
+  lead_id: string | null;
+  counsellor_id: string | null;
+  university_id: string | null;
+  version: string | null;
+  status: string;
+  effective_date: string | null;
+  expiry_date: string | null;
+  document_reference_url: string | null;
+  signature_status: string;
+  internal_notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// content_items (Milestone 7 CMS)
+// ---------------------------------------------------------------------------
+type ContentItemsRow = {
+  id: string;
+  content_type: string;
+  slug: string;
+  content_key: string | null;
+  locale: string;
+  title: string;
+  body: string;
+  status: string;
+  sort_order: number;
+  published_at: string | null;
+  editor_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// conversion_events (Milestone 7)
+// ---------------------------------------------------------------------------
+type ConversionEventsRow = {
+  id: string;
+  lead_id: string | null;
+  student_user_id: string | null;
+  event_name: string;
+  source: string | null;
+  medium: string | null;
+  campaign: string | null;
+  landing_page: string | null;
+  referral_label: string | null;
+  occurred_at: string;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// admin_audit_log (Milestone 7)
+// ---------------------------------------------------------------------------
+type AdminAuditLogRow = {
+  id: string;
+  actor_user_id: string | null;
+  actor_role: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  summary: string;
+  changes: Json | null;
+  context: Json | null;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// Milestone 8 — Payments, Invoicing and Receipts (0005_payments_billing.sql)
+// ---------------------------------------------------------------------------
+type BillingSettingsRow = {
+  id: number;
+  legal_entity_name: string | null;
+  business_address: string | null;
+  support_email: string | null;
+  support_phone: string | null;
+  gst_registered: boolean;
+  gstin: string | null;
+  default_tax_rate_bps: number | null;
+  invoice_footer_note: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type InvoicesRow = {
+  id: string;
+  invoice_number: string | null;
+  student_user_id: string | null;
+  application_id: string | null;
+  status: string;
+  currency: string;
+  subtotal_minor_units: number;
+  discount_minor_units: number;
+  tax_minor_units: number;
+  total_minor_units: number;
+  issue_date: string | null;
+  due_date: string | null;
+  internal_notes: string | null;
+  student_notes: string | null;
+  billing_snapshot: Json | null;
+  void_reason: string | null;
+  created_by: string | null;
+  issued_by: string | null;
+  issued_at: string | null;
+  paid_at: string | null;
+  voided_by: string | null;
+  voided_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type InvoiceLineItemsRow = {
+  id: string;
+  invoice_id: string;
+  description: string;
+  quantity: number;
+  unit_amount_minor_units: number;
+  discount_minor_units: number;
+  tax_rate_bps: number | null;
+  tax_minor_units: number;
+  line_total_minor_units: number;
+  sort_order: number;
+  created_at: string;
+};
+
+type PaymentAttemptsRow = {
+  id: string;
+  invoice_id: string;
+  provider: string;
+  provider_order_id: string | null;
+  idempotency_key: string;
+  status: string;
+  amount_minor_units: number;
+  currency: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type PaymentTransactionsRow = {
+  id: string;
+  payment_attempt_id: string;
+  provider_payment_id: string | null;
+  is_manual: boolean;
+  status: string;
+  amount_minor_units: number;
+  amount_refunded_minor_units: number;
+  currency: string;
+  method_category: string | null;
+  captured_at: string | null;
+  failure_reason: string | null;
+  raw_status: string | null;
+  recorded_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type RefundsRow = {
+  id: string;
+  payment_transaction_id: string;
+  invoice_id: string;
+  provider_refund_id: string | null;
+  amount_minor_units: number;
+  status: string;
+  reason: string | null;
+  initiated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type PaymentWebhookEventsRow = {
+  id: string;
+  provider: string;
+  event_id: string;
+  event_type: string;
+  processing_status: string;
+  related_invoice_id: string | null;
+  related_payment_attempt_id: string | null;
+  related_payment_transaction_id: string | null;
+  diagnostic_message: string | null;
+  payload_summary: Json | null;
+  created_at: string;
+  processed_at: string | null;
+};
+
+type PaymentRequestTokensRow = {
+  id: string;
+  invoice_id: string;
+  token_hash: string;
+  expires_at: string;
+  created_by: string | null;
+  created_at: string;
+  revoked_at: string | null;
+};
+
 export interface Database {
   public: {
     // No views or functions are defined for this project — these two
@@ -401,7 +800,46 @@ export interface Database {
     // insert/update payload to type-error while `profiles` (whose call
     // sites never destructured a row field directly) stayed silent.
     Views: { [_ in never]: never };
-    Functions: { [_ in never]: never };
+    // Milestone 7 adds exactly one RPC: record_admin_audit_log (the only
+    // write path into admin_audit_log — see 0004_admin_system.sql PART 11
+    // and src/lib/admin/audit.ts). Args/Returns here match its SQL
+    // signature exactly.
+    Functions: {
+      record_admin_audit_log: {
+        Args: {
+          p_action: string;
+          p_entity_type: string;
+          p_entity_id: string | null;
+          p_summary: string;
+          p_changes?: Json | null;
+          p_context?: Json | null;
+        };
+        Returns: string;
+      };
+      // Milestone 8 — see 0005_payments_billing.sql for full documentation
+      // of each function's authorization/verification behavior.
+      next_invoice_number: {
+        Args: Record<string, never>;
+        Returns: string;
+      };
+      recompute_invoice_status: {
+        Args: { p_invoice_id: string };
+        Returns: InvoicesRow;
+      };
+      verify_checkout_payment: {
+        Args: {
+          p_payment_attempt_id: string;
+          p_provider_payment_id: string;
+          p_provider_order_id: string;
+          p_signature: string;
+        };
+        Returns: PaymentAttemptsRow;
+      };
+      apply_webhook_event: {
+        Args: { p_raw_body: string; p_signature: string };
+        Returns: Json;
+      };
+    };
     Tables: {
       profiles: {
         Row: ProfilesRow;
@@ -605,6 +1043,173 @@ export interface Database {
         Row: CareerRelatedRow;
         Insert: Omit<CareerRelatedRow, "created_at"> & { created_at?: string };
         Update: Partial<Omit<CareerRelatedRow, "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      // -----------------------------------------------------------------
+      // Milestone 7 — Full Admin System
+      // -----------------------------------------------------------------
+      admin_roles: {
+        Row: AdminRolesRow;
+        Insert: Partial<AdminRolesRow> & { user_id: string; role: string };
+        Update: Partial<Omit<AdminRolesRow, "user_id">>;
+        Relationships: [];
+      };
+
+      counsellors: {
+        Row: CounsellorsRow;
+        Insert: Omit<CounsellorsRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<CounsellorsRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      universities: {
+        Row: UniversitiesRow;
+        Insert: Omit<UniversitiesRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<UniversitiesRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      courses: {
+        Row: CoursesRow;
+        Insert: Omit<CoursesRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<CoursesRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      admin_student_meta: {
+        Row: AdminStudentMetaRow;
+        Insert: Partial<AdminStudentMetaRow> & { student_user_id: string };
+        Update: Partial<Omit<AdminStudentMetaRow, "student_user_id">>;
+        Relationships: [];
+      };
+
+      admin_student_notes: {
+        Row: AdminStudentNotesRow;
+        Insert: Omit<AdminStudentNotesRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<AdminStudentNotesRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      leads: {
+        Row: LeadsRow;
+        Insert: Omit<LeadsRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<LeadsRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      lead_status_history: {
+        Row: LeadStatusHistoryRow;
+        Insert: Omit<LeadStatusHistoryRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<LeadStatusHistoryRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      applications: {
+        Row: ApplicationsRow;
+        Insert: Omit<ApplicationsRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<ApplicationsRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      application_status_history: {
+        Row: ApplicationStatusHistoryRow;
+        Insert: Omit<ApplicationStatusHistoryRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<ApplicationStatusHistoryRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      payments: {
+        Row: PaymentsRow;
+        Insert: Omit<PaymentsRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<PaymentsRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      agreements: {
+        Row: AgreementsRow;
+        Insert: Omit<AgreementsRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<AgreementsRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      content_items: {
+        Row: ContentItemsRow;
+        Insert: Omit<ContentItemsRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<ContentItemsRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      conversion_events: {
+        Row: ConversionEventsRow;
+        Insert: Omit<ConversionEventsRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<ConversionEventsRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      admin_audit_log: {
+        Row: AdminAuditLogRow;
+        Insert: Omit<AdminAuditLogRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<AdminAuditLogRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      // -----------------------------------------------------------------
+      // Milestone 8 — Payments, Invoicing and Receipts
+      // -----------------------------------------------------------------
+      billing_settings: {
+        Row: BillingSettingsRow;
+        Insert: Partial<BillingSettingsRow> & { id?: number };
+        Update: Partial<Omit<BillingSettingsRow, "id">>;
+        Relationships: [];
+      };
+
+      invoices: {
+        Row: InvoicesRow;
+        Insert: Omit<InvoicesRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<InvoicesRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      invoice_line_items: {
+        Row: InvoiceLineItemsRow;
+        Insert: Omit<InvoiceLineItemsRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<InvoiceLineItemsRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      payment_attempts: {
+        Row: PaymentAttemptsRow;
+        Insert: Omit<PaymentAttemptsRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<PaymentAttemptsRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      payment_transactions: {
+        Row: PaymentTransactionsRow;
+        Insert: Omit<PaymentTransactionsRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<PaymentTransactionsRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      refunds: {
+        Row: RefundsRow;
+        Insert: Omit<RefundsRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<RefundsRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      payment_webhook_events: {
+        Row: PaymentWebhookEventsRow;
+        Insert: Omit<PaymentWebhookEventsRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<PaymentWebhookEventsRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      payment_request_tokens: {
+        Row: PaymentRequestTokensRow;
+        Insert: Omit<PaymentRequestTokensRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<PaymentRequestTokensRow, "id" | "created_at">> & { created_at?: string };
         Relationships: [];
       };
     };

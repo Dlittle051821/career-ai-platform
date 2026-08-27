@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseEnv } from "./env";
+import type { Database } from "@/types/database";
 
-const PROTECTED_PATHS = ["/dashboard", "/roadmap", "/profile", "/recommendations"];
+const PROTECTED_PATHS = ["/dashboard", "/roadmap", "/profile", "/recommendations", "/admin", "/payments", "/pay"];
 const AUTH_ONLY_PATHS = ["/login", "/register"];
 
 /**
@@ -23,7 +24,7 @@ export async function updateSession(request: NextRequest) {
 
   const { url, publishableKey } = getSupabaseEnv();
 
-  const supabase = createServerClient(url, publishableKey, {
+  const supabase = createServerClient<Database>(url, publishableKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -58,6 +59,17 @@ export async function updateSession(request: NextRequest) {
   if (isAuthOnly && user) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
+
+  // Milestone 7 — /admin is in PROTECTED_PATHS above, so a logged-out
+  // visitor is already redirected to /login before ever reaching admin
+  // markup. Whether a LOGGED-IN visitor actually holds an admin role is
+  // deliberately NOT checked here: that would mean an extra database round
+  // trip on every single /admin/* navigation. Instead src/app/admin/layout.tsx
+  // (a Server Component that runs before any admin page renders) does that
+  // check once per navigation via getCurrentAdmin() and renders an
+  // access-denied state inline for a signed-in-but-unauthorized user —
+  // same "before any markup renders" guarantee, one fewer query on the hot
+  // path. RLS on every table is the enforcement backstop either way.
 
   // IMPORTANT: `supabaseResponse` must be returned as-is (or a new response
   // built from it, copying its cookies) so the refreshed session cookie
