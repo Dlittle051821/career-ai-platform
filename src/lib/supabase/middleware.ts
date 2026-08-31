@@ -3,7 +3,20 @@ import { createServerClient } from "@supabase/ssr";
 import { getSupabaseEnv } from "./env";
 import type { Database } from "@/types/database";
 
-const PROTECTED_PATHS = ["/dashboard", "/roadmap", "/profile", "/recommendations", "/admin", "/payments", "/pay", "/saved", "/applications", "/pricing/checkout"];
+const PROTECTED_PATHS = [
+  "/dashboard",
+  "/roadmap",
+  "/profile",
+  "/recommendations",
+  "/admin",
+  "/payments",
+  "/pay",
+  "/saved",
+  "/applications",
+  "/pricing/checkout",
+  // Milestone 10 (F-122) — student-facing "My Agreements" detail pages.
+  "/agreements",
+];
 const AUTH_ONLY_PATHS = ["/login", "/register"];
 
 /**

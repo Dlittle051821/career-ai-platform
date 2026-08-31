@@ -115,6 +115,26 @@ export default defineConfig({
       "scripts/**/*.test.ts",
       "src/config/**/*.test.ts",
       "src/lib/analytics/**/*.test.ts",
+      // Milestone 10 (F-122) — Electronic Signature Integration: provider
+      // abstraction/mock-provider state machine, config env-parsing, and
+      // send/resend/cancel business rules (src/lib/signatures/), the
+      // Storage helper's migration-security regression guard
+      // (src/lib/storage/), and the notification stand-in
+      // (src/lib/notifications/) — same "pure, framework-free" convention
+      // as every directory above; nothing here talks to Supabase (that
+      // lives in src/lib/supabase/admin/signatures.ts and
+      // src/lib/supabase/agreements/, untested here for the same reason
+      // as every other src/lib/supabase/ module). The two authoritative
+      // Postgres SECURITY DEFINER functions
+      // (apply_signature_webhook_event/set_signature_document_path), the
+      // agreement_versions immutability trigger, and every new RLS policy
+      // cannot be unit-tested via Vitest — see
+      // docs/milestones/M10-electronic-signature.md for how those are
+      // verified instead (manual Supabase walkthrough), same convention
+      // as every prior milestone's own SECURITY DEFINER functions.
+      "src/lib/signatures/**/*.test.ts",
+      "src/lib/storage/**/*.test.ts",
+      "src/lib/notifications/**/*.test.ts",
     ],
   },
 });

@@ -4,6 +4,12 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAgreement, updateAgreement } from "@/lib/supabase/admin/agreements";
+import {
+  createAgreementVersion,
+  sendForSignature,
+  resendSignatureRequestAction as resendSignatureRequest,
+  cancelSignatureRequestAction as cancelSignatureRequest,
+} from "@/lib/supabase/admin/signatures";
 import { friendlyAdminError, AdminValidationError, type ActionState } from "@/lib/admin/form-state";
 
 async function resolveStudentEmail(formData: FormData): Promise<FormData> {
@@ -44,4 +50,50 @@ export async function updateAgreementAction(id: string, _prev: ActionState, form
   revalidatePath("/admin/agreements");
   revalidatePath(`/admin/agreements/${id}`);
   redirect(`/admin/agreements/${id}`);
+}
+
+// ---------------------------------------------------------------------------
+// Milestone 10 (F-122) — agreement versions + signature requests
+// ---------------------------------------------------------------------------
+
+export async function createAgreementVersionAction(agreementId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    await createAgreementVersion(agreementId, formData);
+  } catch (error) {
+    return { error: friendlyAdminError(error) };
+  }
+  revalidatePath(`/admin/agreements/${agreementId}`);
+  return { error: null };
+}
+
+export async function sendForSignatureAction(agreementId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    await sendForSignature(agreementId, formData);
+  } catch (error) {
+    return { error: friendlyAdminError(error) };
+  }
+  revalidatePath("/admin/agreements");
+  revalidatePath(`/admin/agreements/${agreementId}`);
+  return { error: null };
+}
+
+export async function resendSignatureRequestFormAction(agreementId: string, requestId: string, _prev: ActionState, _formData: FormData): Promise<ActionState> {
+  try {
+    await resendSignatureRequest(requestId);
+  } catch (error) {
+    return { error: friendlyAdminError(error) };
+  }
+  revalidatePath(`/admin/agreements/${agreementId}`);
+  return { error: null };
+}
+
+export async function cancelSignatureRequestFormAction(agreementId: string, requestId: string, _prev: ActionState, _formData: FormData): Promise<ActionState> {
+  try {
+    await cancelSignatureRequest(requestId);
+  } catch (error) {
+    return { error: friendlyAdminError(error) };
+  }
+  revalidatePath("/admin/agreements");
+  revalidatePath(`/admin/agreements/${agreementId}`);
+  return { error: null };
 }

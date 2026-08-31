@@ -49,6 +49,10 @@ const STATUS_TONE: Record<string, Tone> = {
   expired: "neutral",
   not_started: "neutral",
   pending_signature: "warning",
+  // Milestone 10 (F-122) — signature_requests.status / agreement_versions.status
+  viewed: "warning",
+  locked: "info",
+  superseded: "neutral",
   // Priority
   low: "neutral",
   medium: "info",

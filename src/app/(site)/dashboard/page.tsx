@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Bookmark, ClipboardList, Compass, LibraryBig, Mail, Map, Phone, Receipt, Sparkles, Tag, UserRound } from "lucide-react";
+import { Bookmark, ClipboardList, Compass, FileSignature, LibraryBig, Mail, Map, Phone, Receipt, Sparkles, Tag, UserRound } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -11,6 +11,7 @@ import { getStudentProfileSnapshot } from "@/lib/supabase/student-profile";
 import { calculateCompletion } from "@/lib/profile/completion";
 import { listMyInvoices } from "@/lib/supabase/payments/student-invoices";
 import { listMyPurchases } from "@/lib/supabase/pricing/my-purchases";
+import { listMyAgreements } from "@/lib/supabase/agreements/my-agreements";
 import { INVOICE_STATUS_LABELS, PAYABLE_INVOICE_STATUSES } from "@/types/payments";
 import { formatMoney } from "@/lib/admin/money";
 import { listSavedItems } from "@/lib/supabase/education/saved-items";
@@ -50,6 +51,7 @@ export default async function DashboardPage() {
   const payableInvoices = invoices.filter((inv) => PAYABLE_INVOICE_STATUSES.includes(inv.status));
   const totalDueMinorUnits = payableInvoices.reduce((sum, inv) => sum + inv.dueMinorUnits, 0);
   const purchases = await listMyPurchases();
+  const agreements = await listMyAgreements();
 
   const savedItems = await listSavedItems();
   const savedUniversityCount = savedItems.filter((i) => i.entityType === "university").length;
@@ -224,6 +226,42 @@ export default async function DashboardPage() {
                 })}
               </ul>
             )}
+          </div>
+        </div>
+      </Card>
+
+      <Card className="mt-6">
+        <div className="flex items-start gap-4">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
+            <FileSignature aria-hidden="true" className="h-5 w-5" />
+          </span>
+          <div className="flex-1">
+            <h2 className="text-lg font-semibold text-primary">My agreements</h2>
+            <p className="mt-1 text-sm text-muted">
+              {agreements.length === 0
+                ? "No agreements yet — these appear here once one is prepared for you."
+                : `${agreements.length} agreement${agreements.length === 1 ? "" : "s"}.`}
+            </p>
+            {agreements.length > 0 ? (
+              <ul className="mt-4 divide-y divide-border">
+                {agreements.map((a) => (
+                  <li key={a.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-text">{a.agreementType}</p>
+                      <p className="mt-0.5 text-xs text-muted">Updated {new Date(a.updatedAt).toLocaleDateString("en-IN")}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge tone={a.signatureStatus === "signed" ? "success" : a.signatureStatus === "pending_signature" ? "warning" : "neutral"}>
+                        {a.signatureStatus === "signed" ? "Signed" : a.signatureStatus === "pending_signature" ? "Awaiting signature" : "Not started"}
+                      </Badge>
+                      <LinkButton href={`/agreements/${a.id}`} size="sm" variant="outline">
+                        View
+                      </LinkButton>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
         </div>
       </Card>

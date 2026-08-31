@@ -36,7 +36,8 @@ export type EventCategory =
   | "college"
   | "lead"
   | "commercial"
-  | "outcome";
+  | "outcome"
+  | "agreement";
 
 export interface EventDefinition {
   name: string;
@@ -256,6 +257,40 @@ export const PRODUCT_EVENTS = {
     status: "reserved",
     reason: "Same as offer_received — reconstructed from applications/student_outcomes, not yet duplicated into the event stream.",
   },
+
+  // ---------------------------------------------------------------------
+  // Milestone 10 — Electronic Signature Integration (F-122)
+  // ---------------------------------------------------------------------
+  agreement_signature_requested: {
+    name: "agreement_signature_requested",
+    category: "agreement",
+    status: "implemented",
+    reason: "Fired from sendForSignature() (src/lib/supabase/admin/signatures.ts) once a signature request has actually been created and sent to the provider.",
+  },
+  agreement_signature_viewed: {
+    name: "agreement_signature_viewed",
+    category: "agreement",
+    status: "implemented",
+    reason: "Fired from src/app/api/webhooks/signature/route.ts after a verified 'signature_request.viewed' webhook delivery is processed.",
+  },
+  agreement_signature_completed: {
+    name: "agreement_signature_completed",
+    category: "agreement",
+    status: "implemented",
+    reason: "Fired from src/app/api/webhooks/signature/route.ts after a verified 'signature_request.signed' webhook delivery is processed.",
+  },
+  agreement_signature_declined: {
+    name: "agreement_signature_declined",
+    category: "agreement",
+    status: "implemented",
+    reason: "Fired from src/app/api/webhooks/signature/route.ts after a verified 'signature_request.declined' webhook delivery is processed.",
+  },
+  agreement_signature_cancelled: {
+    name: "agreement_signature_cancelled",
+    category: "agreement",
+    status: "implemented",
+    reason: "Fired from cancelSignatureRequest() (src/lib/supabase/admin/signatures.ts) once an admin's explicit cancel action succeeds.",
+  },
 } as const satisfies Record<string, EventDefinition>;
 
 export type ProductEventName = keyof typeof PRODUCT_EVENTS;
@@ -279,5 +314,5 @@ export function isImplementedEventName(value: string): value is ImplementedEvent
  * no CHECK, unlike event_name) since this column is descriptive metadata,
  * not itself a source of authorization or business logic.
  */
-export const EVENT_ENTITY_TYPES = ["career", "course", "university", "lead", "application", "invoice", "plan", "profile"] as const;
+export const EVENT_ENTITY_TYPES = ["career", "course", "university", "lead", "application", "invoice", "plan", "profile", "agreement", "signature_request"] as const;
 export type EventEntityType = (typeof EVENT_ENTITY_TYPES)[number];

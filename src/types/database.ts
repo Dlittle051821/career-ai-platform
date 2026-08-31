@@ -879,6 +879,60 @@ type AgreementsRow = {
 };
 
 // ---------------------------------------------------------------------------
+// agreement_versions / signature_requests / signature_webhook_events
+// (Milestone 10 — Electronic Signature Integration, F-122)
+// ---------------------------------------------------------------------------
+type AgreementVersionsRow = {
+  id: string;
+  agreement_id: string;
+  version_number: number;
+  content_reference_url: string | null;
+  content_notes: string | null;
+  status: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type SignatureRequestsRow = {
+  id: string;
+  agreement_id: string;
+  agreement_version_id: string;
+  provider: string;
+  provider_request_id: string | null;
+  status: string;
+  signer_user_id: string | null;
+  signer_name: string;
+  signer_email: string;
+  requested_at: string | null;
+  sent_at: string | null;
+  viewed_at: string | null;
+  signed_at: string | null;
+  declined_at: string | null;
+  cancelled_at: string | null;
+  expired_at: string | null;
+  signed_document_storage_path: string | null;
+  provider_metadata: Json;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type SignatureWebhookEventsRow = {
+  id: string;
+  provider: string;
+  event_id: string;
+  event_type: string;
+  processing_status: string;
+  related_signature_request_id: string | null;
+  related_agreement_id: string | null;
+  diagnostic_message: string | null;
+  payload_summary: Json | null;
+  created_at: string;
+  processed_at: string | null;
+};
+
+// ---------------------------------------------------------------------------
 // content_items (Milestone 7 CMS)
 // ---------------------------------------------------------------------------
 type ContentItemsRow = {
@@ -1352,6 +1406,26 @@ export interface Database {
         };
         Returns: Json;
       };
+      // Milestone 10 — Electronic Signature Integration (F-122) — see
+      // 0011_electronic_signature.sql for full documentation of each
+      // function's authorization/verification behavior.
+      create_signature_request: {
+        Args: {
+          p_agreement_version_id: string;
+          p_signer_name: string;
+          p_signer_email: string;
+          p_provider?: string;
+        };
+        Returns: SignatureRequestsRow;
+      };
+      apply_signature_webhook_event: {
+        Args: { p_raw_body: string; p_signature: string };
+        Returns: Json;
+      };
+      set_signature_document_path: {
+        Args: { p_provider: string; p_provider_request_id: string; p_storage_path: string };
+        Returns: Json;
+      };
     };
     Tables: {
       profiles: {
@@ -1734,6 +1808,30 @@ export interface Database {
         Row: AgreementsRow;
         Insert: Omit<AgreementsRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
         Update: Partial<Omit<AgreementsRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      // -----------------------------------------------------------------
+      // Milestone 10 — Electronic Signature Integration (F-122)
+      // -----------------------------------------------------------------
+      agreement_versions: {
+        Row: AgreementVersionsRow;
+        Insert: Omit<AgreementVersionsRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<AgreementVersionsRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      signature_requests: {
+        Row: SignatureRequestsRow;
+        Insert: Omit<SignatureRequestsRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<SignatureRequestsRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      signature_webhook_events: {
+        Row: SignatureWebhookEventsRow;
+        Insert: Omit<SignatureWebhookEventsRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<SignatureWebhookEventsRow, "id" | "created_at">> & { created_at?: string };
         Relationships: [];
       };
 
