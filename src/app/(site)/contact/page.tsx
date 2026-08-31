@@ -6,11 +6,11 @@ import { Card } from "@/components/ui/Card";
 import { PageHero } from "@/components/sections/PageHero";
 import { ContactForm } from "@/components/sections/contact/ContactForm";
 import { CONTACT_PURPOSES } from "@/data/contact";
-import { CONTACT } from "@/config/site";
+import { BRAND_NAME, CONTACT } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Contact",
-  description: "Reach CareerPath AI for student guidance, parent questions, partnership enquiries, or complaints.",
+  description: `Reach ${BRAND_NAME} for student guidance, parent questions, partnership enquiries, or complaints.`,
 };
 
 const ICONS = {

@@ -446,6 +446,33 @@ type UniversitiesRow = {
   updated_by: string | null;
   created_at: string;
   updated_at: string;
+  // Milestone 9 additions (supabase/migrations/0006_global_university_course_data.sql PART 2):
+  country_id: string | null;
+  state_region: string | null;
+  street_address: string | null;
+  postal_code: string | null;
+  admissions_url: string | null;
+  international_admissions_url: string | null;
+  ownership_type: string | null;
+  founding_year: number | null;
+  accreditation_organization: string | null;
+  ranking: Json;
+  study_levels: string[];
+  study_modes: string[];
+  campus_info: string | null;
+  logo_url: string | null;
+  international_student_support: string | null;
+  scholarships_available: boolean | null;
+  application_fee_minor_units: number | null;
+  application_fee_currency: string | null;
+  publication_status: string;
+  data_source: string | null;
+  source_url: string | null;
+  source_access_date: string | null;
+  last_verified_at: string | null;
+  verification_status: string;
+  merged_into_id: string | null;
+  search_vector: unknown;
 };
 
 // ---------------------------------------------------------------------------
@@ -473,6 +500,249 @@ type CoursesRow = {
   internal_notes: string | null;
   created_at: string;
   updated_at: string;
+  // Milestone 9 additions (supabase/migrations/0006_global_university_course_data.sql PART 4):
+  campus_id: string | null;
+  program_code: string | null;
+  subject_area: string | null;
+  discipline: string | null;
+  qualification_title: string | null;
+  award: string | null;
+  duration_value: number | null;
+  duration_unit: string | null;
+  study_pace: string | null;
+  teaching_language: string | null;
+  tuition_domestic_or_international: string | null;
+  additional_fees_summary: string | null;
+  application_fee_minor_units: number | null;
+  application_fee_currency: string | null;
+  course_url: string | null;
+  intake_periods: string[];
+  min_academic_requirement: string | null;
+  english_requirements: Json;
+  standardized_test_requirements: Json;
+  work_experience_required: string | null;
+  portfolio_required: boolean | null;
+  interview_required: boolean | null;
+  study_gap_policy: string | null;
+  additional_documents_required: string[];
+  scholarships_available: boolean | null;
+  career_outcomes: string | null;
+  professional_accreditation: string | null;
+  publication_status: string;
+  data_source: string | null;
+  source_url: string | null;
+  last_verified_at: string | null;
+  verification_status: string;
+  merged_into_id: string | null;
+  search_vector: unknown;
+};
+
+// ---------------------------------------------------------------------------
+// Milestone 9 — Global University and Course Data Platform
+// (supabase/migrations/0006_global_university_course_data.sql)
+// ---------------------------------------------------------------------------
+
+type CountriesRow = {
+  id: string;
+  iso_alpha2: string;
+  iso_alpha3: string;
+  name: string;
+  region: string | null;
+  subregion: string | null;
+  currency_code: string | null;
+  default_language: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+type CampusesRow = {
+  id: string;
+  university_id: string;
+  name: string;
+  country_id: string | null;
+  state_region: string | null;
+  city: string | null;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  is_main: boolean;
+  is_active: boolean;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type CourseIntakesRow = {
+  id: string;
+  course_id: string;
+  intake_name: string;
+  start_month: number | null;
+  start_year: number | null;
+  applications_open_at: string | null;
+  priority_deadline: string | null;
+  final_deadline: string | null;
+  international_deadline: string | null;
+  capacity_status: string;
+  intake_status: string;
+  data_source: string | null;
+  source_url: string | null;
+  last_verified_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type CourseTuitionFeesRow = {
+  id: string;
+  course_id: string;
+  student_category: string;
+  amount_minor_units: number;
+  currency_code: string;
+  academic_year: string;
+  billing_period: string | null;
+  mandatory_fees_minor_units: number;
+  estimated_living_costs_minor_units: number | null;
+  estimated_living_costs_period: string | null;
+  data_source: string | null;
+  source_url: string | null;
+  last_verified_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type CourseAdmissionRequirementsRow = {
+  id: string;
+  course_id: string;
+  country_context_id: string | null;
+  accepted_qualification: string;
+  minimum_grade: string | null;
+  minimum_gpa: number | null;
+  required_subjects: string[];
+  language_test: string | null;
+  language_test_min_score: number | null;
+  standardized_test: string | null;
+  standardized_test_min_score: number | null;
+  work_experience_required: string | null;
+  portfolio_required: boolean;
+  interview_required: boolean;
+  additional_documents: string[];
+  data_source: string | null;
+  source_url: string | null;
+  last_verified_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type ScholarshipsRow = {
+  id: string;
+  scope: string;
+  university_id: string | null;
+  course_id: string | null;
+  name: string;
+  eligibility: string | null;
+  award_amount_minor_units: number | null;
+  award_description: string | null;
+  currency_code: string | null;
+  deadline: string | null;
+  scholarship_url: string | null;
+  international_eligible: boolean | null;
+  is_active: boolean;
+  data_source: string | null;
+  source_url: string | null;
+  last_verified_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type EducationDataProvenanceRow = {
+  id: string;
+  entity_type: string;
+  entity_id: string;
+  source_provider: string | null;
+  source_type: string;
+  source_url: string | null;
+  source_record_id: string | null;
+  retrieved_at: string | null;
+  last_verified_at: string | null;
+  import_batch_id: string | null;
+  raw_record_checksum: string | null;
+  verification_status: string;
+  data_quality_status: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type EducationImportBatchesRow = {
+  id: string;
+  entity_type: string;
+  file_name: string | null;
+  file_size_bytes: number | null;
+  status: string;
+  total_records: number;
+  successful_records: number;
+  rejected_records: number;
+  warning_count: number;
+  dry_run: boolean;
+  duplicate_strategy: string;
+  started_at: string | null;
+  completed_at: string | null;
+  initiated_by: string | null;
+  raw_file_checksum: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type EducationImportRowsRow = {
+  id: string;
+  import_batch_id: string;
+  row_number: number;
+  raw_data: Json;
+  status: string;
+  errors: Json;
+  warnings: Json;
+  duplicate_of_entity_id: string | null;
+  resulting_entity_id: string | null;
+  created_at: string;
+};
+
+type EducationDuplicateCandidatesRow = {
+  id: string;
+  entity_type: string;
+  primary_entity_id: string;
+  candidate_entity_id: string;
+  match_score: number;
+  match_signals: Json;
+  status: string;
+  resolved_by: string | null;
+  resolved_at: string | null;
+  resolution_notes: string | null;
+  created_at: string;
+};
+
+type EducationSavedItemsRow = {
+  id: string;
+  student_user_id: string;
+  entity_type: string;
+  entity_id: string;
+  created_at: string;
+};
+
+type EducationIntakeInterestsRow = {
+  id: string;
+  student_user_id: string;
+  course_intake_id: string;
+  created_at: string;
+};
+
+type EducationCourseSharesRow = {
+  id: string;
+  student_user_id: string;
+  course_id: string;
+  counsellor_id: string | null;
+  message: string | null;
+  created_at: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -703,6 +973,9 @@ type InvoicesRow = {
   voided_at: string | null;
   created_at: string;
   updated_at: string;
+  // Milestone 10 — additive, nullable (0007_nextwise_pricing_offers.sql PART 6).
+  pricing_plan_id: string | null;
+  pricing_offer_id: string | null;
 };
 
 type InvoiceLineItemsRow = {
@@ -789,6 +1062,237 @@ type PaymentRequestTokensRow = {
   revoked_at: string | null;
 };
 
+// ---------------------------------------------------------------------------
+// Milestone 9 — Audit + Outcome Instrumentation (0010_product_events_and_outcomes.sql)
+// ---------------------------------------------------------------------------
+
+type ProductEventsRow = {
+  id: string;
+  event_name: string;
+  user_id: string | null;
+  session_id: string | null;
+  anonymous_id: string | null;
+  source: string | null;
+  path: string | null;
+  feature: string | null;
+  entity_type: string | null;
+  entity_id: string | null;
+  properties: Json;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  utm_content: string | null;
+  utm_term: string | null;
+  occurred_at: string;
+  created_at: string;
+};
+
+type StudentOutcomesRow = {
+  id: string;
+  student_user_id: string;
+  journey_stage: string;
+  outcome_status: string;
+  target_career_id: string | null;
+  target_course_id: string | null;
+  target_university_id: string | null;
+  final_application_id: string | null;
+  destination_country: string | null;
+  application_count: number;
+  offer_count: number;
+  final_decision_status: string | null;
+  outcome_source: string;
+  recorded_by: string | null;
+  metadata: Json;
+  recorded_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// Milestone 10 — NextWise Pricing & Offers (0007_nextwise_pricing_offers.sql)
+// ---------------------------------------------------------------------------
+
+type PricingPlansRow = {
+  id: string;
+  slug: string;
+  category: string;
+  internal_name: string;
+  display_order: number;
+  is_recommended: boolean;
+  is_active: boolean;
+  current_version_id: string | null;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type PricingPlanVersionsRow = {
+  id: string;
+  plan_id: string;
+  version_number: number;
+  public_title: string;
+  short_description: string | null;
+  detailed_description: string | null;
+  currency: string;
+  amount_minor_units: number;
+  payment_type: string;
+  billing_interval: string | null;
+  included_services: Json;
+  exclusions: Json;
+  cta_text: string | null;
+  tax_status: string;
+  status: string;
+  effective_from: string | null;
+  effective_until: string | null;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+  // Milestone 11 — 0008_pricing_inclusions_and_presentation.sql PART 2.
+  session_count: number | null;
+  session_duration_note: string | null;
+  audience_label: string | null;
+  university_shortlist_limit: number | null;
+  application_support_limit: number | null;
+  sop_review_rounds: number | null;
+  scholarship_support_note: string | null;
+  mock_interview_count: number | null;
+  counsellor_tier: string | null;
+  support_duration_note: string | null;
+};
+
+// Milestone 11 — 0008_pricing_inclusions_and_presentation.sql PART 1.
+type PricingPlanInclusionsRow = {
+  id: string;
+  plan_version_id: string;
+  display_order: number;
+  title: string;
+  explanation: string | null;
+  category: string | null;
+  numeric_allowance: number | null;
+  unit: string | null;
+  is_highlight: boolean;
+  is_active: boolean;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type PricingOffersRow = {
+  id: string;
+  plan_id: string;
+  public_offer_name: string;
+  internal_description: string | null;
+  discount_type: string;
+  discount_percent_bps: number | null;
+  discount_amount_minor_units: number | null;
+  discount_currency: string | null;
+  starts_at: string;
+  ends_at: string;
+  is_active: boolean;
+  status: string;
+  coupon_code: string | null;
+  max_redemptions: number | null;
+  per_user_limit: number | null;
+  redemption_count: number;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type PricingPurchasesRow = {
+  id: string;
+  student_user_id: string | null;
+  plan_id: string | null;
+  plan_version_id: string | null;
+  plan_name_at_purchase: string;
+  included_services_at_purchase: Json;
+  original_amount_minor_units: number;
+  discount_minor_units: number;
+  tax_minor_units: number;
+  final_amount_minor_units: number;
+  currency: string;
+  offer_id: string | null;
+  coupon_code_used: string | null;
+  invoice_id: string | null;
+  purchased_at: string;
+  // Milestone 11 — 0008_pricing_inclusions_and_presentation.sql PART 4.
+  session_count_at_purchase: number | null;
+  inclusions_at_purchase: Json;
+  presentation_limits_at_purchase: Json;
+};
+
+type PricingAnalyticsEventsRow = {
+  id: string;
+  event_type: string;
+  plan_id: string | null;
+  offer_id: string | null;
+  student_user_id: string | null;
+  session_ref: string | null;
+  occurred_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// Trusted Global Course Search — 0009_trusted_course_search.sql
+// ---------------------------------------------------------------------------
+type ExternalSearchProvidersRow = {
+  id: string;
+  slug: string;
+  display_name: string;
+  country_code: string | null;
+  region: string | null;
+  provider_type: string;
+  official_domain: string;
+  base_url: string;
+  fallback_url: string | null;
+  strategy: string;
+  description: string | null;
+  warning_text: string | null;
+  warning_effective_at: string | null;
+  warning_review_at: string | null;
+  language: string | null;
+  active: boolean;
+  last_verified_at: string | null;
+  verified_by: string | null;
+  supported_degree_levels: string[];
+  created_at: string;
+  updated_at: string;
+};
+
+type ExternalSearchMappingsRow = {
+  id: string;
+  provider_id: string;
+  canonical_subject_id: string;
+  degree_level: string;
+  destination_country_code: string;
+  verified_url: string | null;
+  provider_subject_code: string | null;
+  provider_degree_code: string | null;
+  search_term: string | null;
+  manual_instructions: string | null;
+  mapping_status: string;
+  last_verified_at: string | null;
+  verified_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type ExternalSearchClicksRow = {
+  id: string;
+  provider_id: string;
+  mapping_id: string | null;
+  canonical_subject_id: string | null;
+  degree_level: string | null;
+  destination_country_code: string | null;
+  source_page: string;
+  event_type: string;
+  user_id: string | null;
+  session_ref: string | null;
+  occurred_at: string;
+};
+
 export interface Database {
   public: {
     // No views or functions are defined for this project — these two
@@ -837,6 +1341,15 @@ export interface Database {
       };
       apply_webhook_event: {
         Args: { p_raw_body: string; p_signature: string };
+        Returns: Json;
+      };
+      // Milestone 10 — see 0007_nextwise_pricing_offers.sql PART 7.
+      purchase_pricing_plan: {
+        Args: {
+          p_plan_id: string;
+          p_offer_id?: string | null;
+          p_coupon_code?: string | null;
+        };
         Returns: Json;
       };
     };
@@ -1065,15 +1578,106 @@ export interface Database {
 
       universities: {
         Row: UniversitiesRow;
-        Insert: Omit<UniversitiesRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
-        Update: Partial<Omit<UniversitiesRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Insert: Omit<UniversitiesRow, "id" | "created_at" | "updated_at" | "search_vector"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<UniversitiesRow, "id" | "created_at" | "updated_at" | "search_vector">> & TimestampedInsert;
         Relationships: [];
       };
 
       courses: {
         Row: CoursesRow;
-        Insert: Omit<CoursesRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
-        Update: Partial<Omit<CoursesRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Insert: Omit<CoursesRow, "id" | "created_at" | "updated_at" | "search_vector"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<CoursesRow, "id" | "created_at" | "updated_at" | "search_vector">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      countries: {
+        Row: CountriesRow;
+        Insert: Omit<CountriesRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<CountriesRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      campuses: {
+        Row: CampusesRow;
+        Insert: Omit<CampusesRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<CampusesRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      course_intakes: {
+        Row: CourseIntakesRow;
+        Insert: Omit<CourseIntakesRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<CourseIntakesRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      course_tuition_fees: {
+        Row: CourseTuitionFeesRow;
+        Insert: Omit<CourseTuitionFeesRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<CourseTuitionFeesRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      course_admission_requirements: {
+        Row: CourseAdmissionRequirementsRow;
+        Insert: Omit<CourseAdmissionRequirementsRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<CourseAdmissionRequirementsRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      scholarships: {
+        Row: ScholarshipsRow;
+        Insert: Omit<ScholarshipsRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<ScholarshipsRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      education_data_provenance: {
+        Row: EducationDataProvenanceRow;
+        Insert: Omit<EducationDataProvenanceRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<EducationDataProvenanceRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      education_import_batches: {
+        Row: EducationImportBatchesRow;
+        Insert: Omit<EducationImportBatchesRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<EducationImportBatchesRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      education_import_rows: {
+        Row: EducationImportRowsRow;
+        Insert: Omit<EducationImportRowsRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<EducationImportRowsRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      education_duplicate_candidates: {
+        Row: EducationDuplicateCandidatesRow;
+        Insert: Omit<EducationDuplicateCandidatesRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<EducationDuplicateCandidatesRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      education_saved_items: {
+        Row: EducationSavedItemsRow;
+        Insert: Omit<EducationSavedItemsRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<EducationSavedItemsRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      education_intake_interests: {
+        Row: EducationIntakeInterestsRow;
+        Insert: Omit<EducationIntakeInterestsRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<EducationIntakeInterestsRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      education_course_shares: {
+        Row: EducationCourseSharesRow;
+        Insert: Omit<EducationCourseSharesRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<EducationCourseSharesRow, "id" | "created_at">> & { created_at?: string };
         Relationships: [];
       };
 
@@ -1166,7 +1770,12 @@ export interface Database {
 
       invoices: {
         Row: InvoicesRow;
-        Insert: Omit<InvoicesRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        // pricing_plan_id/pricing_offer_id (Milestone 10) are optional on
+        // insert — every pre-existing admin-issued-invoice call site never
+        // sets either, and both columns are nullable with an implicit
+        // Postgres default of null.
+        Insert: Omit<InvoicesRow, "id" | "created_at" | "updated_at" | "pricing_plan_id" | "pricing_offer_id"> &
+          TimestampedInsert & { id?: string; pricing_plan_id?: string | null; pricing_offer_id?: string | null };
         Update: Partial<Omit<InvoicesRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
         Relationships: [];
       };
@@ -1210,6 +1819,115 @@ export interface Database {
         Row: PaymentRequestTokensRow;
         Insert: Omit<PaymentRequestTokensRow, "id" | "created_at"> & { id?: string; created_at?: string };
         Update: Partial<Omit<PaymentRequestTokensRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      // ---------------------------------------------------------------
+      // Milestone 10 — NextWise Pricing & Offers
+      // ---------------------------------------------------------------
+      pricing_plans: {
+        Row: PricingPlansRow;
+        Insert: Omit<PricingPlansRow, "id" | "created_at" | "updated_at" | "current_version_id"> & TimestampedInsert & { id?: string; current_version_id?: string | null };
+        Update: Partial<Omit<PricingPlansRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      pricing_plan_versions: {
+        Row: PricingPlanVersionsRow;
+        Insert: Omit<PricingPlanVersionsRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<PricingPlanVersionsRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      // Milestone 11 — 0008_pricing_inclusions_and_presentation.sql PART 1.
+      pricing_plan_inclusions: {
+        Row: PricingPlanInclusionsRow;
+        Insert: Omit<PricingPlanInclusionsRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<PricingPlanInclusionsRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      pricing_offers: {
+        Row: PricingOffersRow;
+        Insert: Omit<PricingOffersRow, "id" | "created_at" | "updated_at" | "redemption_count"> & TimestampedInsert & { id?: string; redemption_count?: number };
+        Update: Partial<Omit<PricingOffersRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      pricing_purchases: {
+        Row: PricingPurchasesRow;
+        Insert: Omit<PricingPurchasesRow, "id" | "purchased_at"> & { id?: string; purchased_at?: string };
+        Update: Partial<Omit<PricingPurchasesRow, "id">>;
+        Relationships: [];
+      };
+
+      pricing_analytics_events: {
+        Row: PricingAnalyticsEventsRow;
+        Insert: Omit<PricingAnalyticsEventsRow, "id" | "occurred_at" | "student_user_id"> & { id?: string; occurred_at?: string; student_user_id?: string | null };
+        Update: Partial<Omit<PricingAnalyticsEventsRow, "id">>;
+        Relationships: [];
+      };
+
+      external_search_providers: {
+        Row: ExternalSearchProvidersRow;
+        Insert: Omit<ExternalSearchProvidersRow, "id" | "created_at" | "updated_at" | "active" | "supported_degree_levels"> &
+          TimestampedInsert & { id?: string; active?: boolean; supported_degree_levels?: string[] };
+        Update: Partial<Omit<ExternalSearchProvidersRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      external_search_mappings: {
+        Row: ExternalSearchMappingsRow;
+        Insert: Omit<ExternalSearchMappingsRow, "id" | "created_at" | "updated_at" | "mapping_status"> &
+          TimestampedInsert & { id?: string; mapping_status?: string };
+        Update: Partial<Omit<ExternalSearchMappingsRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      external_search_clicks: {
+        Row: ExternalSearchClicksRow;
+        Insert: Omit<ExternalSearchClicksRow, "id" | "occurred_at" | "user_id" | "source_page" | "event_type" | "session_ref"> & {
+          id?: string;
+          occurred_at?: string;
+          user_id?: string | null;
+          source_page?: string;
+          event_type?: string;
+          session_ref?: string | null;
+        };
+        Update: Partial<Omit<ExternalSearchClicksRow, "id">>;
+        Relationships: [];
+      };
+
+      // ---------------------------------------------------------------
+      // Milestone 9 — Audit + Outcome Instrumentation
+      // ---------------------------------------------------------------
+      product_events: {
+        Row: ProductEventsRow;
+        Insert: Omit<ProductEventsRow, "id" | "occurred_at" | "created_at" | "user_id" | "properties"> & {
+          id?: string;
+          occurred_at?: string;
+          created_at?: string;
+          user_id?: string | null;
+          properties?: Json;
+        };
+        Update: Partial<Omit<ProductEventsRow, "id">>;
+        Relationships: [];
+      };
+
+      student_outcomes: {
+        Row: StudentOutcomesRow;
+        Insert: Omit<StudentOutcomesRow, "id" | "recorded_at" | "updated_at" | "journey_stage" | "outcome_status" | "outcome_source" | "application_count" | "offer_count" | "metadata"> & {
+          id?: string;
+          recorded_at?: string;
+          updated_at?: string;
+          journey_stage?: string;
+          outcome_status?: string;
+          outcome_source?: string;
+          application_count?: number;
+          offer_count?: number;
+          metadata?: Json;
+        };
+        Update: Partial<Omit<StudentOutcomesRow, "id">>;
         Relationships: [];
       };
     };

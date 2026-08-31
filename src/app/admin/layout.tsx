@@ -5,12 +5,13 @@ import { fontVariables } from "@/lib/fonts";
 import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { logout } from "@/lib/supabase/actions";
+import { BRAND_NAME } from "@/config/site";
 import "../globals.css";
 
 export const metadata: Metadata = {
   title: {
     default: "Admin",
-    template: "%s | CareerPath AI Admin",
+    template: `%s | ${BRAND_NAME} Admin`,
   },
   robots: { index: false, follow: false },
 };
@@ -46,7 +47,7 @@ export default async function AdminRootLayout({ children }: { children: React.Re
             </span>
             <h1 className="mt-6 text-2xl font-semibold text-primary sm:text-3xl">Access denied</h1>
             <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted">
-              Your account is signed in, but it doesn&apos;t have an admin role on CareerPath AI. If you believe this
+              Your account is signed in, but it doesn&apos;t have an admin role on {BRAND_NAME}. If you believe this
               is a mistake, contact a super admin and ask them to grant your account access — see
               docs/admin-system-guide.md §3 for how a super admin does this.
             </p>

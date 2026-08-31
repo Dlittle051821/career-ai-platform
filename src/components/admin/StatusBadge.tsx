@@ -72,6 +72,22 @@ const STATUS_TONE: Record<string, Tone> = {
   processed: "success",
   received: "neutral",
   ignored: "neutral",
+  // Milestone 9 — CSV import batches (education_import_batches.status) and
+  // rows (education_import_rows.status). "cancelled" and "failed" above are
+  // shared with existing modules; the rest are unique to the import
+  // pipeline, so no collision with any status string used elsewhere.
+  uploaded: "neutral",
+  validating: "info",
+  validated: "accent",
+  importing: "info",
+  completed: "success",
+  completed_with_errors: "warning",
+  valid: "success",
+  warning: "warning",
+  error: "error",
+  imported: "success",
+  skipped: "neutral",
+  duplicate: "warning",
 };
 
 function label(status: string): string {

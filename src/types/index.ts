@@ -1,5 +1,5 @@
 /**
- * Shared domain types for the CareerPath AI Milestone 1 frontend.
+ * Shared domain types for the NextWise Milestone 1 frontend.
  * Everything here is UI/config typing only — no backend/data-layer types yet.
  */
 
@@ -37,18 +37,6 @@ export interface JourneyStage {
   freeSupport: string[];
   paidSupport: string[];
   parentInvolvement?: string;
-}
-
-export interface PricingPackage {
-  id: string;
-  name: string;
-  price: number;
-  currency: "INR";
-  tagline: string;
-  bestFor: string;
-  provisional: true;
-  scope: string[];
-  notIncluded: string[];
 }
 
 export interface TrustItem {

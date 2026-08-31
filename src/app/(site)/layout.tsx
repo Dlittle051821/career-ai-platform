@@ -1,28 +1,41 @@
 import type { Metadata } from "next";
 import { Header } from "@/components/navigation/Header";
 import { Footer } from "@/components/navigation/Footer";
-import { BRAND_NAME, BRAND_SHORT_DESCRIPTION, SITE_URL } from "@/config/site";
+import { BRAND_LOGO, BRAND_NAME, BRAND_SHORT_DESCRIPTION, BRAND_TAGLINE, SITE_URL } from "@/config/site";
 import { fontVariables } from "@/lib/fonts";
+import { getOrganizationJsonLd, getWebsiteJsonLd, toSafeJsonLdString } from "@/lib/seo/structured-data";
 import "../globals.css";
+
+const DEFAULT_TITLE = `${BRAND_NAME} — ${BRAND_TAGLINE}`;
 
 export const metadata: Metadata = {
   metadataBase: SITE_URL ? new URL(SITE_URL) : undefined,
+  applicationName: BRAND_NAME,
   title: {
-    default: `${BRAND_NAME} — Career-first guidance for students in Odisha`,
+    default: DEFAULT_TITLE,
     template: `%s | ${BRAND_NAME}`,
   },
   description: BRAND_SHORT_DESCRIPTION,
   openGraph: {
     siteName: BRAND_NAME,
-    title: `${BRAND_NAME} — Career-first guidance for students in Odisha`,
+    title: DEFAULT_TITLE,
     description: BRAND_SHORT_DESCRIPTION,
     type: "website",
     locale: "en_IN",
+    images: [
+      {
+        url: BRAND_LOGO.socialShare,
+        width: BRAND_LOGO.socialShareWidth,
+        height: BRAND_LOGO.socialShareHeight,
+        alt: `${BRAND_NAME} — ${BRAND_TAGLINE}`,
+      },
+    ],
   },
   twitter: {
-    card: "summary",
-    title: `${BRAND_NAME} — Career-first guidance for students in Odisha`,
+    card: "summary_large_image",
+    title: DEFAULT_TITLE,
     description: BRAND_SHORT_DESCRIPTION,
+    images: [BRAND_LOGO.socialShare],
   },
   robots: {
     index: false,
@@ -46,6 +59,14 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={fontVariables}>
       <body className="min-h-screen bg-background font-sans text-text antialiased">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: toSafeJsonLdString(getOrganizationJsonLd()) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: toSafeJsonLdString(getWebsiteJsonLd()) }}
+        />
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>

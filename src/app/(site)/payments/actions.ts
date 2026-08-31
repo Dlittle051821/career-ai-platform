@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createOrReuseCheckoutSession, verifyCheckoutPayment, CheckoutError, type CheckoutSession } from "@/lib/supabase/payments/checkout";
+import { trackEvent } from "@/lib/supabase/analytics/track";
 
 export interface CheckoutSessionResult {
   session: CheckoutSession | null;
@@ -12,6 +13,17 @@ export interface CheckoutSessionResult {
 export async function createCheckoutSessionAction(invoiceId: string): Promise<CheckoutSessionResult> {
   try {
     const session = await createOrReuseCheckoutSession(invoiceId);
+    // Fire-and-forget, after the real checkout-session logic has already
+    // fully succeeded — a trackEvent() failure here can never turn a
+    // successful checkout-session creation into a reported error.
+    void trackEvent({
+      eventName: "payment_started",
+      source: "payments_page",
+      feature: "payments",
+      entityType: "invoice",
+      entityId: invoiceId,
+      properties: { currency: session.currency },
+    });
     return { session, error: null };
   } catch (error) {
     return { session: null, error: error instanceof CheckoutError ? error.message : "Could not start checkout. Please try again." };
@@ -29,6 +41,20 @@ export async function verifyCheckoutAction(invoiceId: string, params: { paymentA
     const result = await verifyCheckoutPayment(params);
     revalidatePath(`/payments/${invoiceId}`);
     revalidatePath("/payments");
+    // "Completed" here means the browser's checkout signature was
+    // independently re-verified server-side — checkout completion from
+    // the student's perspective. Final settlement is confirmed
+    // asynchronously by the Razorpay webhook (apply_webhook_event), which
+    // has no user-facing call site to instrument — see
+    // docs/M9_EVENT_TAXONOMY.md.
+    void trackEvent({
+      eventName: "payment_completed",
+      source: "payments_page",
+      feature: "payments",
+      entityType: "invoice",
+      entityId: invoiceId,
+      properties: { status: result.status },
+    });
     return { status: result.status, error: null };
   } catch (error) {
     return { status: null, error: error instanceof CheckoutError ? error.message : "We could not verify this payment." };

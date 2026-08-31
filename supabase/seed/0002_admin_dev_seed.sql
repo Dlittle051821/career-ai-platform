@@ -1,5 +1,5 @@
 -- =============================================================================
--- CareerPath AI — Milestone 7 admin system DEV-ONLY seed data
+-- NextWise — Milestone 7 admin system DEV-ONLY seed data
 -- =============================================================================
 --
 -- THIS FILE IS OPTIONAL AND IS NEVER RUN AUTOMATICALLY. It exists purely to

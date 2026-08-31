@@ -12,6 +12,7 @@ import { DemoNotice } from "@/components/ui/DemoNotice";
 import { fieldBorder, inputClasses } from "@/components/forms/FormField";
 import { cn } from "@/lib/utils";
 import { isRequired, isValidEmail, isValidIndianPhone, minLength } from "@/lib/validation";
+import { BRAND_NAME } from "@/config/site";
 
 interface FormState {
   studentName: string;
@@ -309,7 +310,7 @@ export function BookingForm() {
 
       <Checkbox
         id="booking-consent"
-        label="I consent to CareerPath AI contacting me about this counselling request."
+        label={`I consent to ${BRAND_NAME} contacting me about this counselling request.`}
         checked={values.consent}
         onChange={(e) => update("consent", e.target.checked)}
         error={errors.consent}

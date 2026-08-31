@@ -4,7 +4,7 @@ import type { BillingSettings } from "@/types/payments";
 
 function settings(overrides: Partial<BillingSettings> = {}): BillingSettings {
   return {
-    legalEntityName: "CareerPath AI",
+    legalEntityName: "NextWise",
     businessAddress: null,
     supportEmail: null,
     supportPhone: null,

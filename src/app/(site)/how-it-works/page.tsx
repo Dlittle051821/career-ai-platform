@@ -10,6 +10,7 @@ import { CTASection } from "@/components/sections/CTASection";
 import { DemoNotice } from "@/components/ui/DemoNotice";
 import { JOURNEY_STAGES } from "@/data/journey";
 import { HOME_FAQS } from "@/data/faqs";
+import { BRAND_NAME } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "How It Works",
@@ -58,7 +59,7 @@ export default function HowItWorksPage() {
       <PageHero
         eyebrow="How it works"
         title="One connected journey from career clarity to job readiness"
-        description="CareerPath AI is built as a modular journey. Move through it stage by stage, using free resources and paid support where it helps most."
+        description={`${BRAND_NAME} is built as a modular journey. Move through it stage by stage, using free resources and paid support where it helps most.`}
         breadcrumbs={[{ label: "Home", href: "/" }, { label: "How It Works" }]}
       />
 

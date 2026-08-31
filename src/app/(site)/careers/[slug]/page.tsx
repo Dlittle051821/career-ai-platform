@@ -11,6 +11,7 @@ import { CareerCard } from "@/components/sections/careers/CareerCard";
 import { getCareerBySlug, getRelatedCareers } from "@/lib/supabase/careers";
 import { subjectLabel, interestLabel, skillLabel, educationLevelLabel, fieldLabel, SKILL_LEVEL_LABELS, RELEVANCE_LABELS } from "@/lib/careers/labels";
 import { deriveCareerCharacteristics } from "@/lib/careers/characteristics";
+import { trackEvent } from "@/lib/supabase/analytics/track";
 
 interface CareerDetailPageProps {
   params: Promise<{ slug: string }>;
@@ -59,6 +60,16 @@ export default async function CareerDetailPage({ params }: CareerDetailPageProps
     getRelatedCareers(career.id),
     Promise.resolve(deriveCareerCharacteristics(career.scores)),
   ]);
+
+  void trackEvent({
+    eventName: "career_viewed",
+    source: "career_detail_page",
+    path: `/careers/${career.slug}`,
+    feature: "career_explorer",
+    entityType: "career",
+    entityId: career.id,
+    properties: { slug: career.slug },
+  });
 
   const coreSubjects = career.subjects.filter((s) => s.importance >= 4);
   const otherSubjects = career.subjects.filter((s) => s.importance < 4);

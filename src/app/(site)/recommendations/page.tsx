@@ -9,6 +9,7 @@ import { RecommendationCard } from "@/components/sections/recommendations/Recomm
 import { getStudentProfileSnapshot } from "@/lib/supabase/student-profile";
 import { getCareersForMatching } from "@/lib/supabase/careers";
 import { getRecommendations, hasMinimumProfileDataForRecommendations } from "@/lib/recommendations";
+import { trackEvent } from "@/lib/supabase/analytics/track";
 
 export const metadata: Metadata = {
   title: "Career Recommendations",
@@ -73,6 +74,16 @@ export default async function RecommendationsPage() {
   }
 
   const { results, totalCareersConsidered } = getRecommendations(snapshot, careers);
+
+  void trackEvent({
+    eventName: "career_recommendations_generated",
+    source: "recommendations_page",
+    path: "/recommendations",
+    feature: "recommendations",
+    entityType: "profile",
+    entityId: snapshot.profile.userId || null,
+    properties: { careersConsidered: totalCareersConsidered, resultsCount: results.length },
+  });
 
   return (
     <Section tone="muted" className="pt-10 sm:pt-14">

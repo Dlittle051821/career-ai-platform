@@ -1,7 +1,10 @@
 import "server-only";
-import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage, type PDFPage } from "pdf-lib";
 import { formatMoneyForPdf } from "@/lib/admin/money";
 import { isGstConfigured, invoiceDocumentLabel } from "./tax";
+import { BRAND_NAME } from "@/config/site";
 import type { BillingSettings, Invoice, PaymentTransaction } from "@/types/payments";
 
 /**
@@ -11,6 +14,18 @@ import type { BillingSettings, Invoice, PaymentTransaction } from "@/types/payme
  * generateReceiptPdf (proof of one specific captured payment — only
  * producible for a transaction that is genuinely `captured`, gateway or
  * offline).
+ *
+ * Milestone 11 — BRAND TOUCH (light-touch only): three palette values from
+ * src/app/globals.css's --brand-* tokens (--brand-primary #005EF6,
+ * --brand-ink #000C24, plus --brand-success/--brand-danger for the status
+ * label) are converted to pdf-lib's 0-1 rgb() scale below (PDF_BRAND_*) and
+ * used ONLY for a restrained accent: the document title color, a thin rule
+ * under the header, the line-items table header tint, and the status label
+ * color. This is an accent, never the only way information is conveyed —
+ * every document remains fully readable printed in plain black-and-white
+ * (the status is also always spelled out as text, e.g. "PAID"/"PAYMENT
+ * DUE"). loadLogoBytes()/drawLogo()'s asset handling and sanitizeForPdf()
+ * are untouched.
  *
  * "Escaping all user content": every string that can contain admin/student
  * free text (descriptions, notes, names, addresses) goes through
@@ -29,6 +44,19 @@ import type { BillingSettings, Invoice, PaymentTransaction } from "@/types/payme
  * or "Tax Invoice" label unless billing_settings genuinely has GST
  * configured. See src/lib/payments/tax.ts.
  */
+
+/** Converts a `#rrggbb` hex string to pdf-lib's rgb() 0-1 scale. */
+function hexToPdfRgb(hex: string): [number, number, number] {
+  const value = hex.replace("#", "");
+  return [Number.parseInt(value.slice(0, 2), 16) / 255, Number.parseInt(value.slice(2, 4), 16) / 255, Number.parseInt(value.slice(4, 6), 16) / 255];
+}
+
+const PDF_BRAND_PRIMARY = hexToPdfRgb("#005EF6"); // --brand-primary (REAL)
+const PDF_BRAND_INK = hexToPdfRgb("#000C24"); // --brand-ink (REAL)
+const PDF_BRAND_SUCCESS = hexToPdfRgb("#1F7A3F"); // --brand-success (PROVISIONAL)
+const PDF_BRAND_DANGER = hexToPdfRgb("#AF351C"); // --brand-danger / --brand-coral (PROVISIONAL)
+/** A very light tint of --brand-primary, blended toward white — used only as the line-items table header background fill. */
+const PDF_BRAND_PRIMARY_TINT: [number, number, number] = [0.9, 0.94, 1];
 
 function sanitizeForPdf(input: string | null | undefined): string {
   if (!input) return "";
@@ -63,11 +91,56 @@ const PAGE_MARGIN = 50;
 async function newContext(): Promise<DocContext> {
   const doc = await PDFDocument.create();
   doc.setTitle("Invoice");
-  doc.setProducer("CareerPath AI");
+  doc.setProducer(BRAND_NAME);
   const page = doc.addPage([595.28, 841.89]); // A4
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   return { doc, page, font, bold, y: 841.89 - PAGE_MARGIN, pageWidth: 595.28, pageHeight: 841.89, margin: PAGE_MARGIN };
+}
+
+/**
+ * Logo asset for the PDF header — read from disk once per server process
+ * (not once per request) and cached, since it never changes at runtime.
+ * `undefined` = not yet attempted, `null` = attempted and unavailable
+ * (missing file, unreadable, or a format pdf-lib's embedPng() rejects) —
+ * either way generation degrades gracefully to a text-only header rather
+ * than throwing, per the "handle missing logo assets gracefully"
+ * requirement. pdf-lib's embedPng() accepts the RGBA PNG directly
+ * (transparency included) — unlike StandardFonts text encoding, there is no
+ * WinAnsi-style character-set limitation for images, so this asset needs no
+ * separate PDF-safe conversion.
+ */
+let cachedLogoBytes: Buffer | null | undefined;
+
+async function loadLogoBytes(): Promise<Buffer | null> {
+  if (cachedLogoBytes !== undefined) return cachedLogoBytes;
+  try {
+    cachedLogoBytes = await readFile(path.join(process.cwd(), "public", "brand", "nextwise-icon.png"));
+  } catch {
+    cachedLogoBytes = null;
+  }
+  return cachedLogoBytes;
+}
+
+const LOGO_DISPLAY_SIZE = 28;
+
+/** Draws the brand mark at the top-left of the current page and reserves vertical space for it, so the title text drawn immediately after never overlaps. No-ops silently if the asset can't be loaded or embedded. */
+async function drawLogo(ctx: DocContext): Promise<void> {
+  const bytes = await loadLogoBytes();
+  if (!bytes) return;
+  let image: PDFImage;
+  try {
+    image = await ctx.doc.embedPng(bytes);
+  } catch {
+    return;
+  }
+  ctx.page.drawImage(image, {
+    x: ctx.margin,
+    y: ctx.y - LOGO_DISPLAY_SIZE,
+    width: LOGO_DISPLAY_SIZE,
+    height: LOGO_DISPLAY_SIZE,
+  });
+  ctx.y -= LOGO_DISPLAY_SIZE + 10;
 }
 
 function ensureSpace(ctx: DocContext, needed: number): void {
@@ -123,7 +196,7 @@ function statusLabel(invoice: Invoice): string {
 }
 
 function drawHeader(ctx: DocContext, docLabel: string, settings: BillingSettings | null): void {
-  text(ctx, docLabel.toUpperCase(), { size: 20, bold: true, gap: 26 });
+  text(ctx, docLabel.toUpperCase(), { size: 20, bold: true, gap: 26, color: PDF_BRAND_INK });
   if (settings?.legalEntityName) text(ctx, settings.legalEntityName, { bold: true, size: 11 });
   if (settings?.businessAddress) {
     for (const line of settings.businessAddress.split("\n")) text(ctx, line, { size: 9, color: [0.35, 0.35, 0.35] });
@@ -135,7 +208,17 @@ function drawHeader(ctx: DocContext, docLabel: string, settings: BillingSettings
     text(ctx, `GSTIN: ${settings.gstin}`, { size: 9, color: [0.35, 0.35, 0.35] });
   }
   ctx.y -= 6;
-  hr(ctx);
+  // Milestone 11 — one thin brand-primary accent rule under the header,
+  // distinct from the plain grey hr() used everywhere else in the
+  // document; a restrained accent, not a redesign.
+  ensureSpace(ctx, 10);
+  ctx.page.drawLine({
+    start: { x: ctx.margin, y: ctx.y },
+    end: { x: ctx.pageWidth - ctx.margin, y: ctx.y },
+    thickness: 1.5,
+    color: rgb(...PDF_BRAND_PRIMARY),
+  });
+  ctx.y -= 12;
 }
 
 function drawBillTo(ctx: DocContext, invoice: Invoice): void {
@@ -148,26 +231,33 @@ function drawBillTo(ctx: DocContext, invoice: Invoice): void {
   ctx.y -= 4;
 }
 
+/** Status label color — a restrained brand accent, never the ONLY way status is conveyed (the text itself, e.g. "PAID"/"OVERDUE", always says so too — color-blind-safe by design). */
+function statusColor(invoice: Invoice): [number, number, number] {
+  if (invoice.status === "paid" || invoice.status === "partially_paid") return PDF_BRAND_SUCCESS;
+  if (invoice.status === "overdue" || invoice.status === "void") return PDF_BRAND_DANGER;
+  return PDF_BRAND_INK;
+}
+
 function drawMeta(ctx: DocContext, invoice: Invoice): void {
   const rightX = ctx.pageWidth - ctx.margin - 200;
   const startY = ctx.y + (invoice.billingSnapshot?.studentEmail || invoice.studentEmail ? 3 * 14 : 2 * 14) + 10;
   let y = startY;
-  const line = (label: string, value: string) => {
+  const line = (label: string, value: string, color: [number, number, number] = [0.1, 0.1, 0.1]) => {
     ctx.page.drawText(sanitizeForPdf(label), { x: rightX, y, size: 9, font: ctx.bold, color: rgb(0.3, 0.3, 0.3) });
-    ctx.page.drawText(sanitizeForPdf(value), { x: rightX + 90, y, size: 9, font: ctx.font, color: rgb(0.1, 0.1, 0.1) });
+    ctx.page.drawText(sanitizeForPdf(value), { x: rightX + 90, y, size: 9, font: ctx.font, color: rgb(...color) });
     y -= 14;
   };
   line("Invoice #:", invoice.invoiceNumber ?? "DRAFT");
   line("Issue date:", invoice.issueDate ?? "-");
   line("Due date:", invoice.dueDate ?? "-");
-  line("Status:", statusLabel(invoice));
+  line("Status:", statusLabel(invoice), statusColor(invoice));
 }
 
 function drawLineItemsTable(ctx: DocContext, invoice: Invoice): void {
   ensureSpace(ctx, 20);
   const colX = { desc: ctx.margin, qty: ctx.margin + 260, unit: ctx.margin + 320, tax: ctx.margin + 400, total: ctx.pageWidth - ctx.margin - 70 };
   text(ctx, "", { gap: 4 });
-  ctx.page.drawRectangle({ x: ctx.margin, y: ctx.y - 4, width: ctx.pageWidth - 2 * ctx.margin, height: 18, color: rgb(0.94, 0.94, 0.96) });
+  ctx.page.drawRectangle({ x: ctx.margin, y: ctx.y - 4, width: ctx.pageWidth - 2 * ctx.margin, height: 18, color: rgb(...PDF_BRAND_PRIMARY_TINT) });
   const headerY = ctx.y;
   const drawHeaderCell = (x: number, label: string) => ctx.page.drawText(label, { x, y: headerY, size: 8.5, font: ctx.bold, color: rgb(0.25, 0.25, 0.25) });
   drawHeaderCell(colX.desc + 4, "DESCRIPTION");
@@ -219,7 +309,7 @@ function drawFooter(ctx: DocContext, settings: BillingSettings | null, gstConfig
     ctx.y -= 4;
     text(ctx, "This is not a GST tax invoice. Tax registration details have not been configured.", { size: 8, color: [0.55, 0.35, 0.1] });
   }
-  text(ctx, "Generated by CareerPath AI. This document reflects records held in our system at the time of generation.", { size: 7.5, color: [0.55, 0.55, 0.55] });
+  text(ctx, `Generated by ${BRAND_NAME}. This document reflects records held in our system at the time of generation.`, { size: 7.5, color: [0.55, 0.55, 0.55] });
 }
 
 /** Builds the full invoice PDF (a request for payment) as bytes. */
@@ -229,6 +319,7 @@ export async function generateInvoicePdf(invoice: Invoice, settings: BillingSett
   const docLabel = invoiceDocumentLabel(settings);
   ctx.doc.setTitle(`${docLabel} ${invoice.invoiceNumber ?? invoice.id}`);
 
+  await drawLogo(ctx);
   drawHeader(ctx, docLabel, settings);
   drawBillTo(ctx, invoice);
   drawMeta(ctx, invoice);
@@ -245,6 +336,7 @@ export async function generateReceiptPdf(invoice: Invoice, transaction: PaymentT
   const ctx = await newContext();
   ctx.doc.setTitle(`Receipt for ${invoice.invoiceNumber ?? invoice.id}`);
 
+  await drawLogo(ctx);
   text(ctx, "PAYMENT RECEIPT", { size: 20, bold: true, gap: 26 });
   if (settings?.legalEntityName) text(ctx, settings.legalEntityName, { bold: true, size: 11 });
   if (settings?.businessAddress) {

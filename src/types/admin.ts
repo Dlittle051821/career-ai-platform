@@ -401,3 +401,86 @@ export interface AdminListResult<T> {
   page: number;
   pageSize: number;
 }
+
+// ---------------------------------------------------------------------------
+// Milestone 9 — Student outcomes (student_outcomes,
+// 0010_product_events_and_outcomes.sql PART 2). journey_stage and
+// outcome_status intentionally share one vocabulary — see that migration's
+// table comment and docs/OUT-001_OUTCOME_DATA_FOUNDATION.md for the
+// distinction between the two columns.
+// ---------------------------------------------------------------------------
+
+export type OutcomeStage =
+  | "not_started"
+  | "exploring"
+  | "shortlisted"
+  | "application_started"
+  | "application_submitted"
+  | "offer_received"
+  | "accepted"
+  | "enrolled"
+  | "not_enrolled"
+  | "deferred"
+  | "unknown";
+
+export const OUTCOME_STAGE_LABELS: Record<OutcomeStage, string> = {
+  not_started: "Not started",
+  exploring: "Exploring",
+  shortlisted: "Shortlisted",
+  application_started: "Application started",
+  application_submitted: "Application submitted",
+  offer_received: "Offer received",
+  accepted: "Accepted",
+  enrolled: "Enrolled",
+  not_enrolled: "Not enrolled",
+  deferred: "Deferred",
+  unknown: "Unknown",
+};
+
+export const OUTCOME_STAGES: OutcomeStage[] = [
+  "not_started",
+  "exploring",
+  "shortlisted",
+  "application_started",
+  "application_submitted",
+  "offer_received",
+  "accepted",
+  "enrolled",
+  "not_enrolled",
+  "deferred",
+  "unknown",
+];
+
+export type OutcomeSource = "student" | "counsellor" | "admin" | "system" | "integration";
+
+export interface StudentOutcome {
+  id: string;
+  studentUserId: string;
+  journeyStage: OutcomeStage;
+  outcomeStatus: OutcomeStage;
+  targetCareerId: string | null;
+  targetCourseId: string | null;
+  targetUniversityId: string | null;
+  finalApplicationId: string | null;
+  destinationCountry: string | null;
+  applicationCount: number;
+  offerCount: number;
+  finalDecisionStatus: string | null;
+  outcomeSource: OutcomeSource;
+  recordedBy: string | null;
+  metadata: Record<string, unknown>;
+  recordedAt: string;
+  updatedAt: string;
+}
+
+/** Fields an admin/counsellor may set manually — never the application-derived fields (journeyStage/outcomeStatus/applicationCount/offerCount/finalDecisionStatus/finalApplicationId are kept current automatically by sync_student_outcome_from_application(), see the migration). */
+export interface StudentOutcomeManualPatch {
+  targetCareerId?: string | null;
+  targetCourseId?: string | null;
+  targetUniversityId?: string | null;
+  destinationCountry?: string | null;
+  metadata?: Record<string, unknown>;
+  /** Only meaningful before an application exists — once one does, the trigger overwrites this on the next applications change. See docs/OUT-001_OUTCOME_DATA_FOUNDATION.md. */
+  journeyStage?: OutcomeStage;
+  outcomeStatus?: OutcomeStage;
+}

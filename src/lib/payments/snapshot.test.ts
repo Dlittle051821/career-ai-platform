@@ -4,7 +4,7 @@ import type { BillingSettings } from "@/types/payments";
 
 function settings(overrides: Partial<BillingSettings> = {}): BillingSettings {
   return {
-    legalEntityName: "CareerPath AI",
+    legalEntityName: "NextWise",
     businessAddress: "123 Example Street",
     supportEmail: "support@example.com",
     supportPhone: null,
@@ -36,7 +36,7 @@ describe("buildBillingSnapshot", () => {
 
   it("captures legal entity name and address from settings", () => {
     const snap = buildBillingSnapshot({ studentName: "Asha", studentEmail: null, settings: settings() });
-    expect(snap.legalEntityName).toBe("CareerPath AI");
+    expect(snap.legalEntityName).toBe("NextWise");
     expect(snap.businessAddress).toBe("123 Example Street");
   });
 

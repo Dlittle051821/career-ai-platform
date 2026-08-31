@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
 import { friendlyAuthError } from "@/lib/supabase/auth-errors";
 import { isRequired, isValidEmail, isValidIndianPhone, isValidPassword } from "@/lib/validation";
+import { trackEventClient } from "@/lib/supabase/analytics/track-client";
 
 interface FormState {
   fullName: string;
@@ -86,6 +87,18 @@ export function RegisterForm() {
         setFormError(friendlyAuthError(error));
         return;
       }
+
+      // Fire-and-forget: never awaited, never allowed to affect the
+      // redirect/checkEmail branches below — see trackEventClient's own
+      // contract (src/lib/supabase/analytics/track-client.ts).
+      void trackEventClient({
+        eventName: "user_registered",
+        source: "register_form",
+        path: "/register",
+        feature: "auth",
+        entityType: "profile",
+        entityId: data.user?.id ?? null,
+      });
 
       if (data.session) {
         // Email confirmation is disabled on this Supabase project — the

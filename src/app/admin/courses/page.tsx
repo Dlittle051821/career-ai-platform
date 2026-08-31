@@ -14,11 +14,12 @@ import { StatusBadge } from "@/components/admin/StatusBadge";
 import { formatMoney } from "@/lib/admin/money";
 import { listCourses } from "@/lib/supabase/admin/courses";
 import { listUniversityOptions } from "@/lib/supabase/admin/universities";
+import { EDUCATION_PUBLICATION_STATUSES, EDUCATION_PUBLICATION_STATUS_LABELS, type EducationPublicationStatus } from "@/types/education";
 
 export const metadata: Metadata = { title: "Courses" };
 
 interface CoursesPageProps {
-  searchParams: Promise<{ q?: string; university?: string; active?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; university?: string; active?: string; publication?: string; page?: string }>;
 }
 
 export default async function AdminCoursesPage({ searchParams }: CoursesPageProps) {
@@ -26,12 +27,16 @@ export default async function AdminCoursesPage({ searchParams }: CoursesPageProp
   const query = params.q?.trim() ?? "";
   const universityId = params.university ?? "";
   const activeParam = params.active ?? "";
+  const publicationParam = params.publication ?? "";
   const parsedPage = params.page ? Number.parseInt(params.page, 10) : 1;
   const page = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
   const isActive = activeParam === "active" ? true : activeParam === "inactive" ? false : undefined;
+  const publicationStatus = (EDUCATION_PUBLICATION_STATUSES as readonly string[]).includes(publicationParam)
+    ? (publicationParam as EducationPublicationStatus)
+    : undefined;
 
   const [result, universityOptions] = await Promise.all([
-    listCourses({ query: query || undefined, universityId: universityId || undefined, isActive, page }),
+    listCourses({ query: query || undefined, universityId: universityId || undefined, isActive, publicationStatus, page }),
     listUniversityOptions(),
   ]);
 
@@ -39,7 +44,8 @@ export default async function AdminCoursesPage({ searchParams }: CoursesPageProp
   if (query) activeFilters.q = query;
   if (universityId) activeFilters.university = universityId;
   if (activeParam) activeFilters.active = activeParam;
-  const hasActiveFilters = Boolean(query || universityId || activeParam);
+  if (publicationParam) activeFilters.publication = publicationParam;
+  const hasActiveFilters = Boolean(query || universityId || activeParam || publicationParam);
 
   return (
     <div className="max-w-6xl">
@@ -79,6 +85,16 @@ export default async function AdminCoursesPage({ searchParams }: CoursesPageProp
               <option value="inactive">Inactive only</option>
             </Select>
           </FormField>
+          <FormField id="publication" label="Publication">
+            <Select id="publication" name="publication" defaultValue={publicationParam}>
+              <option value="">All</option>
+              {EDUCATION_PUBLICATION_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {EDUCATION_PUBLICATION_STATUS_LABELS[s]}
+                </option>
+              ))}
+            </Select>
+          </FormField>
         </FilterBar>
       </Card>
 
@@ -114,7 +130,7 @@ export default async function AdminCoursesPage({ searchParams }: CoursesPageProp
           <p className="mb-3 text-sm text-muted">
             {result.total} course{result.total === 1 ? "" : "s"} found
           </p>
-          <AdminTable headers={["Course", "University", "Tuition", "Data quality", "Status", ""]}>
+          <AdminTable headers={["Course", "University", "Tuition", "Data quality", "Status", "Publication", ""]}>
             {result.items.map((c) => (
               <tr key={c.id} className="hover:bg-surface-alt/50">
                 <Td className="font-medium text-text">
@@ -131,6 +147,9 @@ export default async function AdminCoursesPage({ searchParams }: CoursesPageProp
                 </Td>
                 <Td>
                   <StatusBadge status={c.isActive ? "active" : "inactive"} />
+                </Td>
+                <Td>
+                  <StatusBadge status={c.publicationStatus} labelOverride={EDUCATION_PUBLICATION_STATUS_LABELS[c.publicationStatus]} />
                 </Td>
                 <Td>
                   <Link href={`/admin/courses/${c.id}`} className="text-sm font-semibold text-secondary-dark hover:text-primary">

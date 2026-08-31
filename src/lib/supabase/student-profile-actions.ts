@@ -5,6 +5,7 @@ import { createClient } from "./server";
 import { friendlyDbError } from "./db-errors";
 import { getStudentProfileSnapshot } from "./student-profile";
 import { calculateCompletion } from "@/lib/profile/completion";
+import { trackEvent } from "./analytics/track";
 import { isNonNegativeInteger, isOneOf, isRequired, isValidPastDate, isValidRating, isValidScoreForType, isValidYear } from "@/lib/validation";
 import {
   BUDGET_BAND_OPTIONS,
@@ -66,6 +67,12 @@ async function requireUserId(supabase: ServerSupabase): Promise<string> {
 }
 
 async function recomputeCompletion(supabase: ServerSupabase, userId: string): Promise<CompletionResult> {
+  // Read the PREVIOUS status before overwriting it — profile_completed
+  // must fire exactly once, on the transition INTO 'completed', not on
+  // every subsequent section edit a since-completed student makes.
+  const { data: before } = await supabase.from("student_profiles").select("profile_status").eq("user_id", userId).maybeSingle();
+  const previousStatus = before?.profile_status ?? "not_started";
+
   const snapshot = await getStudentProfileSnapshot();
   const completion = snapshot ? calculateCompletion(snapshot) : { percent: 0, status: "not_started" as const, sections: [] };
   await supabase
@@ -74,6 +81,18 @@ async function recomputeCompletion(supabase: ServerSupabase, userId: string): Pr
       { user_id: userId, profile_completion_percent: completion.percent, profile_status: completion.status },
       { onConflict: "user_id" }
     );
+
+  if (completion.status === "completed" && previousStatus !== "completed") {
+    void trackEvent({
+      eventName: "profile_completed",
+      source: "profile_onboarding",
+      feature: "profile",
+      entityType: "profile",
+      entityId: userId,
+      properties: { completionPercent: completion.percent },
+    });
+  }
+
   return completion;
 }
 

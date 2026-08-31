@@ -1,0 +1,2 @@
+university_slug,course_slug,student_category,amount,currency_code,academic_year,billing_period,mandatory_fees_amount,estimated_living_costs_amount,estimated_living_costs_period,data_source,source_url,last_verified_at
+example-international-university,example-msc-applied-data-science,international,15000,EUR,2026/2027,per_year,500,1200,per_month,official_university,https://www.example-international-university.example/courses/example-msc-applied-data-science,2026-01-01

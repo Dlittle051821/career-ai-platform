@@ -35,7 +35,8 @@ export function formatMoney(amountMinorUnits: number, currency: string): string 
 
 /**
  * PDF-safe currency formatter — ASCII only, e.g. formatMoneyForPdf(150000,
- * "INR") -> "INR 1,500.00", formatMoneyForPdf(2500, "USD") -> "USD 25.00".
+ * "INR") -> "INR 1,500.00", formatMoneyForPdf(13000000, "INR") ->
+ * "INR 1,30,000.00", formatMoneyForPdf(2500, "USD") -> "USD 25.00".
  *
  * Why this exists: pdf-lib's StandardFonts (Helvetica/HelveticaBold, via
  * the WinAnsi/Latin-1 encoding) cannot encode the Indian Rupee sign U+20B9
@@ -45,10 +46,21 @@ export function formatMoney(amountMinorUnits: number, currency: string): string 
  * ISO 4217 currency symbols (e.g. some East Asian and Middle Eastern
  * currencies) have the same problem for the same reason. This formatter
  * sidesteps it entirely by never emitting a currency symbol at all —
- * only the ISO 4217 code plus a plain-ASCII grouped decimal amount, using
- * a fixed "en-US" locale with no `style: "currency"` involved so grouping
- * (",") and decimal (".") punctuation is guaranteed ASCII regardless of
- * the amount's actual currency or the host ICU/CLDR data.
+ * only the ISO 4217 code plus a plain-ASCII grouped decimal amount.
+ *
+ * Locale is fixed at "en-IN" (Milestone 10 — was "en-US" prior to the
+ * NextWise Pricing & Offers feature) specifically so large INR amounts use
+ * Indian digit grouping (lakh/crore, e.g. "1,30,000.00" for ₹1,30,000, not
+ * "130,000.00") to match the pricing page and every other INR amount shown
+ * to a student. Verified against every existing PDF fixture before this
+ * change: every amount used in this project's tests is under ₹1,00,000,
+ * where en-IN and en-US grouping are byte-identical, so this switch cannot
+ * change previously-generated output for any amount already covered by a
+ * test — see src/lib/admin/money.test.ts for the regression coverage of
+ * both the identical small-amount case and the new large-amount (lakh)
+ * case. Grouping (",") and decimal (".") punctuation stay guaranteed ASCII
+ * under en-IN, same as they were under en-US — Indian digit grouping only
+ * changes where the commas fall, never what characters are used.
  *
  * Use this — never formatMoney() — for every monetary value drawn into a
  * PDF (src/lib/payments/pdf.ts). Do not use it for website/UI text; it
@@ -59,7 +71,7 @@ export function formatMoney(amountMinorUnits: number, currency: string): string 
 export function formatMoneyForPdf(amountMinorUnits: number, currency: string): string {
   const perMajor = minorUnitsPerMajor(currency);
   const major = amountMinorUnits / perMajor;
-  const amount = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(major);
+  const amount = new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(major);
   return `${currency.toUpperCase()} ${amount}`;
 }
 

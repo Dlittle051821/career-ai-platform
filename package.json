@@ -2,7 +2,7 @@
   "name": "careerpath-ai",
   "version": "0.1.0",
   "private": true,
-  "description": "CareerPath AI — public website, student accounts, Student Digital Profile, Career Knowledge Base, and the explainable career recommendation engine",
+  "description": "NextWise — public website, student accounts, Student Digital Profile, Career Knowledge Base, and the explainable career recommendation engine",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -11,6 +11,9 @@
     "typecheck": "tsc --noEmit",
     "validate:careers": "tsx scripts/validate-career-data.ts",
     "seed:generate": "tsx scripts/generate-career-seed-sql.ts",
+    "validate:education-data": "tsx scripts/validate-education-data.ts",
+    "import:education-data": "tsx scripts/import-education-data.ts",
+    "seed:education-data": "tsx scripts/seed-education-data.ts",
     "test": "vitest run"
   },
   "dependencies": {
@@ -30,8 +33,11 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "autoprefixer": "^10.5.4",
+    "@types/pg": "^8.23.1",
+    "dotenv": "^17.4.2",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.3.1",
+    "pg": "^8.23.0",
     "postcss": "^8.5.26",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.12",

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Compass, LibraryBig, Mail, Map, Phone, Receipt, Sparkles, UserRound } from "lucide-react";
+import { Bookmark, ClipboardList, Compass, LibraryBig, Mail, Map, Phone, Receipt, Sparkles, Tag, UserRound } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -10,8 +10,12 @@ import { getCurrentProfile, firstNameFrom } from "@/lib/supabase/profile";
 import { getStudentProfileSnapshot } from "@/lib/supabase/student-profile";
 import { calculateCompletion } from "@/lib/profile/completion";
 import { listMyInvoices } from "@/lib/supabase/payments/student-invoices";
-import { PAYABLE_INVOICE_STATUSES } from "@/types/payments";
+import { listMyPurchases } from "@/lib/supabase/pricing/my-purchases";
+import { INVOICE_STATUS_LABELS, PAYABLE_INVOICE_STATUSES } from "@/types/payments";
 import { formatMoney } from "@/lib/admin/money";
+import { listSavedItems } from "@/lib/supabase/education/saved-items";
+import { listMyApplications } from "@/lib/supabase/education/applications";
+import { BRAND_NAME } from "@/config/site";
 
 const STUDENT_PROFILE_STATUS_LABEL: Record<string, string> = {
   not_started: "Not started",
@@ -45,6 +49,13 @@ export default async function DashboardPage() {
   const invoices = await listMyInvoices();
   const payableInvoices = invoices.filter((inv) => PAYABLE_INVOICE_STATUSES.includes(inv.status));
   const totalDueMinorUnits = payableInvoices.reduce((sum, inv) => sum + inv.dueMinorUnits, 0);
+  const purchases = await listMyPurchases();
+
+  const savedItems = await listSavedItems();
+  const savedUniversityCount = savedItems.filter((i) => i.entityType === "university").length;
+  const savedCourseCount = savedItems.filter((i) => i.entityType === "course").length;
+
+  const applications = await listMyApplications();
 
   return (
     <Section tone="muted" className="pt-10 sm:pt-14">
@@ -102,7 +113,7 @@ export default async function DashboardPage() {
           </span>
           <h2 className="mt-4 text-lg font-semibold text-primary">Your roadmap</h2>
           <p className="mt-2 text-sm leading-relaxed text-muted">
-            A sample, illustrative career-to-course roadmap based on the CareerPath AI journey.
+            A sample, illustrative career-to-course roadmap based on the {BRAND_NAME} journey.
           </p>
           <LinkButton href="/roadmap" size="sm" variant="outline" className="mt-4 w-full justify-center">
             View roadmap
@@ -168,6 +179,93 @@ export default async function DashboardPage() {
           </div>
           <LinkButton href="/payments" size="sm" variant="outline" className="shrink-0">
             View payments
+          </LinkButton>
+        </div>
+      </Card>
+
+      <Card className="mt-6">
+        <div className="flex items-start gap-4">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
+            <Tag aria-hidden="true" className="h-5 w-5" />
+          </span>
+          <div className="flex-1">
+            <h2 className="text-lg font-semibold text-primary">My plans</h2>
+            <p className="mt-1 text-sm text-muted">
+              {purchases.length === 0 ? "No plan purchased yet — see our pricing to get started." : `${purchases.length} plan${purchases.length === 1 ? "" : "s"} purchased.`}
+            </p>
+            {purchases.length === 0 ? (
+              <LinkButton href="/pricing" size="sm" variant="outline" className="mt-4">
+                View pricing
+              </LinkButton>
+            ) : (
+              <ul className="mt-4 divide-y divide-border">
+                {purchases.map((purchase) => {
+                  const invoiceStatus = invoices.find((inv) => inv.id === purchase.invoiceId)?.status;
+                  return (
+                    <li key={purchase.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-text">{purchase.planNameAtPurchase}</p>
+                        <p className="mt-0.5 text-xs text-muted">
+                          {new Date(purchase.purchasedAt).toLocaleDateString("en-IN")} ·{" "}
+                          {formatMoney(purchase.finalAmountMinorUnits, purchase.currency)}
+                          {purchase.discountMinorUnits > 0 ? ` (${formatMoney(purchase.discountMinorUnits, purchase.currency)} off)` : ""}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {invoiceStatus ? <Badge tone={invoiceStatus === "paid" ? "success" : "warning"}>{INVOICE_STATUS_LABELS[invoiceStatus]}</Badge> : null}
+                        {purchase.invoiceId ? (
+                          <LinkButton href={`/payments/${purchase.invoiceId}`} size="sm" variant="outline">
+                            View invoice
+                          </LinkButton>
+                        ) : null}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      <Card className="mt-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
+              <Bookmark aria-hidden="true" className="h-5 w-5" />
+            </span>
+            <div>
+              <h2 className="text-lg font-semibold text-primary">Saved universities &amp; courses</h2>
+              <p className="mt-1 text-sm text-muted">
+                {savedUniversityCount === 0 && savedCourseCount === 0
+                  ? "Nothing saved yet — browse universities and courses to save some for later."
+                  : `${savedUniversityCount} universit${savedUniversityCount === 1 ? "y" : "ies"}, ${savedCourseCount} course${savedCourseCount === 1 ? "" : "s"} saved.`}
+              </p>
+            </div>
+          </div>
+          <LinkButton href="/saved" size="sm" variant="outline" className="shrink-0">
+            View saved
+          </LinkButton>
+        </div>
+      </Card>
+
+      <Card className="mt-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
+              <ClipboardList aria-hidden="true" className="h-5 w-5" />
+            </span>
+            <div>
+              <h2 className="text-lg font-semibold text-primary">Applications</h2>
+              <p className="mt-1 text-sm text-muted">
+                {applications.length === 0
+                  ? "No applications started yet — explore courses to get started."
+                  : `${applications.length} application${applications.length === 1 ? "" : "s"} in progress.`}
+              </p>
+            </div>
+          </div>
+          <LinkButton href="/applications" size="sm" variant="outline" className="shrink-0">
+            View applications
           </LinkButton>
         </div>
       </Card>

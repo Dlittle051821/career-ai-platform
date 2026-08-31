@@ -10,6 +10,7 @@ import { getStudentProfileSnapshot } from "@/lib/supabase/student-profile";
 import { buildComparisonMatrix, careerDetailToMatchProfile, MAX_COMPARE_CAREERS, MIN_COMPARE_CAREERS } from "@/lib/careers/compare";
 import { getRecommendations, hasMinimumProfileDataForRecommendations } from "@/lib/recommendations";
 import type { RecommendationResult } from "@/lib/recommendations";
+import { trackEvent } from "@/lib/supabase/analytics/track";
 
 export const metadata: Metadata = {
   title: "Compare Careers",
@@ -88,6 +89,16 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
   }
 
   const matrix = buildComparisonMatrix(careers, matches);
+
+  void trackEvent({
+    eventName: "career_compared",
+    source: "compare_page",
+    path: "/compare",
+    feature: "career_compare",
+    entityType: "career",
+    entityId: careers[0]?.id ?? null,
+    properties: { careerIds: careers.map((c) => c.id), count: careers.length },
+  });
 
   const removeHrefs = careers.map((career) => {
     const remaining = slugs.filter((s) => s !== career.slug);

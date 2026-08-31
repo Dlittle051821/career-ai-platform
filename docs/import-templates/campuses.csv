@@ -1,0 +1,2 @@
+university_slug,name,country_iso_alpha2,state_region,city,address,latitude,longitude,is_main
+example-international-university,Exampletown Main Campus,DE,Example State,Exampletown,"1 Example Street, Exampletown",,,true

@@ -12,28 +12,50 @@ import { AdminPagination } from "@/components/admin/AdminPagination";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { listUniversities } from "@/lib/supabase/admin/universities";
+import { listCountryOptions } from "@/lib/supabase/admin/education-countries";
+import {
+  EDUCATION_PUBLICATION_STATUSES,
+  EDUCATION_PUBLICATION_STATUS_LABELS,
+  type EducationPublicationStatus,
+} from "@/types/education";
 
 export const metadata: Metadata = { title: "Universities" };
 
 interface UniversitiesPageProps {
-  searchParams: Promise<{ q?: string; active?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; active?: string; country?: string; publicationStatus?: string; page?: string }>;
 }
 
 export default async function AdminUniversitiesPage({ searchParams }: UniversitiesPageProps) {
   const params = await searchParams;
   const query = params.q?.trim() ?? "";
   const activeParam = params.active ?? "";
+  const countryParam = params.country ?? "";
+  const publicationStatusParam = params.publicationStatus ?? "";
   const parsedPage = params.page ? Number.parseInt(params.page, 10) : 1;
   const page = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
   const isActive = activeParam === "active" ? true : activeParam === "inactive" ? false : undefined;
+  const publicationStatus = (EDUCATION_PUBLICATION_STATUSES as readonly string[]).includes(publicationStatusParam)
+    ? (publicationStatusParam as EducationPublicationStatus)
+    : undefined;
 
-  const result = await listUniversities({ query: query || undefined, isActive, page });
+  const [result, countryOptions] = await Promise.all([
+    listUniversities({
+      query: query || undefined,
+      isActive,
+      countryId: countryParam || undefined,
+      publicationStatus,
+      page,
+    }),
+    listCountryOptions(),
+  ]);
 
   const activeFilters: Record<string, string> = {};
   if (query) activeFilters.q = query;
   if (activeParam) activeFilters.active = activeParam;
-  const hasActiveFilters = Boolean(query || activeParam);
+  if (countryParam) activeFilters.country = countryParam;
+  if (publicationStatusParam) activeFilters.publicationStatus = publicationStatusParam;
+  const hasActiveFilters = Boolean(query || activeParam || countryParam || publicationStatusParam);
 
   return (
     <div className="max-w-6xl">
@@ -61,6 +83,26 @@ export default async function AdminUniversitiesPage({ searchParams }: Universiti
               <option value="">All</option>
               <option value="active">Active only</option>
               <option value="inactive">Inactive only</option>
+            </Select>
+          </FormField>
+          <FormField id="country" label="Country">
+            <Select id="country" name="country" defaultValue={countryParam}>
+              <option value="">All</option>
+              {countryOptions.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+          <FormField id="publicationStatus" label="Publication">
+            <Select id="publicationStatus" name="publicationStatus" defaultValue={publicationStatusParam}>
+              <option value="">All</option>
+              {EDUCATION_PUBLICATION_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {EDUCATION_PUBLICATION_STATUS_LABELS[s]}
+                </option>
+              ))}
             </Select>
           </FormField>
         </FilterBar>
@@ -92,7 +134,7 @@ export default async function AdminUniversitiesPage({ searchParams }: Universiti
           <p className="mb-3 text-sm text-muted">
             {result.total} universit{result.total === 1 ? "y" : "ies"} found
           </p>
-          <AdminTable headers={["Name", "Location", "Accreditation", "Status", ""]}>
+          <AdminTable headers={["Name", "Location", "Accreditation", "Status", "Publication", ""]}>
             {result.items.map((u) => (
               <tr key={u.id} className="hover:bg-surface-alt/50">
                 <Td className="font-medium text-text">
@@ -100,12 +142,15 @@ export default async function AdminUniversitiesPage({ searchParams }: Universiti
                     {u.name}
                   </Link>
                 </Td>
-                <Td className="text-text-soft">{[u.city, u.country].filter(Boolean).join(", ") || "—"}</Td>
+                <Td className="text-text-soft">{[u.city, u.countryName ?? u.country].filter(Boolean).join(", ") || "—"}</Td>
                 <Td>
                   <StatusBadge status={u.accreditationStatus} />
                 </Td>
                 <Td>
                   <StatusBadge status={u.isActive ? "active" : "inactive"} />
+                </Td>
+                <Td>
+                  <StatusBadge status={u.publicationStatus} labelOverride={EDUCATION_PUBLICATION_STATUS_LABELS[u.publicationStatus]} />
                 </Td>
                 <Td>
                   <Link href={`/admin/universities/${u.id}`} className="text-sm font-semibold text-secondary-dark hover:text-primary">

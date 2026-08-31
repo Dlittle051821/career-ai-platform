@@ -3,6 +3,8 @@ import { createClient } from "../server";
 import { requireAdminPermission } from "../admin-auth";
 import { computeRate, sumRecordedRevenue, type RateResult, type FunnelStageCount } from "@/lib/admin/analytics";
 import { listCounsellorWorkload } from "./counsellors";
+import { getOutcomeStatusDistribution } from "./outcomes";
+import { IMPLEMENTED_EVENT_NAMES, type ImplementedEventName } from "@/lib/analytics/events";
 import type { CounsellorWorkload, LeadStage, ApplicationStage, PaymentStatus } from "@/types/admin";
 
 /**
@@ -104,6 +106,25 @@ export interface AnalyticsFilters {
   sinceDays?: number;
 }
 
+/**
+ * Milestone 9 — product/outcome metrics, additive to the Milestone 7
+ * summary above. `eventCounts` is only ever keyed by
+ * IMPLEMENTED_EVENT_NAMES (src/lib/analytics/events.ts) — a reserved event
+ * name is never queried here since no code path ever inserts one, so its
+ * count would always be a misleading, guaranteed zero. See
+ * docs/M9_IMPLEMENTATION.md §"Admin analytics" for what each figure means
+ * and docs/OUT-001_OUTCOME_DATA_FOUNDATION.md for outcomeStatusDistribution.
+ */
+export interface ProductAnalyticsSummary {
+  totalStudentUsers: number;
+  newRegistrations: number;
+  profileCompletionCount: number;
+  profileCompletionRate: RateResult;
+  eventCounts: Record<ImplementedEventName, number>;
+  invoicesPaid: number;
+  outcomeStatusDistribution: { status: string; count: number }[];
+}
+
 export interface AnalyticsSummary {
   sinceDays: number | null;
   leadFunnel: FunnelStageCount[];
@@ -115,6 +136,74 @@ export interface AnalyticsSummary {
   recordedRevenueByCurrency: { currency: string; amountMinorUnits: number }[];
   topLeadSources: { key: string; count: number }[];
   topUniversitiesByInterest: { universityId: string; universityName: string; count: number }[];
+  product: ProductAnalyticsSummary;
+}
+
+async function countProductEvent(supabase: Supabase, eventName: ImplementedEventName, sinceIso: string | null): Promise<number> {
+  let query = supabase.from("product_events").select("*", { count: "exact", head: true }).eq("event_name", eventName);
+  if (sinceIso) query = query.gte("created_at", sinceIso);
+  const { count, error } = await query;
+  if (error) {
+    logDbError(`countProductEvent:${eventName}`, error);
+    return 0;
+  }
+  return count ?? 0;
+}
+
+/** Milestone 9 — the additive product/outcome metrics block. Every count here is a small, targeted `count: "exact", head: true` query (or, for outcomeStatusDistribution, the one bounded single-column select getOutcomeStatusDistribution() already uses) — same discipline as the rest of this file. */
+async function getProductAnalyticsSummary(supabase: Supabase, sinceIso: string | null): Promise<ProductAnalyticsSummary> {
+  const [totalStudentUsers, newRegistrations, profileCompletionCount, eventCountEntries, invoicesPaid, outcomeStatusDistribution] = await Promise.all([
+    (async () => {
+      const { count, error } = await supabase.from("profiles").select("*", { count: "exact", head: true }).eq("account_type", "student");
+      if (error) {
+        logDbError("totalStudentUsers", error);
+        return 0;
+      }
+      return count ?? 0;
+    })(),
+    (async () => {
+      let query = supabase.from("profiles").select("*", { count: "exact", head: true }).eq("account_type", "student");
+      if (sinceIso) query = query.gte("created_at", sinceIso);
+      const { count, error } = await query;
+      if (error) {
+        logDbError("newRegistrations", error);
+        return 0;
+      }
+      return count ?? 0;
+    })(),
+    (async () => {
+      let query = supabase.from("student_profiles").select("*", { count: "exact", head: true }).eq("profile_status", "completed");
+      if (sinceIso) query = query.gte("updated_at", sinceIso);
+      const { count, error } = await query;
+      if (error) {
+        logDbError("profileCompletionCount", error);
+        return 0;
+      }
+      return count ?? 0;
+    })(),
+    Promise.all(IMPLEMENTED_EVENT_NAMES.map(async (name) => [name, await countProductEvent(supabase, name, sinceIso)] as const)),
+    (async () => {
+      let query = supabase.from("invoices").select("*", { count: "exact", head: true }).eq("status", "paid");
+      if (sinceIso) query = query.gte("created_at", sinceIso);
+      const { count, error } = await query;
+      if (error) {
+        logDbError("invoicesPaid", error);
+        return 0;
+      }
+      return count ?? 0;
+    })(),
+    getOutcomeStatusDistribution(),
+  ]);
+
+  return {
+    totalStudentUsers,
+    newRegistrations,
+    profileCompletionCount,
+    profileCompletionRate: computeRate(profileCompletionCount, totalStudentUsers),
+    eventCounts: Object.fromEntries(eventCountEntries) as Record<ImplementedEventName, number>,
+    invoicesPaid,
+    outcomeStatusDistribution,
+  };
 }
 
 export async function getAnalyticsSummary(filters: AnalyticsFilters = {}): Promise<AnalyticsSummary> {
@@ -122,7 +211,7 @@ export async function getAnalyticsSummary(filters: AnalyticsFilters = {}): Promi
   const supabase = await createClient();
   const sinceIso = filters.sinceDays ? new Date(Date.now() - filters.sinceDays * 24 * 60 * 60 * 1000).toISOString() : null;
 
-  const [leadStageCounts, applicationStageCounts, paymentStatusCounts, totalLeads, totalApplications, counsellorWorkload, revenueRows, topSources, topUniversityIds] =
+  const [leadStageCounts, applicationStageCounts, paymentStatusCounts, totalLeads, totalApplications, counsellorWorkload, revenueRows, topSources, topUniversityIds, product] =
     await Promise.all([
       Promise.all(LEAD_STAGES.map(async (stage) => ({ stage, count: await countWhere(supabase, "leads", "stage", stage, sinceIso) }))),
       Promise.all(APPLICATION_STAGES.map(async (stage) => ({ stage, count: await countWhere(supabase, "applications", "stage", stage, sinceIso) }))),
@@ -142,6 +231,7 @@ export async function getAnalyticsSummary(filters: AnalyticsFilters = {}): Promi
       })(),
       topLeadSources(supabase, sinceIso, 5),
       topUniversitiesByApplicationCount(supabase, sinceIso, 5),
+      getProductAnalyticsSummary(supabase, sinceIso),
     ]);
 
   const convertedLeads = leadStageCounts.find((s) => s.stage === "converted")?.count ?? 0;
@@ -186,5 +276,6 @@ export async function getAnalyticsSummary(filters: AnalyticsFilters = {}): Promi
       universityName: universityNameById.get(u.key) ?? "Unknown",
       count: u.count,
     })),
+    product,
   };
 }

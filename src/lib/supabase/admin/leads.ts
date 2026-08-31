@@ -6,6 +6,7 @@ import { AdminValidationError } from "@/lib/admin/form-state";
 import { LEAD_STAGE_TRANSITIONS, isValidTransition } from "@/lib/admin/status";
 import { cleanFilterParam, clampPageSize, pageToRange, parsePageParam } from "@/lib/admin/pagination";
 import type { AdminListResult, Lead, LeadPriority, LeadStage, LeadStatusHistoryEntry } from "@/types/admin";
+import { trackEvent } from "../analytics/track";
 
 function logDbError(context: string, error: unknown) {
   console.error(`[admin/leads] ${context}:`, error);
@@ -238,6 +239,18 @@ export async function createLead(formData: FormData): Promise<string> {
     entityId: data.id,
     entityLabel: `lead "${input.fullName}"`,
     after: { fullName: input.fullName, stage: "new", priority: input.priority },
+  });
+
+  // Admin/counsellor-recorded, not a public self-service submission — see
+  // docs/M9_EVENT_TAXONOMY.md's note on lead_created/counselling_requested.
+  void trackEvent({
+    eventName: "lead_created",
+    source: "admin_crm",
+    feature: "leads",
+    entityType: "lead",
+    entityId: data.id,
+    properties: { priority: input.priority, hasSource: Boolean(input.source) },
+    utm: { source: input.utmSource, medium: input.utmMedium, campaign: input.utmCampaign },
   });
 
   return data.id;

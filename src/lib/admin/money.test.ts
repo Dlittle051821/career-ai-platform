@@ -36,6 +36,36 @@ describe("formatMoneyForPdf", () => {
     }
   });
 
+  // Milestone 10 (NextWise Pricing & Offers) — formatMoneyForPdf's locale
+  // moved from "en-US" to "en-IN" specifically so lakh-scale plan prices
+  // (Bachelor/Master Abroad Tier 3: ₹1,30,000 / ₹1,40,000) render with
+  // Indian digit grouping in generated PDFs, matching every other INR
+  // amount shown to a student. This must never regress back to "130,000.00".
+  it("uses Indian digit grouping for a lakh-scale amount (Bachelor Abroad Tier 3: ₹1,30,000)", () => {
+    expect(formatMoneyForPdf(13_000_000, "INR")).toBe("INR 1,30,000.00");
+  });
+
+  it("uses Indian digit grouping for a lakh-scale amount (Master Abroad Tier 3: ₹1,40,000)", () => {
+    expect(formatMoneyForPdf(14_000_000, "INR")).toBe("INR 1,40,000.00");
+  });
+
+  it("stays ASCII-only for every official NextWise plan price, including lakh-scale amounts", () => {
+    const officialPlanAmountsMinorUnits = [500_000, 1_000_000, 1_500_000, 2_500_000, 6_000_000, 13_000_000, 2_700_000, 6_500_000, 14_000_000];
+    for (const amount of officialPlanAmountsMinorUnits) {
+      const result = formatMoneyForPdf(amount, "INR");
+      expect(result).toMatch(/^[\x20-\x7e]+$/);
+    }
+  });
+
+  it("is unchanged from before the en-IN locale switch for any amount under one lakh (both locales group identically there)", () => {
+    // Regression guard for the switch itself: every pre-existing PDF
+    // fixture in this project uses amounts under ₹1,00,000, where en-IN and
+    // en-US grouping are byte-identical — see src/lib/admin/money.ts's
+    // formatMoneyForPdf docblock. This pins that specific invariant.
+    expect(formatMoneyForPdf(150000, "INR")).toBe("INR 1,500.00");
+    expect(formatMoneyForPdf(9_999_900, "INR")).toBe("INR 99,999.00");
+  });
+
   it("lowercases the currency code up to uppercase, matching the format of the worked examples", () => {
     expect(formatMoneyForPdf(150000, "inr")).toBe("INR 1,500.00");
   });

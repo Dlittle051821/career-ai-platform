@@ -20,7 +20,7 @@ export default async function NewCoursePage() {
         <p className="text-sm font-semibold uppercase tracking-wide text-secondary">Courses</p>
         <h1 className="mt-2 text-2xl font-semibold text-primary sm:text-3xl">New course</h1>
       </div>
-      <CourseForm action={createCourseAction} universityOptions={universityOptions} submitLabel="Create course" />
+      <CourseForm action={createCourseAction} universityOptions={universityOptions} campusOptions={[]} submitLabel="Create course" />
     </div>
   );
 }

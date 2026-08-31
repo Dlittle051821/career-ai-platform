@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LegalPlaceholder } from "@/components/sections/legal/LegalPlaceholder";
+import { BRAND_NAME } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
 
 const CATEGORIES = [
   { title: "Acceptance of terms", description: "How using the site or services indicates agreement to the terms." },
-  { title: "Service description", description: "A clear description of what CareerPath AI does and does not provide." },
+  { title: "Service description", description: `A clear description of what ${BRAND_NAME} does and does not provide.` },
   { title: "User responsibilities", description: "What we expect from students, parents, and partners using the platform." },
   { title: "Payment terms", description: "How fees, invoicing, and payment timing will work for paid packages." },
   { title: "Intellectual property", description: "Ownership of content, materials, and any tools we provide." },

@@ -36,7 +36,7 @@ export default function AboutPage() {
           <div>
             <SectionHeading eyebrow="Our mission" title="Career-first guidance, made practical" className="max-w-none" />
             <p className="mt-4 text-sm leading-relaxed text-muted">
-              CareerPath AI exists to help students figure out where they&apos;re headed before locking in a course,
+              {BRAND_NAME} exists to help students figure out where they&apos;re headed before locking in a course,
               university, or country — and to help parents understand the real cost and risk involved, in plain
               language.
             </p>

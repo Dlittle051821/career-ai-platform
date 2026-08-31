@@ -1121,10 +1121,10 @@ create policy "super_admin/admin/finance can write payment request tokens"
 -- function body itself still governs what a permitted call may actually do.
 -- ============================================================================
 
-revoke execute on function public.next_invoice_number() from public, anon, authenticated;
-revoke execute on function public.recompute_invoice_status(uuid) from public, anon, authenticated;
-revoke execute on function public.verify_checkout_payment(uuid, text, text, text) from public, anon, authenticated;
-revoke execute on function public.apply_webhook_event(text, text) from public, anon, authenticated;
+revoke execute on function public.next_invoice_number() from public;
+revoke execute on function public.recompute_invoice_status(uuid) from public;
+revoke execute on function public.verify_checkout_payment(uuid, text, text, text) from public;
+revoke execute on function public.apply_webhook_event(text, text) from public;
 
 -- Called only from authenticated admin server actions when issuing an
 -- invoice (src/lib/supabase/admin/invoices.ts's issueInvoice). Internally

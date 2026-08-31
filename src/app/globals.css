@@ -11,43 +11,105 @@
     "Segoe UI", Roboto, sans-serif;
   --font-serif: var(--font-fraunces), "Iowan Old Style", "Source Serif 4", Georgia, serif;
 
+  /* ------------------------------------------------------------------
+     Milestone 11 — Official NextWise visual identity, brand tokens.
+     ONE central place for every brand color in the product — every
+     `--color-*` token below is defined as `var(--brand-*)`, never a
+     second hard-coded hex, so re-theming the whole site (public pages,
+     auth, dashboard, admin, payments, invoices, PDF) means editing this
+     block and nothing else. Two families are REAL — sampled directly
+     from the shipped logo assets / already documented in
+     src/config/site.ts — every other family is explicitly PROVISIONAL:
+     no approved hex for violet/lime/coral/paper existed anywhere in this
+     repo before this milestone (confirmed against docs/branding-guide.md),
+     so these are a deliberately documented, WCAG-AA-checked placeholder
+     palette for the named color families in docs/nextwise-pricing-offers-guide.md's
+     brand spec, meant to be swapped for real approved hex values later
+     without touching a single component. Every pairing below has been
+     checked against the real WCAG 2.1 contrast formula (see that guide's
+     "Brand tokens" section for the exact ratios) — do not add a new
+     provisional value without checking contrast the same way.
+  ------------------------------------------------------------------- */
+
+  /* --- REAL: sampled from public/brand/nextwise-icon.png --- */
+  --brand-primary: #005ef6;         /* REAL — logo mark blue */
+  --brand-primary-strong: #011f66;  /* REAL — logo gradient/navy */
+  /* --- REAL: = existing BRAND_DARK_BG in src/config/site.ts --- */
+  --brand-ink: #000c24;             /* REAL — primary body copy, premium/data-heavy sections, admin/analytics */
+
+  /* --- PROVISIONAL: documented placeholders, no prior approved hex --- */
+  --brand-violet: #4c2e8c;          /* PROVISIONAL */
+  --brand-signal: #c6f24d;          /* PROVISIONAL — vivid lime. BACKGROUND/CHIP USE ONLY (pair with --brand-ink text on top); sparse; never long paragraphs; fails AA as text */
+  --brand-signal-strong: #557a00;   /* PROVISIONAL — darker lime-olive, safe for lime-as-TEXT/icon use (5.04:1 on white, 4.71:1 on paper) */
+  --brand-coral: #af351c;           /* PROVISIONAL — warnings/destructive/validation only, never decorative over large areas */
+  --brand-coral-pale: #fbe7e1;      /* PROVISIONAL — pale tint background for coral-toned alert/validation panels */
+  --brand-paper: #faf7f1;           /* PROVISIONAL — warm off-white, editorial/reading backgrounds */
+  --brand-surface: #ffffff;         /* card/reading surface white */
+  --brand-muted: #5b6472;           /* PROVISIONAL — secondary/muted text */
+  --brand-border: #c3ccda;          /* PROVISIONAL — hairline dividers/card borders */
+  --brand-focus: #005ef6;           /* alias of --brand-primary — keyboard focus ring, 4.99:1 on paper (passes 3:1 UI-component minimum) */
+  --brand-success: #1f7a3f;         /* PROVISIONAL */
+  --brand-success-pale: #e4f3e9;    /* PROVISIONAL */
+  --brand-warning: #8a5a00;         /* PROVISIONAL — amber-toned, softer caution than coral */
+  --brand-warning-pale: #fdf0da;    /* PROVISIONAL */
+  --brand-danger: #af351c;          /* alias of --brand-coral — coral IS the spec's "important warnings/destructive/validation" color */
+  --brand-danger-pale: #fbe7e1;     /* alias of --brand-coral-pale */
+  --brand-info: #0b4fbf;            /* PROVISIONAL */
+  --brand-info-pale: #e5eeff;       /* PROVISIONAL */
+
+  /* ------------------------------------------------------------------
+     Existing --color-* tokens, redefined as var(--brand-*) aliases
+     wherever a direct, sensible mapping exists — this is what actually
+     re-themes every component using bg-primary/text-muted/etc. WITHOUT
+     editing those components. --color-accent is deliberately LEFT
+     UNCHANGED (still its own #d97f22 family, not aliased to
+     --brand-signal): Button's "secondary" variant renders
+     `bg-accent text-white`, and pointing --color-accent at the vivid
+     lime would put white text on a very light background (contrast
+     ≈1.5) — a real accessibility regression. New pricing-specific UI
+     that wants the lime/signal treatment reaches --brand-signal /
+     --brand-signal-strong directly (e.g. via `text-[var(--brand-signal-strong)]`),
+     never through --color-accent.
+  ------------------------------------------------------------------- */
+
   /* Brand */
-  --color-primary: #1c2b4a;
-  --color-primary-dark: #121d33;
-  --color-primary-light: #2f4270;
+  --color-primary: var(--brand-primary);
+  --color-primary-dark: var(--brand-primary-strong);
+  --color-primary-light: #2f6ff8;
   --color-primary-contrast: #ffffff;
 
   --color-secondary: #0d7d6f;
   --color-secondary-dark: #0a5f54;
   --color-secondary-light: #e3f3f0;
 
+  /* --color-accent intentionally NOT aliased to --brand-* — see note above. */
   --color-accent: #d97f22;
   --color-accent-dark: #b0651a;
   --color-accent-light: #fbead6;
 
   /* Neutrals */
-  --color-background: #faf8f4;
-  --color-surface: #ffffff;
+  --color-background: var(--brand-paper);
+  --color-surface: var(--brand-surface);
   --color-surface-alt: #f3efe7;
-  --color-border: #e3ded3;
-  --color-border-strong: #cbc4b4;
+  --color-border: var(--brand-border);
+  --color-border-strong: #a9b4c6;
 
   /* Text */
-  --color-text: #1a2130;
+  --color-text: var(--brand-ink);
   --color-text-soft: #333c4d;
-  --color-muted: #5b6472;
+  --color-muted: var(--brand-muted);
   --color-on-primary: #f2f4f9;
   --color-on-primary-muted: #aab4cc;
 
   /* Status */
-  --color-success: #1e7b45;
-  --color-success-light: #e6f4ea;
-  --color-warning: #a5670f;
-  --color-warning-light: #fbf0dc;
-  --color-error: #b93030;
-  --color-error-light: #fbe9e9;
-  --color-info: #1d5f9a;
-  --color-info-light: #e6f0f9;
+  --color-success: var(--brand-success);
+  --color-success-light: var(--brand-success-pale);
+  --color-warning: var(--brand-warning);
+  --color-warning-light: var(--brand-warning-pale);
+  --color-error: var(--brand-danger);
+  --color-error-light: var(--brand-danger-pale);
+  --color-info: var(--brand-info);
+  --color-info-light: var(--brand-info-pale);
 
   --radius-card: 1rem;
   --radius-control: 0.625rem;
@@ -87,9 +149,11 @@
     color: inherit;
   }
 
-  /* Visible, consistent keyboard focus ring across the app */
+  /* Visible, consistent keyboard focus ring across the app — repointed at
+     --brand-focus (Milestone 11); 4.99:1 against --brand-paper, passing the
+     WCAG 2.1 3:1 minimum for non-text/UI-component contrast. */
   :focus-visible {
-    outline: 2px solid var(--color-secondary);
+    outline: 2px solid var(--brand-focus);
     outline-offset: 2px;
     border-radius: 4px;
   }

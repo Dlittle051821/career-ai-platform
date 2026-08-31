@@ -25,6 +25,11 @@ import {
   RotateCcw,
   Webhook,
   Settings2,
+  Upload,
+  GitMerge,
+  ShieldCheck,
+  Link2,
+  Tag,
 } from "lucide-react";
 import { logout } from "@/lib/supabase/actions";
 import { ADMIN_ROLE_LABELS, type CurrentAdmin } from "@/types/admin";
@@ -44,8 +49,13 @@ const ADMIN_NAV: NavItem[] = [
   { label: "Students", href: "/admin/students", icon: Users, permission: "students:read" },
   { label: "Universities", href: "/admin/universities", icon: Landmark, permission: "universities:read" },
   { label: "Courses", href: "/admin/courses", icon: GraduationCap, permission: "courses:read" },
+  { label: "Data Imports", href: "/admin/education/imports", icon: Upload, permission: "education-imports:read" },
+  { label: "Duplicates", href: "/admin/education/duplicates", icon: GitMerge, permission: "education-duplicates:read" },
+  { label: "Data Quality", href: "/admin/education/data-quality", icon: ShieldCheck, permission: "education-data-quality:read" },
+  { label: "Sources", href: "/admin/education/sources", icon: Link2, permission: "education-sources:read" },
   { label: "Applications", href: "/admin/applications", icon: ClipboardList, permission: "applications:read" },
   { label: "Leads", href: "/admin/leads", icon: Contact, permission: "leads:read" },
+  { label: "Pricing", href: "/admin/pricing", icon: Tag, permission: "pricing:read" },
   { label: "Payments", href: "/admin/payments", icon: Wallet, permission: "payments:read" },
   { label: "Invoices", href: "/admin/invoices", icon: Receipt, permission: "invoices:read" },
   { label: "Refunds", href: "/admin/refunds", icon: RotateCcw, permission: "refunds:read" },

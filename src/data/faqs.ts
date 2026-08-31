@@ -1,4 +1,5 @@
 import type { FaqItem } from "@/types";
+import { BRAND_NAME } from "@/config/site";
 
 export const HOME_FAQS: FaqItem[] = [
   {
@@ -19,7 +20,7 @@ export const HOME_FAQS: FaqItem[] = [
   {
     question: "Do you recommend options in India as well as abroad?",
     answer:
-      "Yes. CareerPath AI is career-first, not abroad-first. We help you compare India and international pathways on their merits — cost, outcomes, and fit — rather than defaulting to one direction.",
+      `Yes. ${BRAND_NAME} is career-first, not abroad-first. We help you compare India and international pathways on their merits — cost, outcomes, and fit — rather than defaulting to one direction.`,
   },
   {
     question: "How will paid services and refunds be documented?",
@@ -134,21 +135,20 @@ export const PRICING_FAQS: FaqItem[] = [
   {
     question: "Are these final prices?",
     answer:
-      "No. All prices are provisional and shown for planning purposes. Final pricing, applicable taxes, and any third-party costs will be confirmed in writing before you pay anything.",
+      "Yes. The price shown for each plan is the official, final price — a one-time payment with no subscription. If a discount offer is currently running for a plan, both the original and discounted price are shown together.",
   },
   {
-    question: "What is not included in the package price?",
+    question: "What is not included in the plan price?",
     answer:
-      "Third-party costs such as university application fees, visa fees, test fees, and travel are generally separate. Each package's page lists what is out of scope; final exclusions will be confirmed in your written agreement.",
+      "Third-party costs such as university application fees, visa fees, standardized test fees, translation, courier, and government fees are generally separate unless a plan explicitly states otherwise. Each plan's card lists exactly what's included and what isn't.",
   },
   {
-    question: "Can I pay for a single stage instead of a full package?",
+    question: "Is there a tax on top of the price shown?",
     answer:
-      "Package structures are still being finalised. Book a free counselling conversation to discuss what level of support fits your situation.",
+      "A plan's card will say so directly if tax applies — either included in the price or added at checkout. If nothing is shown, tax hasn't been configured for that plan yet.",
   },
   {
     question: "What if I want a refund after paying?",
-    answer:
-      "Refund conditions will be documented and shared before payment. See the Refund Policy placeholder and Trust Center for the intended process.",
+    answer: "See the Refund Policy page and Trust Center for current refund and cancellation terms, or contact NextWise support directly.",
   },
 ];

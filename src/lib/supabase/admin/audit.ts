@@ -114,4 +114,21 @@ export const AUDIT_ENTITY_TYPES = [
   "refund",
   "billing_settings",
   "payment_gateway_config",
+  // Milestone 9 — global university/course data platform. "university" and
+  // "course" above are reused as-is (same tables, extended with new
+  // columns — see supabase/migrations/0006_global_university_course_data.sql
+  // PART 2/4) rather than duplicated here.
+  "campus",
+  "course_intake",
+  "course_tuition_fee",
+  "course_admission_requirement",
+  "scholarship",
+  "education_import_batch",
+  "education_duplicate_candidate",
+  "education_data_provenance",
+  "country",
+  // Milestone 10 — NextWise Pricing & Offers.
+  "pricing_plan",
+  "pricing_plan_version",
+  "pricing_offer",
 ] as const;

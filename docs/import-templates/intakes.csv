@@ -1,0 +1,2 @@
+university_slug,course_slug,intake_name,start_month,start_year,applications_open_at,priority_deadline,final_deadline,international_deadline,capacity_status,intake_status,data_source,source_url,last_verified_at
+example-international-university,example-msc-applied-data-science,September intake,9,2027,2026-10-01,2027-03-01,2027-06-01,2027-05-01,open,upcoming,official_university,https://www.example-international-university.example/courses/example-msc-applied-data-science,2026-01-01

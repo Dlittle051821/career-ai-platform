@@ -12,11 +12,11 @@ import { FaqAccordion } from "@/components/sections/FaqAccordion";
 import { PARENTS_FAQS } from "@/data/faqs";
 import { APPLICATION_STATUS_PREVIEW } from "@/data/trust";
 import { COST_PLANNING_FRAMEWORK, FAMILY_QUESTIONS, FRAUD_WARNING_SIGNS, PARENT_PARTICIPATION } from "@/data/parents";
+import { BRAND_NAME } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "For Parents",
-  description:
-    "Cost planning, questions to ask, fraud warning signs, and how CareerPath AI intends to document scope, payments, and refunds for families.",
+  description: `Cost planning, questions to ask, fraud warning signs, and how ${BRAND_NAME} intends to document scope, payments, and refunds for families.`,
 };
 
 export default function ParentsPage() {

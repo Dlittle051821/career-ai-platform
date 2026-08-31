@@ -2,6 +2,7 @@ import { ArrowRight, ShieldCheck, Users2, GitCompareArrows, Sparkle } from "luci
 import { Section } from "@/components/layout/Section";
 import { LinkButton } from "@/components/ui/Button";
 import { RoadmapVisual } from "./RoadmapVisual";
+import { BRAND_NAME } from "@/config/site";
 
 const REASSURANCE = [
   { icon: ShieldCheck, label: "Transparent guidance" },
@@ -29,7 +30,7 @@ export function Hero() {
           </h1>
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
             Most families pick a course first and figure out the career later — often after spending significant
-            money. CareerPath AI helps students and parents work the other way around: understand the career, then
+            money. {BRAND_NAME} helps students and parents work the other way around: understand the career, then
             choose the course, university, and country that genuinely fit.
           </p>
 

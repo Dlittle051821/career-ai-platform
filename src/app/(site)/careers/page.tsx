@@ -8,10 +8,11 @@ import { CareerCard } from "@/components/sections/careers/CareerCard";
 import { CareerFilterBar } from "@/components/sections/careers/CareerFilterBar";
 import { Pagination } from "@/components/sections/careers/Pagination";
 import { searchCareers, getCareerFamilies, getIndustries, getCareerTags } from "@/lib/supabase/careers";
+import { BRAND_NAME } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Career Explorer",
-  description: "Browse and search the CareerPath AI career library — structured profiles for careers relevant to Indian students.",
+  description: `Browse and search the ${BRAND_NAME} career library — structured profiles for careers relevant to Indian students.`,
 };
 
 interface CareersPageProps {

@@ -8,7 +8,8 @@ import { FilterBar } from "@/components/admin/FilterBar";
 import { getAnalyticsSummary } from "@/lib/supabase/admin/analytics";
 import { withShareOfTotal } from "@/lib/admin/analytics";
 import { formatMoney } from "@/lib/admin/money";
-import { APPLICATION_STAGE_LABELS, LEAD_STAGE_LABELS, PAYMENT_STATUS_LABELS, type ApplicationStage, type LeadStage, type PaymentStatus } from "@/types/admin";
+import { APPLICATION_STAGE_LABELS, LEAD_STAGE_LABELS, OUTCOME_STAGE_LABELS, PAYMENT_STATUS_LABELS, type ApplicationStage, type LeadStage, type OutcomeStage, type PaymentStatus } from "@/types/admin";
+import { PRODUCT_EVENTS, type ImplementedEventName } from "@/lib/analytics/events";
 
 export const metadata: Metadata = { title: "Analytics" };
 
@@ -240,6 +241,79 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
             </ul>
           )}
         </Card>
+      </div>
+
+      <div className="mt-6">
+        <h2 className="text-lg font-semibold text-primary">Product &amp; outcome metrics (Milestone 9)</h2>
+        <p className="mt-1 text-sm text-muted">
+          Event counts below cover only the events this application actually fires — see docs/M9_EVENT_TAXONOMY.md
+          for the full registry, including names reserved for functionality (like a live assessment) that does not
+          exist yet. Richer time-series charts are deferred — see docs/M9_IMPLEMENTATION.md.
+        </p>
+
+        <div className="mt-4 grid gap-6 sm:grid-cols-3">
+          <Card>
+            <p className="text-sm font-medium text-text">Total student accounts</p>
+            <p className="mt-1 text-2xl font-semibold text-primary">{summary.product.totalStudentUsers}</p>
+            <p className="mt-0.5 text-xs text-muted">{summary.product.newRegistrations} new in range</p>
+          </Card>
+          <Card>
+            <RateBlock
+              label="Profile completion rate"
+              percent={summary.product.profileCompletionRate.percent}
+              numerator={summary.product.profileCompletionRate.numerator}
+              denominator={summary.product.profileCompletionRate.denominator}
+              isReliable={summary.product.profileCompletionRate.isReliable}
+            />
+          </Card>
+          <Card>
+            <p className="text-sm font-medium text-text">Invoices paid</p>
+            <p className="mt-1 text-2xl font-semibold text-primary">{summary.product.invoicesPaid}</p>
+            <p className="mt-0.5 text-xs text-muted">status = &quot;paid&quot;, existing Milestone 8 ledger</p>
+          </Card>
+        </div>
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <Card>
+            <h3 className="text-base font-semibold text-primary">Event counts</h3>
+            <ul className="mt-3 space-y-2 text-sm">
+              {(Object.keys(summary.product.eventCounts) as ImplementedEventName[])
+                .sort((a, b) => summary.product.eventCounts[b] - summary.product.eventCounts[a])
+                .map((name) => (
+                  <li key={name} className="flex items-center justify-between border-t border-border pt-2 first:border-0 first:pt-0">
+                    <span className="text-text-soft" title={PRODUCT_EVENTS[name].reason}>
+                      {name}
+                    </span>
+                    <span className="font-medium text-text">{summary.product.eventCounts[name]}</span>
+                  </li>
+                ))}
+            </ul>
+            <p className="mt-3 text-xs text-muted">
+              counselling_requested and the four assessment_* events are not shown here — they are reserved names
+              with no real code path firing them yet (see docs/M9_EVENT_TAXONOMY.md).
+            </p>
+          </Card>
+
+          <Card>
+            <h3 className="text-base font-semibold text-primary">Student outcome distribution</h3>
+            {summary.product.outcomeStatusDistribution.length === 0 ? (
+              <p className="mt-3 text-sm text-muted">No student_outcomes rows yet.</p>
+            ) : (
+              <ul className="mt-3 space-y-2 text-sm">
+                {summary.product.outcomeStatusDistribution.map((o) => (
+                  <li key={o.status} className="flex items-center justify-between border-t border-border pt-2 first:border-0 first:pt-0">
+                    <span className="text-text-soft">{OUTCOME_STAGE_LABELS[o.status as OutcomeStage] ?? o.status}</span>
+                    <span className="font-medium text-text">{o.count}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-3 text-xs text-muted">
+              Not time-scoped by the range filter above — student_outcomes holds current state, not a per-period
+              count. See docs/OUT-001_OUTCOME_DATA_FOUNDATION.md.
+            </p>
+          </Card>
+        </div>
       </div>
     </div>
   );

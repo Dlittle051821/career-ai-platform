@@ -5,6 +5,7 @@ import Script from "next/script";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { createCheckoutSessionAction, verifyCheckoutAction } from "@/app/(site)/payments/actions";
+import { BRAND_LOGO, BRAND_NAME } from "@/config/site";
 
 declare global {
   interface Window {
@@ -19,6 +20,7 @@ interface RazorpayOptions {
   order_id: string;
   name: string;
   description?: string;
+  image?: string;
   handler: (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => void;
   modal?: { ondismiss?: () => void };
   theme?: { color?: string };
@@ -59,8 +61,9 @@ export function PayButton({ invoiceId, invoiceNumber }: { invoiceId: string; inv
       amount: session.amountMinorUnits,
       currency: session.currency,
       order_id: session.providerOrderId,
-      name: "CareerPath AI",
+      name: BRAND_NAME,
       description: session.invoiceNumber ? `Invoice ${session.invoiceNumber}` : "Invoice payment",
+      image: BRAND_LOGO.icon512,
       theme: { color: "#0f4c3a" },
       modal: {
         ondismiss: () => setBusy(false),

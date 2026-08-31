@@ -1,5 +1,6 @@
 import type { AgreementStatus, ApplicationStage, ContentStatus, LeadStage, PaymentStatus, SignatureStatus } from "@/types/admin";
 import type { InvoiceStatus, PaymentAttemptStatus } from "@/types/payments";
+import type { PricingOfferStatus, PricingPlanVersionStatus } from "@/types/pricing";
 
 /**
  * Status-transition graphs for every module with a controlled status
@@ -112,6 +113,39 @@ export const PAYMENT_ATTEMPT_STATUS_TRANSITIONS: Record<PaymentAttemptStatus, Pa
   cancelled: [],
   refunded: [],
   partially_refunded: ["refunded"],
+};
+
+/**
+ * Milestone 10 — pricing plan VERSION transitions. Deliberately narrower
+ * than CONTENT_STATUS_TRANSITIONS above: once a version is published, it
+ * can only ever move to archived — never back to draft, never re-edited —
+ * because supabase/migrations/0007_nextwise_pricing_offers.sql PART 2.1's
+ * database trigger physically enforces that same restriction at the row
+ * level. This graph exists so the admin UI can disable/hide a transition
+ * the database would reject anyway, not as the actual enforcement (the
+ * trigger is). "Create a new price version" is how you change anything
+ * about an archived or published version — never a status transition.
+ */
+export const PRICING_PLAN_VERSION_STATUS_TRANSITIONS: Record<PricingPlanVersionStatus, PricingPlanVersionStatus[]> = {
+  draft: ["published"],
+  published: ["archived"],
+  archived: [],
+};
+
+/**
+ * Milestone 10 — pricing OFFER transitions. Offers are not immutable the
+ * way plan versions are (spec: "Add, schedule, disable and archive
+ * offers" implies ongoing management, not a one-shot publish) — an
+ * archived offer can be restored to draft for further edits, same pattern
+ * as CONTENT_STATUS_TRANSITIONS. `is_active` is a separate boolean toggle
+ * (spec: "disable" an offer) independent of this status graph — an admin
+ * can flip is_active off/on for a published offer without moving it
+ * through this graph at all.
+ */
+export const PRICING_OFFER_STATUS_TRANSITIONS: Record<PricingOfferStatus, PricingOfferStatus[]> = {
+  draft: ["published", "archived"],
+  published: ["archived"],
+  archived: ["draft"],
 };
 
 /** Generic, graph-agnostic transition check — every module's server action calls this with its own graph. Same status -> same status is always allowed (a no-op save shouldn't be rejected as an invalid transition). */
