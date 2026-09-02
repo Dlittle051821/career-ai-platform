@@ -131,4 +131,11 @@ export const AUDIT_ENTITY_TYPES = [
   "pricing_plan",
   "pricing_plan_version",
   "pricing_offer",
+  // Milestone 11-A — Electronic Stamping (F-123).
+  "stamp_request",
+  "stamp_webhook",
+  // Milestone 11-B/C — Assisted Onboarding Revision.
+  "discovery_session",
+  "student_profile_section_provenance",
+  "student_recommendation_verification",
 ] as const;

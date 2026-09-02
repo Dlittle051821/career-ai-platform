@@ -6,11 +6,27 @@ import { Card } from "@/components/ui/Card";
 import { AdminTable, Td } from "@/components/admin/AdminTable";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { StudentStatusForm, AssignCounsellorForm, AddNoteForm } from "@/components/admin/students/StudentActionForms";
+import { ProfileProvenanceCard, type ProfileProvenanceSectionRow } from "@/components/admin/students/ProfileProvenanceCard";
+import { RecommendationReadinessCard } from "@/components/admin/students/RecommendationReadinessCard";
 import { getStudentDetail } from "@/lib/supabase/admin/students";
 import { listCounsellorOptions } from "@/lib/supabase/admin/counsellors";
+import { getStudentProfileSnapshotForAdmin } from "@/lib/supabase/admin/student-profile";
+import { getSectionProvenanceMap } from "@/lib/supabase/admin/profile-provenance";
+import { getRecommendationReadinessForAdmin } from "@/lib/supabase/admin/recommendation-readiness";
+import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
+import { hasPermission } from "@/lib/admin/permissions";
+import { calculateCompletion } from "@/lib/profile/completion";
 import { formatMoney } from "@/lib/admin/money";
 import { APPLICATION_STAGE_LABELS, LEAD_STAGE_LABELS } from "@/types/admin";
-import { updateStudentStatusAction, assignCounsellorAction, addStudentNoteAction } from "../actions";
+import type { RecommendationReadiness, RecommendationType } from "@/types/recommendation-readiness";
+import {
+  updateStudentStatusAction,
+  assignCounsellorAction,
+  addStudentNoteAction,
+  setSectionProvenanceAction,
+  setRecommendationVerificationAction,
+  clearRecommendationVerificationAction,
+} from "../actions";
 
 interface StudentDetailPageProps {
   params: Promise<{ id: string }>;
@@ -20,12 +36,53 @@ export const metadata: Metadata = { title: "Student" };
 
 export default async function StudentDetailPage({ params }: StudentDetailPageProps) {
   const { id } = await params;
-  const [student, counsellorOptions] = await Promise.all([getStudentDetail(id), listCounsellorOptions()]);
+  const [student, counsellorOptions, admin] = await Promise.all([getStudentDetail(id), listCounsellorOptions(), getCurrentAdmin()]);
   if (!student) notFound();
 
   const boundStatusAction = updateStudentStatusAction.bind(null, id);
   const boundAssignAction = assignCounsellorAction.bind(null, id);
   const boundNoteAction = addStudentNoteAction.bind(null, id);
+  const boundProvenanceAction = setSectionProvenanceAction.bind(null, id);
+  const boundSetVerificationAction = setRecommendationVerificationAction.bind(null, id);
+  const boundClearVerificationAction = clearRecommendationVerificationAction.bind(null, id);
+
+  // Milestone 11-C1/C2 — Profile Completeness + Counsellor Verification,
+  // and Recommendation Readiness. Every role that can reach this page
+  // today (super_admin/admin/counsellor/analyst — see
+  // src/lib/admin/permissions.ts) also holds both "...:read" permissions
+  // below, but each is checked explicitly (rather than assumed) so its
+  // card simply disappears instead of crashing the page if that ever
+  // drifts. Both cards are computed from the same profile snapshot, fetched
+  // once and shared, rather than fetching it twice.
+  const canReadProfile = hasPermission(admin?.role, "profile-verification:read");
+  const canWriteProfile = hasPermission(admin?.role, "profile-verification:write");
+  const canReadReadiness = hasPermission(admin?.role, "recommendation-readiness:read");
+  const canWriteReadiness = hasPermission(admin?.role, "recommendation-readiness:write");
+
+  let provenanceSections: ProfileProvenanceSectionRow[] = [];
+  let recommendationReadiness: Record<RecommendationType, RecommendationReadiness> | null = null;
+  let profileCompletionPercent = student.profileCompletionPercent;
+  if (canReadProfile || canReadReadiness) {
+    const [snapshot, provenanceMap, readiness] = await Promise.all([
+      getStudentProfileSnapshotForAdmin(id),
+      canReadProfile ? getSectionProvenanceMap(id) : Promise.resolve(null),
+      canReadReadiness ? getRecommendationReadinessForAdmin(id) : Promise.resolve(null),
+    ]);
+    const completion = calculateCompletion(snapshot);
+    profileCompletionPercent = completion.percent;
+
+    if (canReadProfile && provenanceMap) {
+      provenanceSections = completion.sections.map((s) => ({
+        key: s.key,
+        label: s.label,
+        weight: s.weight,
+        required: s.required,
+        complete: s.complete,
+        provenance: provenanceMap[s.key as keyof typeof provenanceMap],
+      }));
+    }
+    recommendationReadiness = readiness;
+  }
 
   return (
     <div className="max-w-5xl">
@@ -49,10 +106,30 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
       <Card className="mb-6">
         <p className="text-sm font-medium text-text">Profile completion</p>
         <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-alt">
-          <div className="h-full rounded-full bg-secondary" style={{ width: `${student.profileCompletionPercent}%` }} />
+          <div className="h-full rounded-full bg-secondary" style={{ width: `${profileCompletionPercent}%` }} />
         </div>
-        <p className="mt-1.5 text-xs text-muted">{student.profileCompletionPercent}% complete — self-reported, not editable from admin.</p>
+        <p className="mt-1.5 text-xs text-muted">{profileCompletionPercent}% complete — self-reported, not editable from admin.</p>
       </Card>
+
+      {canReadProfile && (
+        <ProfileProvenanceCard
+          sections={provenanceSections}
+          completionPercent={profileCompletionPercent}
+          canWrite={canWriteProfile}
+          hasCounsellorId={Boolean(admin?.counsellorId)}
+          action={boundProvenanceAction}
+        />
+      )}
+
+      {canReadReadiness && recommendationReadiness && (
+        <RecommendationReadinessCard
+          readiness={recommendationReadiness}
+          canWrite={canWriteReadiness}
+          hasCounsellorId={Boolean(admin?.counsellorId)}
+          setAction={boundSetVerificationAction}
+          clearAction={boundClearVerificationAction}
+        />
+      )}
 
       <div className="mb-6 grid gap-6 sm:grid-cols-2">
         <Card>

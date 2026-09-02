@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Download, FileSignature } from "lucide-react";
+import { Download, FileSignature, Stamp } from "lucide-react";
 import { PageHero } from "@/components/sections/PageHero";
 import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
@@ -25,6 +25,16 @@ const STATUS_TONE: Record<string, "neutral" | "success" | "warning" | "error" | 
   failed: "error",
 };
 
+const STAMP_STATUS_TONE: Record<string, "neutral" | "success" | "warning" | "error" | "info"> = {
+  draft: "neutral",
+  pending: "warning",
+  processing: "info",
+  completed: "success",
+  failed: "error",
+  cancelled: "neutral",
+  expired: "neutral",
+};
+
 /**
  * Milestone 10 (F-122) — the student's own agreement detail page.
  * getMyAgreementById() re-derives ownership from the signed-in student's
@@ -39,6 +49,7 @@ export default async function StudentAgreementDetailPage({ params }: AgreementDe
   if (!agreement) notFound();
 
   const request = agreement.latestSignatureRequest;
+  const stampRequest = agreement.latestStampRequest;
 
   return (
     <>
@@ -105,10 +116,48 @@ export default async function StudentAgreementDetailPage({ params }: AgreementDe
               <p className="text-sm text-muted">This agreement has not yet been sent for signature.</p>
             </Card>
           )}
+
+          {agreement.stampSignSequence === "SIGN_ONLY" ? null : agreement.stampSignSequence && stampRequest ? (
+            <Card>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="flex items-center gap-2 text-lg font-semibold text-primary">
+                  <Stamp aria-hidden="true" className="h-5 w-5" />
+                  Stamping status
+                </h2>
+                <Badge tone={STAMP_STATUS_TONE[stampRequest.status] ?? "neutral"}>{stampStatusLabel(stampRequest.status)}</Badge>
+              </div>
+              <ol className="mt-4 space-y-3 text-sm">
+                <TimelineRow label="Processing" at={stampRequest.processingAt} />
+                <TimelineRow label="Completed" at={stampRequest.completedAt} />
+                {stampRequest.failedAt ? <TimelineRow label="Failed" at={stampRequest.failedAt} tone="error" /> : null}
+                {stampRequest.cancelledAt ? <TimelineRow label="Cancelled" at={stampRequest.cancelledAt} tone="neutral" /> : null}
+                {stampRequest.expiredAt ? <TimelineRow label="Expired" at={stampRequest.expiredAt} tone="neutral" /> : null}
+              </ol>
+              {stampRequest.hasStampedDocument ? (
+                <a href={`/agreements/${agreement.id}/stamped-document`} className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-secondary-dark hover:text-primary">
+                  <Download aria-hidden="true" className="h-4 w-4" />
+                  Download stamped agreement
+                </a>
+              ) : null}
+            </Card>
+          ) : null}
         </div>
       </Section>
     </>
   );
+}
+
+function stampStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    draft: "Stamp request created",
+    pending: "Stamp requested",
+    processing: "Stamping in progress",
+    completed: "Stamped",
+    failed: "Stamping failed",
+    cancelled: "Cancelled",
+    expired: "Expired",
+  };
+  return labels[status] ?? status;
 }
 
 function signatureStatusLabel(status: string): string {

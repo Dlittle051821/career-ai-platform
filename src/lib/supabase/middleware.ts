@@ -16,6 +16,10 @@ const PROTECTED_PATHS = [
   "/pricing/checkout",
   // Milestone 10 (F-122) — student-facing "My Agreements" detail pages.
   "/agreements",
+  // Milestone 11-B — the Assisted Onboarding choice screen and the real
+  // (authenticated) Discovery Session booking flow.
+  "/welcome",
+  "/discovery-session",
 ];
 const AUTH_ONLY_PATHS = ["/login", "/register"];
 

@@ -323,6 +323,8 @@ export async function getStudentDetail(userId: string): Promise<StudentDetail | 
       expiryDate: ag.expiry_date,
       documentReferenceUrl: ag.document_reference_url,
       signatureStatus: ag.signature_status as Agreement["signatureStatus"],
+      stampSignSequence: ag.stamp_sign_sequence as Agreement["stampSignSequence"],
+      stampStatus: ag.stamp_status as Agreement["stampStatus"],
       internalNotes: ag.internal_notes,
       createdAt: ag.created_at,
       updatedAt: ag.updated_at,

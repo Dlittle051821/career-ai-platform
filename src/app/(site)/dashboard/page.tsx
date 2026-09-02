@@ -16,6 +16,10 @@ import { INVOICE_STATUS_LABELS, PAYABLE_INVOICE_STATUSES } from "@/types/payment
 import { formatMoney } from "@/lib/admin/money";
 import { listSavedItems } from "@/lib/supabase/education/saved-items";
 import { listMyApplications } from "@/lib/supabase/education/applications";
+import { getMyActiveDiscoverySession } from "@/lib/supabase/discovery-sessions/book";
+import { DISCOVERY_SESSION_STATUS_LABELS } from "@/types/discovery-session";
+import { getMyRecommendationReadiness } from "@/lib/supabase/recommendation-readiness";
+import { ReadinessBadge } from "@/components/sections/recommendations/ReadinessBadge";
 import { BRAND_NAME } from "@/config/site";
 
 const STUDENT_PROFILE_STATUS_LABEL: Record<string, string> = {
@@ -58,6 +62,9 @@ export default async function DashboardPage() {
   const savedCourseCount = savedItems.filter((i) => i.entityType === "course").length;
 
   const applications = await listMyApplications();
+  const activeDiscoverySession = await getMyActiveDiscoverySession();
+  const recommendationReadiness = await getMyRecommendationReadiness();
+  const careerReadiness = recommendationReadiness?.career ?? null;
 
   return (
     <Section tone="muted" className="pt-10 sm:pt-14">
@@ -133,10 +140,12 @@ export default async function DashboardPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-lg font-semibold text-primary">Career recommendations</h2>
                 <Badge tone="success">Real</Badge>
+                {careerReadiness && <ReadinessBadge level={careerReadiness.level} />}
               </div>
               <p className="mt-1 text-sm leading-relaxed text-muted">
-                Careers ranked against your Student Digital Profile, with plain-language reasons for each one — a
-                structured decision-support tool, not a scientific or AI-generated assessment.
+                {careerReadiness && careerReadiness.level === "NOT_READY"
+                  ? "Add a bit more to your profile — subjects, interests, or skills — to unlock reliable career recommendations."
+                  : "Careers ranked against your Student Digital Profile, with plain-language reasons for each one — a structured decision-support tool, not a scientific or AI-generated assessment."}
               </p>
               <LinkButton href="/recommendations" size="sm" className="mt-4">
                 View my recommendations
@@ -146,15 +155,20 @@ export default async function DashboardPage() {
         </Card>
 
         <Card>
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
-            <Sparkles aria-hidden="true" className="h-5 w-5" />
-          </span>
-          <h2 className="mt-4 text-lg font-semibold text-primary">Counselling</h2>
+          <div className="flex items-center justify-between gap-2">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
+              <Sparkles aria-hidden="true" className="h-5 w-5" />
+            </span>
+            {activeDiscoverySession ? <Badge tone="success">Real</Badge> : null}
+          </div>
+          <h2 className="mt-4 text-lg font-semibold text-primary">Discovery Session</h2>
           <p className="mt-2 text-sm leading-relaxed text-muted">
-            No sessions booked yet. A free first conversation is a good place to start.
+            {activeDiscoverySession
+              ? `Your free Discovery Session is ${DISCOVERY_SESSION_STATUS_LABELS[activeDiscoverySession.status].toLowerCase()}.${activeDiscoverySession.assignedCounsellorName ? ` ${activeDiscoverySession.assignedCounsellorName} is assigned to you.` : ""}`
+              : "A free, no-obligation first conversation with a counsellor — a good place to start if you'd rather talk it through than fill in a form."}
           </p>
-          <LinkButton href="/book-counselling" size="sm" variant="outline" className="mt-4 w-full justify-center">
-            Book free counselling
+          <LinkButton href="/discovery-session/book" size="sm" variant="outline" className="mt-4 w-full justify-center">
+            {activeDiscoverySession ? "View my Discovery Session" : "Book my free Discovery Session"}
           </LinkButton>
         </Card>
       </div>

@@ -9,7 +9,10 @@ import { RecommendationCard } from "@/components/sections/recommendations/Recomm
 import { getStudentProfileSnapshot } from "@/lib/supabase/student-profile";
 import { getCareersForMatching } from "@/lib/supabase/careers";
 import { getRecommendations, hasMinimumProfileDataForRecommendations } from "@/lib/recommendations";
+import { getMyRecommendationReadiness } from "@/lib/supabase/recommendation-readiness";
+import { ReadinessBadge } from "@/components/sections/recommendations/ReadinessBadge";
 import { trackEvent } from "@/lib/supabase/analytics/track";
+import type { RecommendationReadiness } from "@/types/recommendation-readiness";
 
 export const metadata: Metadata = {
   title: "Career Recommendations",
@@ -35,10 +38,13 @@ export default async function RecommendationsPage() {
   const snapshot = await getStudentProfileSnapshot();
   if (!snapshot) redirect("/login?next=/recommendations");
 
+  const readiness = await getMyRecommendationReadiness();
+  const careerReadiness = readiness?.career ?? null;
+
   if (!hasMinimumProfileDataForRecommendations(snapshot)) {
     return (
       <Section tone="muted" className="pt-10 sm:pt-14">
-        <PageIntro />
+        <PageIntro careerReadiness={careerReadiness} />
         <Card className="mt-8 flex flex-col items-center gap-3 py-14 text-center">
           <Compass aria-hidden="true" className="h-10 w-10 text-muted" />
           <h2 className="text-lg font-semibold text-primary">Your profile needs a bit more first</h2>
@@ -60,7 +66,7 @@ export default async function RecommendationsPage() {
   if (careers.length === 0) {
     return (
       <Section tone="muted" className="pt-10 sm:pt-14">
-        <PageIntro />
+        <PageIntro careerReadiness={careerReadiness} />
         <Card className="mt-8 flex flex-col items-center gap-3 py-14 text-center">
           <TriangleAlert aria-hidden="true" className="h-10 w-10 text-muted" />
           <h2 className="text-lg font-semibold text-primary">Recommendations aren&apos;t available right now</h2>
@@ -87,7 +93,7 @@ export default async function RecommendationsPage() {
 
   return (
     <Section tone="muted" className="pt-10 sm:pt-14">
-      <PageIntro />
+      <PageIntro careerReadiness={careerReadiness} />
 
       <p className="mt-6 text-sm text-muted">
         Compared against {totalCareersConsidered} career{totalCareersConsidered === 1 ? "" : "s"} in our library —
@@ -112,10 +118,13 @@ export default async function RecommendationsPage() {
   );
 }
 
-function PageIntro() {
+function PageIntro({ careerReadiness }: { careerReadiness: RecommendationReadiness | null }) {
   return (
     <div className="mb-2">
-      <p className="text-sm font-semibold uppercase tracking-wide text-secondary">Recommendations</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-sm font-semibold uppercase tracking-wide text-secondary">Recommendations</p>
+        {careerReadiness && <ReadinessBadge level={careerReadiness.level} />}
+      </div>
       <h1 className="mt-2 text-3xl font-semibold text-primary balance sm:text-4xl">Careers worth exploring</h1>
       <p className="mt-2 max-w-2xl text-muted">
         Ranked against your Student Digital Profile — subjects, interests, skills, work preferences, and priorities

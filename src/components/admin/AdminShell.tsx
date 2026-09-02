@@ -30,6 +30,7 @@ import {
   ShieldCheck,
   Link2,
   Tag,
+  CalendarHeart,
 } from "lucide-react";
 import { logout } from "@/lib/supabase/actions";
 import { ADMIN_ROLE_LABELS, type CurrentAdmin } from "@/types/admin";
@@ -55,6 +56,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: "Sources", href: "/admin/education/sources", icon: Link2, permission: "education-sources:read" },
   { label: "Applications", href: "/admin/applications", icon: ClipboardList, permission: "applications:read" },
   { label: "Leads", href: "/admin/leads", icon: Contact, permission: "leads:read" },
+  { label: "Discovery Sessions", href: "/admin/discovery-sessions", icon: CalendarHeart, permission: "discovery-sessions:read" },
   { label: "Pricing", href: "/admin/pricing", icon: Tag, permission: "pricing:read" },
   { label: "Payments", href: "/admin/payments", icon: Wallet, permission: "payments:read" },
   { label: "Invoices", href: "/admin/invoices", icon: Receipt, permission: "invoices:read" },

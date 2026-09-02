@@ -313,6 +313,14 @@ export const SIGNATURE_STATUS_LABELS: Record<SignatureStatus, string> = {
   signed: "Signed",
 };
 
+/** Milestone 11-A (F-123) — coarse mirror of the current stamp_requests row's status, same three-value vocabulary/posture as SignatureStatus above. */
+export type StampStatus = "not_started" | "pending_stamp" | "stamped";
+export const STAMP_STATUS_LABELS: Record<StampStatus, string> = {
+  not_started: "Not started",
+  pending_stamp: "Pending stamp",
+  stamped: "Stamped",
+};
+
 export interface Agreement {
   id: string;
   agreementType: string;
@@ -329,6 +337,9 @@ export interface Agreement {
   expiryDate: string | null;
   documentReferenceUrl: string | null;
   signatureStatus: SignatureStatus;
+  /** Milestone 11-A (F-123) — null means electronic stamping is not configured for this agreement (spec §5). */
+  stampSignSequence: import("./stamping").StampSignSequence | null;
+  stampStatus: StampStatus;
   internalNotes: string | null;
   createdAt: string;
   updatedAt: string;

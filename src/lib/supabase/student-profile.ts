@@ -62,7 +62,24 @@ export async function getStudentProfileSnapshot(): Promise<StudentProfileSnapsho
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
+  return fetchStudentProfileSnapshotByUserId(supabase, user.id);
+}
 
+type ServerSupabase = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * Milestone 11-C1 — the same 10-table fetch + mapping getStudentProfileSnapshot()
+ * always ran for "whoever is logged in", pulled out and parameterized by an
+ * explicit user id so an ADMIN-scoped caller (src/lib/supabase/admin/
+ * student-profile.ts's getStudentProfileSnapshotForAdmin(), which permission-
+ * gates and passes an arbitrary student's id) can reuse the exact same
+ * mapping instead of a second, drifting copy of it. Never exported for
+ * direct use outside this module or its admin counterpart — every other
+ * caller in this codebase should keep going through getStudentProfileSnapshot()
+ * (self only) or getStudentProfileSnapshotForAdmin() (permission-checked).
+ */
+export async function fetchStudentProfileSnapshotByUserId(supabase: ServerSupabase, userId: string): Promise<StudentProfileSnapshot> {
+  const user = { id: userId };
   const [
     profileRes,
     educationRes,
@@ -203,4 +220,28 @@ export async function getStudentProfileSnapshot(): Promise<StudentProfileSnapsho
     fundingPreferences,
     experience,
   };
+}
+
+/**
+ * Milestone 11-B1 — a cheap, single-column read of the logged-in student's
+ * Assisted Onboarding choice, for pages (the /welcome choice screen, the
+ * dashboard) that only need this one field and shouldn't pay for
+ * getStudentProfileSnapshot()'s full 10-table fetch just to check it.
+ * Returns null (both fields) when logged out or when no choice has been
+ * recorded yet — both are valid, non-error states this app never gates on.
+ */
+export async function getOnboardingPath(): Promise<{ onboardingPath: string | null; onboardingPathChosenAt: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { onboardingPath: null, onboardingPathChosenAt: null };
+
+  const { data, error } = await supabase
+    .from("student_profiles")
+    .select("onboarding_path, onboarding_path_chosen_at")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (error || !data) return { onboardingPath: null, onboardingPathChosenAt: null };
+  return { onboardingPath: data.onboarding_path, onboardingPathChosenAt: data.onboarding_path_chosen_at };
 }

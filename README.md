@@ -22,8 +22,10 @@ milestones:
 - **Milestone 7**: a full internal admin system at `/admin` — role-based staff access (six roles, database-backed,
   enforced server-side and by Row Level Security) covering students, universities, courses, applications, leads,
   payments, agreements, counsellors, analytics, conversion tracking, and content management, plus an append-only
-  audit log. Payments and agreements are operational tracking only — this is not a payment processor and there is
-  no e-signature integration. See `docs/admin-system-guide.md` for the full reference.
+  audit log. The legacy Payments module is operational tracking only — this is not a payment processor. Agreements
+  now has real (mock-provider-backed) e-signature and e-stamping workflows layered on top — see the "Electronic
+  agreements: signatures and stamping" and "Assisted Onboarding Revision" sections below. See
+  `docs/admin-system-guide.md` for the full Milestone 7 reference.
 - **Milestone 9**: an extensible global university and course data platform — public discovery at `/universities`
   and `/courses`, student saved-items/intake-tracking/course-sharing and application starts, a full CSV import
   workflow with deterministic duplicate detection and a data-quality dashboard at `/admin/education/*`, and three
@@ -47,6 +49,41 @@ milestones:
   `--color-*` Tailwind tokens alias into, and invoice PDFs use a light brand accent. No new prices, no new payment
   path, no invented benefits — see `docs/nextwise-pricing-offers-guide.md` §15 and `PRICING-BRAND-INSTALL.md` for
   the full reference and install steps.
+
+> **A note on numbering**: the bulleted list above tracks features chronologically as
+> "Milestone N." Separately, `docs/milestones/` tracks a small number of larger,
+> independently-specced feature deliveries by their own F-code/M-number (F-122 Electronic
+> Signature = `docs/milestones/M10-electronic-signature.md`; F-123 Electronic Stamping +
+> the Assisted Onboarding Revision = `docs/milestones/M11-electronic-stamping-assisted-onboarding.md`).
+> The two numbering tracks are independent and have diverged (this list's own "Milestone
+> 11" above is the pricing-inclusions delivery, not F-123) — a pre-existing split from
+> before F-122/F-123 shipped, not something corrected here to avoid a broader renumbering.
+> The two sections immediately below summarize what F-122/F-123 actually added; every
+> route, permission, and file they touch is real and already merged.
+
+**Electronic agreements: signatures and stamping (F-122, F-123).** Milestone 7's
+Agreements module now has two optional workflow layers on top of it, both provider-agnostic
+with a fully-functional in-memory mock shipped and no real vendor connected by default:
+electronic **signature** collection (`/agreements/[id]`, `/admin/agreements/[id]` — send
+for signature, track status through `viewed`/`signed`/`declined`, download the signed PDF)
+and electronic **stamping** (the same pages — request/retry/cancel a stamp, configurable
+per-agreement stamp/sign order, download the stamped PDF). Neither claims legal validity or
+jurisdiction-specific stamp-duty compliance for any provider, mock or real — see
+`docs/milestones/M10-electronic-signature.md` and
+`docs/milestones/M11-electronic-stamping-assisted-onboarding.md` Part A.
+
+**Assisted Onboarding Revision (F-123, Parts B-C).** A newly-registered student is never
+forced through a mandatory profile form — `/welcome` offers a free Discovery Session with a
+counsellor (real booking + a structured Counsellor Workspace at
+`/admin/discovery-sessions`) or self-serve profile building, and the Career/Course/College
+explorers stay freely browsable either way. Two new metadata layers sit on top of the
+existing Student Digital Profile without ever editing it: Profile Field Provenance
+(tracks whether a section was self-reported, counsellor-entered, or counsellor-verified,
+shown on `/profile` and `/admin/students/[id]`) and Recommendation Readiness (a computed
+NOT_READY/PRELIMINARY/READY/COUNSELLOR_VERIFIED level with LOW/MEDIUM/HIGH confidence per
+recommendation type, shown on `/dashboard`, `/recommendations`, and
+`/admin/students/[id]`). See `docs/milestones/M11-electronic-stamping-assisted-onboarding.md`
+Parts B-C for the full reference.
 
 Roadmap content and counselling activity on the dashboard are still demo/illustrative data — see
 [What's real vs. demo data](#whats-real-vs-demo-data) below. Everything else listed above is real, including the
@@ -132,7 +169,8 @@ contents and click **Run**, in this exact order:
    model and invoice tables — a plan purchase is an ordinary invoice, not a second payment ledger). Optional if you
    don't need real pricing — everything else in this repo works without it. See
    [Pricing & Offers setup](#pricing--offers-setup) below for the one-time seed step this migration enables.
-8. `supabase/migrations/0008_pricing_inclusions_and_presentation.sql` — Milestone 11: the `pricing_plan_inclusions`
+8. `supabase/migrations/0008_pricing_inclusions_and_presentation.sql` — Milestone 11 (in this chronological list's
+   own numbering — see the numbering note above): the `pricing_plan_inclusions`
    table (structured, admin-editable, immutable-once-published service bullets) plus ten presentation/comparison
    columns on `pricing_plan_versions` (session counts, shortlist/application-support limits, SOP review rounds,
    mock-interview counts, counsellor tier, support-duration notes) and matching snapshot columns on
@@ -141,6 +179,43 @@ contents and click **Run**, in this exact order:
    repo, including the original Milestone 10 pricing flow, works without it. See
    [Pricing & Offers setup](#pricing--offers-setup) below and `PRICING-BRAND-INSTALL.md` for the one-time seed step
    this migration enables.
+9. `supabase/migrations/0009_trusted_course_search.sql` — the Trusted Global Course Search provider-adapter data
+   model (curated links to external government/institutional course-search portals). Requires
+   `0004_admin_system.sql` first. Optional — pair with `supabase/seed/0006_trusted_course_search_seed.sql` (paste
+   into the SQL Editor and run) to load the trusted-provider catalogue; everything else in this repo works without
+   either.
+10. `supabase/migrations/0010_product_events_and_outcomes.sql` — the `product_events` analytics registry (the
+    `event_name` CHECK constraint every later milestone's own events widen additively) and outcome-tracking
+    instrumentation. Requires `0004_admin_system.sql` first. Optional — analytics events are fire-and-forget
+    (`trackEvent()` swallows its own errors), so nothing else in this repo depends on this migration being applied.
+11. `supabase/migrations/0011_electronic_signature.sql` — F-122 Electronic Signature Integration: a
+    provider-agnostic `SignatureProvider` abstraction (mock provider ships, no real vendor connected by default),
+    `agreement_versions`/`signature_requests`/`signature_webhook_events` tables, and the `/api/webhooks/signature`
+    idempotent webhook handler. Requires `0004_admin_system.sql` first (reuses its role model and the Milestone 7
+    `agreements` table, extending it with a new `signature_status` column). Optional if you don't need e-signature
+    on `/admin/agreements`/`/agreements` — everything else in this repo works without it. See
+    `docs/milestones/M10-electronic-signature.md` for the one-time webhook-secret and Storage-bucket setup steps
+    this migration needs (§11 there).
+12. `supabase/migrations/0012_electronic_stamping_and_assisted_onboarding.sql` — F-123 Electronic Stamping (despite
+    the filename, this file's actual content is stamping only — see the note in
+    `docs/milestones/M11-electronic-stamping-assisted-onboarding.md` §A.4): a provider-agnostic `StampProvider`
+    abstraction (mock ships, no real vendor by default), `stamp_requests`/`stamp_webhook_events` tables, two new
+    columns on the existing `agreements` table, and the `/api/webhooks/stamp` handler. Requires
+    `0011_electronic_signature.sql` first (reads/references `agreement_versions`). Optional if you don't need
+    e-stamping — everything else in this repo works without it. See
+    `docs/milestones/M11-electronic-stamping-assisted-onboarding.md` §A.10 for the one-time webhook-secret and
+    Storage-bucket setup steps.
+13. `supabase/migrations/0013_assisted_onboarding_and_recommendation_readiness.sql` — the Assisted Onboarding
+    Revision's schema: two new columns on `student_profiles` (`onboarding_path`), the `discovery_sessions` /
+    `discovery_session_workspace` tables behind `/welcome` and `/admin/discovery-sessions`, and
+    `student_profile_section_provenance` / `student_recommendation_verifications` behind Profile Field Provenance
+    and Recommendation Readiness. Requires `0004_admin_system.sql` first. Optional if you don't need Assisted
+    Onboarding — a student without it applied simply never sees `/welcome`'s redirect target resolve (registration
+    still works; see `docs/milestones/M11-electronic-stamping-assisted-onboarding.md` Parts B-C).
+14. `supabase/migrations/0014_discovery_session_counsellor_scope.sql` — an additive RLS-only correction widening
+    who can write `student_profile_section_provenance`/`student_recommendation_verifications` rows (see
+    `docs/milestones/M11-electronic-stamping-assisted-onboarding.md` §B.3 for why). Requires `0013` first. No
+    table/column changes — safe to apply any time after `0013`.
 
 Each migration turns on Row Level Security and sets up any needed triggers — see the comments inside each file for
 exactly what it does. Milestones 5 (recommendations) and 6 (comparison) need no new migration — both are computed
@@ -331,6 +406,13 @@ are run against this codebase before every milestone is delivered.
 | `/pricing/checkout/[slug]` | Order-summary/confirm step for one plan before payment — **protected**, real (Milestone 10) |
 | `/admin/pricing`, `/admin/pricing/new`, `/admin/pricing/[id]`, `/admin/pricing/[id]/versions/*`, `/admin/pricing/[id]/offers/*`, `/admin/pricing/offers/[offerId]`, `/admin/pricing/analytics` | Manage plans, immutable price versions, and offers; publishing workflow; funnel/revenue analytics — **admin-only**, real (Milestone 10) |
 | `/admin/pricing/[id]/versions/[versionId]/inclusions/new`, `/admin/pricing/[id]/versions/[versionId]/inclusions/[inclusionId]` | Add/edit a draft version's structured service inclusions (reorder happens from the version page) — **admin-only**, real (Milestone 11) |
+| `/agreements/[id]` | A student's own agreement: signature/stamp status, download signed/stamped documents — **protected**, real (F-122/F-123) |
+| `/agreements/[id]/signed-document`, `/agreements/[id]/stamped-document` | Downloads the signed/stamped PDF, ownership-checked — **protected**, real (F-122/F-123) |
+| `/admin/agreements/[id]/signed-document`, `/admin/agreements/[id]/stamped-document` | Admin equivalents of the above — **admin-only**, real (F-122/F-123) |
+| `/welcome` | Post-registration Assisted Onboarding choice screen (Discovery Session vs. self-serve) — **protected**, real (F-123) |
+| `/discovery-session/book` | Book a free Discovery Session with a counsellor — **protected**, real (F-123) |
+| `/admin/discovery-sessions`, `/admin/discovery-sessions/[id]` | List/manage Discovery Sessions (assign, schedule, mark complete) — **admin-only**, real (F-123) |
+| `/admin/discovery-sessions/[id]/workspace` | The structured Counsellor Workspace (sections A-J) for one session — **admin-only**, real (F-123) |
 | *(any unmatched path)* | Custom 404 |
 
 "Protected" routes redirect a logged-out visitor to `/login` (see `PROTECTED_PATHS` in
@@ -357,9 +439,11 @@ are run against this codebase before every milestone is delivered.
   by a real database-backed role model and real RLS policies (no mock authorization anywhere). The legacy
   **Payments** module (`/admin/payments`) is explicitly tracking-only, not a live integration: it records what an
   admin believes happened; no code path there processes, captures, or moves money — it is left untouched by
-  Milestone 8 (see "Relationship to the Milestone 7 payments table" below). **Agreements** records status an admin
-  has verified some other way; there is no e-signature provider. Both say so directly on their forms — see
-  `docs/admin-system-guide.md` §7–8.
+  Milestone 8 (see "Relationship to the Milestone 7 payments table" below). **Agreements** additionally supports
+  real (mock-provider-backed) electronic signature and electronic stamping workflows — see
+  "Electronic agreements: signatures and stamping" above and `docs/milestones/M10-electronic-signature.md` /
+  `docs/milestones/M11-electronic-stamping-assisted-onboarding.md` Part A — but no real signature/stamping vendor
+  is connected by default (only the in-memory mock providers ship). See `docs/admin-system-guide.md` §7–8.
 - Payments, invoicing and receipts (Milestone 8) — `/admin/invoices` and `/payments` are a real, separate,
   gateway-integrated system: invoices are created/issued by an admin, students pay via a genuine Razorpay Checkout
   integration, and a payment is only ever marked captured from cryptographically verified evidence (a verified
@@ -394,6 +478,23 @@ are run against this codebase before every milestone is delivered.
   resolved by this seed. Checkout and invoice/purchase records snapshot the inclusions and limits that were live at
   purchase time, so a later catalog edit never changes what an already-issued invoice shows. See
   `docs/nextwise-pricing-offers-guide.md` §15 for the full architecture.
+- Electronic signature and electronic stamping (F-122, F-123) — `/admin/agreements/[id]`, `/agreements/[id]`,
+  `/api/webhooks/signature`, and `/api/webhooks/stamp` are a real, working workflow (status lifecycle, idempotent
+  verified webhooks, private signed/stamped document storage) built against a provider-agnostic gateway — but only
+  the in-memory mock provider ships for each; no real vendor is connected by default. See
+  `docs/milestones/M10-electronic-signature.md` and
+  `docs/milestones/M11-electronic-stamping-assisted-onboarding.md` Part A.
+- The Assisted Onboarding Revision (F-123) — `/welcome`, `/discovery-session/book`, and `/admin/discovery-sessions`
+  (including the structured Counsellor Workspace) are real and database-backed. A newly-registered student is never
+  forced through a mandatory profile form; the Career/Course/College explorers stay freely browsable regardless of
+  profile completeness. See `docs/milestones/M11-electronic-stamping-assisted-onboarding.md` Part B.
+- Profile Field Provenance and Recommendation Readiness (F-123) — shown on `/profile`, `/dashboard`,
+  `/recommendations`, and `/admin/students/[id]`. Provenance tracks whether a Student Digital Profile section was
+  self-reported or counsellor-entered/verified; Recommendation Readiness is a computed
+  NOT_READY/PRELIMINARY/READY/COUNSELLOR_VERIFIED level per recommendation type (career has a real matching engine
+  today; course/college/pathway readiness is real but forward-looking — those matching engines don't exist yet).
+  Neither feature ever edits a student's actual profile answers. See
+  `docs/milestones/M11-electronic-stamping-assisted-onboarding.md` Part C.
 
 **Still demo/mock data:**
 
@@ -432,8 +533,13 @@ By design, this repository does **not** include:
 - Real appointment booking or calendar integration.
 - Email/SMS/WhatsApp sending — Milestone 7's Leads module records notes and follow-up dates only; it never sends a
   real message, and says so on the form.
-- E-signature — the Milestone 7 Agreements module tracks signature status manually; there is no signing provider
-  (see `docs/admin-system-guide.md` §8).
+- A real, third-party e-signature or e-stamping VENDOR — the workflows themselves are real (see "Electronic
+  agreements: signatures and stamping" above), but only the in-memory mock providers ship; connecting DocuSign,
+  Dropbox Sign, or a real stamping vendor is a documented but not-yet-done extension point (see
+  `docs/milestones/M10-electronic-signature.md` §3 and `docs/milestones/M11-electronic-stamping-assisted-onboarding.md` §A.3).
+- A real, third-party paid "Personal Strategy" product or booking flow — only the free Discovery Session (Assisted
+  Onboarding Revision) and the general `/pricing` flow exist; no such product exists under that name anywhere in
+  this codebase (see `docs/milestones/M11-electronic-stamping-assisted-onboarding.md` §B.1).
 - File/document uploads — Agreements' `document_reference_url` is a plain link field, not storage.
 - Verified legal documents (Privacy Policy, Terms, Refund Policy are structural placeholders pending legal review).
 - Subscriptions or instalment plans — every Milestone 10 pricing plan is a single one-time payment; the data model

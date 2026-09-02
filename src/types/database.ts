@@ -65,6 +65,9 @@ type StudentProfilesRow = {
   profile_status: string;
   profile_completion_percent: number;
   onboarding_current_step: number;
+  // Milestone 11-B — see 0013_assisted_onboarding_and_recommendation_readiness.sql PART 1.
+  onboarding_path: string | null;
+  onboarding_path_chosen_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -873,6 +876,9 @@ type AgreementsRow = {
   expiry_date: string | null;
   document_reference_url: string | null;
   signature_status: string;
+  // Milestone 11-A (F-123) — see 0012_electronic_stamping_and_assisted_onboarding.sql PART 2.
+  stamp_sign_sequence: string | null;
+  stamp_status: string;
   internal_notes: string | null;
   created_at: string;
   updated_at: string;
@@ -930,6 +936,109 @@ type SignatureWebhookEventsRow = {
   payload_summary: Json | null;
   created_at: string;
   processed_at: string | null;
+};
+
+// ---------------------------------------------------------------------------
+// stamp_requests / stamp_webhook_events (Milestone 11-A — Electronic
+// Stamping, F-123). See 0012_electronic_stamping_and_assisted_onboarding.sql.
+// ---------------------------------------------------------------------------
+type StampRequestsRow = {
+  id: string;
+  agreement_id: string;
+  agreement_version_id: string;
+  provider: string;
+  provider_request_id: string | null;
+  status: string;
+  jurisdiction: string | null;
+  state: string | null;
+  document_type: string | null;
+  stamp_value: number | null;
+  currency: string;
+  requested_at: string | null;
+  processing_at: string | null;
+  completed_at: string | null;
+  failed_at: string | null;
+  cancelled_at: string | null;
+  expired_at: string | null;
+  stamped_document_storage_path: string | null;
+  provider_metadata: Json;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type StampWebhookEventsRow = {
+  id: string;
+  provider: string;
+  event_id: string;
+  event_type: string;
+  processing_status: string;
+  related_stamp_request_id: string | null;
+  related_agreement_id: string | null;
+  diagnostic_message: string | null;
+  payload_summary: Json | null;
+  created_at: string;
+  processed_at: string | null;
+};
+
+// ---------------------------------------------------------------------------
+// discovery_sessions / discovery_session_workspace /
+// student_profile_section_provenance / student_recommendation_verifications
+// (Milestone 11-B/C — Assisted Onboarding Revision). See
+// 0013_assisted_onboarding_and_recommendation_readiness.sql.
+// ---------------------------------------------------------------------------
+type DiscoverySessionsRow = {
+  id: string;
+  student_user_id: string;
+  session_type: string;
+  status: string;
+  assigned_counsellor_id: string | null;
+  preferred_contact_method: string | null;
+  preferred_time_range: string | null;
+  preferred_language: string | null;
+  student_notes: string | null;
+  scheduled_at: string | null;
+  completed_at: string | null;
+  cancelled_at: string | null;
+  cancellation_reason: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type DiscoverySessionWorkspaceRow = {
+  session_id: string;
+  student_basics: Json;
+  academics: Json;
+  interests: Json;
+  goals: Json;
+  budget_financial: Json;
+  parent_sponsor_input: Json;
+  student_uncertainty: Json;
+  counsellor_notes: string | null;
+  recommendation_readiness_notes: Json;
+  missing_information: string[];
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type StudentProfileSectionProvenanceRow = {
+  student_user_id: string;
+  section_key: string;
+  provenance: string;
+  verified_by_counsellor_id: string | null;
+  verified_at: string | null;
+  last_updated_by: string | null;
+  note: string | null;
+  updated_at: string;
+};
+
+type StudentRecommendationVerificationsRow = {
+  student_user_id: string;
+  recommendation_type: string;
+  verified_by_counsellor_id: string;
+  verified_at: string;
+  note: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -1426,6 +1535,28 @@ export interface Database {
         Args: { p_provider: string; p_provider_request_id: string; p_storage_path: string };
         Returns: Json;
       };
+      // Milestone 11-A — Electronic Stamping (F-123) — see
+      // 0012_electronic_stamping_and_assisted_onboarding.sql for full
+      // documentation of each function's authorization/verification
+      // behavior.
+      create_stamp_request: {
+        Args: {
+          p_agreement_version_id: string;
+          p_jurisdiction?: string | null;
+          p_state?: string | null;
+          p_document_type?: string | null;
+          p_provider?: string;
+        };
+        Returns: StampRequestsRow;
+      };
+      apply_stamp_webhook_event: {
+        Args: { p_raw_body: string; p_signature: string };
+        Returns: Json;
+      };
+      set_stamp_document_path: {
+        Args: { p_provider: string; p_provider_request_id: string; p_storage_path: string };
+        Returns: Json;
+      };
     };
     Tables: {
       profiles: {
@@ -1832,6 +1963,54 @@ export interface Database {
         Row: SignatureWebhookEventsRow;
         Insert: Omit<SignatureWebhookEventsRow, "id" | "created_at"> & { id?: string; created_at?: string };
         Update: Partial<Omit<SignatureWebhookEventsRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      // -----------------------------------------------------------------
+      // Milestone 11-A — Electronic Stamping (F-123)
+      // -----------------------------------------------------------------
+      stamp_requests: {
+        Row: StampRequestsRow;
+        Insert: Omit<StampRequestsRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<StampRequestsRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      stamp_webhook_events: {
+        Row: StampWebhookEventsRow;
+        Insert: Omit<StampWebhookEventsRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<StampWebhookEventsRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      // -----------------------------------------------------------------
+      // Milestone 11-B/C — Assisted Onboarding Revision
+      // -----------------------------------------------------------------
+      discovery_sessions: {
+        Row: DiscoverySessionsRow;
+        Insert: Omit<DiscoverySessionsRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        Update: Partial<Omit<DiscoverySessionsRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      discovery_session_workspace: {
+        Row: DiscoverySessionWorkspaceRow;
+        Insert: Omit<DiscoverySessionWorkspaceRow, "created_at" | "updated_at"> & TimestampedInsert;
+        Update: Partial<Omit<DiscoverySessionWorkspaceRow, "session_id" | "created_at" | "updated_at">> & TimestampedInsert;
+        Relationships: [];
+      };
+
+      student_profile_section_provenance: {
+        Row: StudentProfileSectionProvenanceRow;
+        Insert: Omit<StudentProfileSectionProvenanceRow, "updated_at"> & { updated_at?: string };
+        Update: Partial<Omit<StudentProfileSectionProvenanceRow, "student_user_id" | "section_key" | "updated_at">> & { updated_at?: string };
+        Relationships: [];
+      };
+
+      student_recommendation_verifications: {
+        Row: StudentRecommendationVerificationsRow;
+        Insert: Omit<StudentRecommendationVerificationsRow, "verified_at"> & { verified_at?: string };
+        Update: Partial<Omit<StudentRecommendationVerificationsRow, "student_user_id" | "recommendation_type">>;
         Relationships: [];
       };
 

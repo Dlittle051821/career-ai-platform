@@ -37,7 +37,9 @@ export type EventCategory =
   | "lead"
   | "commercial"
   | "outcome"
-  | "agreement";
+  | "agreement"
+  | "onboarding"
+  | "recommendation";
 
 export interface EventDefinition {
   name: string;
@@ -291,6 +293,122 @@ export const PRODUCT_EVENTS = {
     status: "implemented",
     reason: "Fired from cancelSignatureRequest() (src/lib/supabase/admin/signatures.ts) once an admin's explicit cancel action succeeds.",
   },
+
+  // ---------------------------------------------------------------------
+  // Milestone 11-A — Electronic Stamping (F-123)
+  // ---------------------------------------------------------------------
+  agreement_stamp_requested: {
+    name: "agreement_stamp_requested",
+    category: "agreement",
+    status: "implemented",
+    reason: "Fired from requestStamp() (src/lib/supabase/admin/stamping.ts) once a stamp request has actually been created and sent to the provider.",
+  },
+  agreement_stamp_completed: {
+    name: "agreement_stamp_completed",
+    category: "agreement",
+    status: "implemented",
+    reason: "Fired from src/app/api/webhooks/stamp/route.ts after a verified 'stamp_request.completed' webhook delivery is processed.",
+  },
+  agreement_stamp_failed: {
+    name: "agreement_stamp_failed",
+    category: "agreement",
+    status: "implemented",
+    reason: "Fired from src/app/api/webhooks/stamp/route.ts after a verified 'stamp_request.failed' webhook delivery is processed.",
+  },
+  agreement_stamp_cancelled: {
+    name: "agreement_stamp_cancelled",
+    category: "agreement",
+    status: "implemented",
+    reason: "Fired from cancelStampRequest() (src/lib/supabase/admin/stamping.ts) once an admin's explicit cancel action succeeds.",
+  },
+
+  // ---------------------------------------------------------------------
+  // Milestone 11-B — Assisted Onboarding Revision. The product_events CHECK
+  // constraint already accepts all six of these (0012 PART 6, ahead of the
+  // code) — flipped to "implemented" as each real code path is built.
+  // ---------------------------------------------------------------------
+  onboarding_choice_viewed: {
+    name: "onboarding_choice_viewed",
+    category: "onboarding",
+    status: "implemented",
+    reason: "Fired from /welcome (src/app/(site)/welcome/page.tsx) — the post-registration Assisted Onboarding choice screen — on every render for a student who has not yet chosen a path.",
+  },
+  onboarding_discovery_selected: {
+    name: "onboarding_discovery_selected",
+    category: "onboarding",
+    status: "implemented",
+    reason: "Fired from recordOnboardingChoiceAction() (src/app/(site)/welcome/actions.ts) when the student picks \"Book a Free Discovery Session\".",
+  },
+  onboarding_self_profile_selected: {
+    name: "onboarding_self_profile_selected",
+    category: "onboarding",
+    status: "implemented",
+    reason: "Fired from recordOnboardingChoiceAction() (src/app/(site)/welcome/actions.ts) when the student picks \"Build My Profile Myself\".",
+  },
+  discovery_session_booked: {
+    name: "discovery_session_booked",
+    category: "onboarding",
+    status: "implemented",
+    reason: "Fired from bookDiscoverySession() (src/lib/supabase/discovery-sessions/book.ts) once a discovery_sessions row has actually been inserted.",
+  },
+  discovery_session_started: {
+    name: "discovery_session_started",
+    category: "onboarding",
+    status: "implemented",
+    reason: "Fired from saveDiscoverySessionWorkspace() (src/lib/supabase/admin/discovery-session-workspace.ts) the first time a counsellor saves the Discovery Session Counsellor Workspace for a session — never on later edits of the same session's workspace.",
+  },
+  discovery_session_completed: {
+    name: "discovery_session_completed",
+    category: "onboarding",
+    status: "implemented",
+    reason: "Fired from updateDiscoverySession() (src/lib/supabase/admin/discovery-sessions.ts) the moment a session's status is transitioned to 'completed' — the full Counsellor Workspace this fires alongside lands in M11-B2, but the status transition itself (and this event) is real as of M11-B1.",
+  },
+
+  // ---------------------------------------------------------------------
+  // Milestone 11-C — Profile verification + recommendation readiness.
+  // ---------------------------------------------------------------------
+  profile_field_counsellor_updated: {
+    name: "profile_field_counsellor_updated",
+    category: "profile",
+    status: "implemented",
+    reason: "Fired from setSectionProvenance() (src/lib/supabase/admin/profile-provenance.ts) when a counsellor/admin records COUNSELLOR_ENTERED provenance for a Student Digital Profile section.",
+  },
+  profile_field_counsellor_verified: {
+    name: "profile_field_counsellor_verified",
+    category: "profile",
+    status: "implemented",
+    reason: "Fired from setSectionProvenance() (src/lib/supabase/admin/profile-provenance.ts) when a counsellor records COUNSELLOR_VERIFIED provenance for a Student Digital Profile section.",
+  },
+  profile_completeness_changed: {
+    name: "profile_completeness_changed",
+    category: "profile",
+    status: "reserved",
+    reason: "Same reasoning as recommendations_unlocked below: profile_completion_percent/status is deliberately computed fresh every time by calculateCompletion() (src/lib/profile/completion.ts), never diffed against a previous stored value, so there is no natural point to fire a 'changed' event from without adding state solely to support it. Left reserved.",
+  },
+  recommendation_readiness_changed: {
+    name: "recommendation_readiness_changed",
+    category: "recommendation",
+    status: "implemented",
+    reason: "Fired from setRecommendationVerification() and clearRecommendationVerification() (src/lib/supabase/admin/recommendation-readiness.ts) — the one genuine 'change' this pure-computed model can detect deterministically (an explicit counsellor override being set or cleared). The NOT_READY/PRELIMINARY/READY transitions that happen purely from a student editing their own profile are deliberately never persisted anywhere (see 0013 PART 5's table comment), so there is no stored 'previous value' to diff against and fire this event from there — only the stored override half of readiness is a real, event-worthy state change.",
+  },
+  recommendations_unlocked: {
+    name: "recommendations_unlocked",
+    category: "recommendation",
+    status: "reserved",
+    reason: "Would fire the first time a student's computed readiness crosses into READY, but Recommendation Readiness is deliberately a pure, computed-fresh-every-time value with no stored 'last known level' (0013 PART 5) — detecting that one-time crossing would require adding exactly the kind of stored state that design choice was meant to avoid. Left reserved rather than firing on every page load (which 'unlocked' would misrepresent) or inventing new persistence for this alone.",
+  },
+  personal_strategy_cta_viewed: {
+    name: "personal_strategy_cta_viewed",
+    category: "commercial",
+    status: "reserved",
+    reason: "The paid ₹5,000 'Personal Strategy' step named in the M11 spec has no concrete implementation anywhere in this codebase (no page, route, or product record — confirmed by search during M11-B investigation) — only the free Discovery Session (M11-B) and the general /pricing flow exist today. Building a new paid product page was out of this milestone's mandate (\"do not rebuild existing features or redesign unrelated pages\"); this stays reserved until that product actually exists to instrument.",
+  },
+  personal_strategy_selected: {
+    name: "personal_strategy_selected",
+    category: "commercial",
+    status: "reserved",
+    reason: "Same gap as personal_strategy_cta_viewed above — no real 'Personal Strategy' selection flow exists in this codebase yet.",
+  },
 } as const satisfies Record<string, EventDefinition>;
 
 export type ProductEventName = keyof typeof PRODUCT_EVENTS;
@@ -314,5 +432,5 @@ export function isImplementedEventName(value: string): value is ImplementedEvent
  * no CHECK, unlike event_name) since this column is descriptive metadata,
  * not itself a source of authorization or business logic.
  */
-export const EVENT_ENTITY_TYPES = ["career", "course", "university", "lead", "application", "invoice", "plan", "profile", "agreement", "signature_request"] as const;
+export const EVENT_ENTITY_TYPES = ["career", "course", "university", "lead", "application", "invoice", "plan", "profile", "agreement", "signature_request", "stamp_request", "discovery_session"] as const;
 export type EventEntityType = (typeof EVENT_ENTITY_TYPES)[number];

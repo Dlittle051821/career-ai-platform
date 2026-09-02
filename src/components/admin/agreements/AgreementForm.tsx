@@ -9,8 +9,9 @@ import { Card } from "@/components/ui/Card";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import { FormError } from "@/components/admin/FormError";
 import { INITIAL_ACTION_STATE, type ActionState } from "@/lib/admin/form-state";
-import { nextStatusOptions, AGREEMENT_STATUS_TRANSITIONS, SIGNATURE_STATUS_TRANSITIONS } from "@/lib/admin/status";
-import { SIGNATURE_STATUS_LABELS, type Agreement, type AgreementStatus, type SignatureStatus } from "@/types/admin";
+import { nextStatusOptions, AGREEMENT_STATUS_TRANSITIONS, SIGNATURE_STATUS_TRANSITIONS, STAMP_STATUS_TRANSITIONS } from "@/lib/admin/status";
+import { SIGNATURE_STATUS_LABELS, STAMP_STATUS_LABELS, type Agreement, type AgreementStatus, type SignatureStatus, type StampStatus } from "@/types/admin";
+import { STAMP_SIGN_SEQUENCE_LABELS, STAMP_SIGN_SEQUENCES } from "@/types/stamping";
 
 export function AgreementForm({
   action,
@@ -32,6 +33,10 @@ export function AgreementForm({
   const signatureOptions: SignatureStatus[] = currentSignature
     ? [currentSignature, ...nextStatusOptions(SIGNATURE_STATUS_TRANSITIONS, currentSignature)]
     : ["not_started", "pending_signature", "signed"];
+  const currentStamp = defaultValues?.stampStatus;
+  const stampOptions: StampStatus[] = currentStamp
+    ? [currentStamp, ...nextStatusOptions(STAMP_STATUS_TRANSITIONS, currentStamp)]
+    : ["not_started", "pending_stamp", "stamped"];
 
   return (
     <form action={formAction} className="space-y-6">
@@ -90,11 +95,30 @@ export function AgreementForm({
               </Select>
             </FormField>
           ) : null}
-          <FormField id="signatureStatus" label="Signature status" hint="Manually tracked, never an automated e-signature event.">
+          <FormField id="signatureStatus" label="Signature status" hint="Manually tracked here; overridden automatically once a real signature request exists for this agreement.">
             <Select id="signatureStatus" name="signatureStatus" defaultValue={currentSignature ?? "not_started"}>
               {signatureOptions.map((s) => (
                 <option key={s} value={s}>
                   {SIGNATURE_STATUS_LABELS[s]}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+          <FormField id="stampSignSequence" label="Stamp / sign sequence" hint="Milestone 11. Leave as “Not configured” unless this agreement genuinely requires electronic stamping — this application never assumes one universal legal order.">
+            <Select id="stampSignSequence" name="stampSignSequence" defaultValue={defaultValues?.stampSignSequence ?? ""}>
+              <option value="">Not configured</option>
+              {STAMP_SIGN_SEQUENCES.map((s) => (
+                <option key={s} value={s}>
+                  {STAMP_SIGN_SEQUENCE_LABELS[s]}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+          <FormField id="stampStatus" label="Stamp status" hint="Manually tracked here; overridden automatically once a real stamp request exists for this agreement.">
+            <Select id="stampStatus" name="stampStatus" defaultValue={currentStamp ?? "not_started"}>
+              {stampOptions.map((s) => (
+                <option key={s} value={s}>
+                  {STAMP_STATUS_LABELS[s]}
                 </option>
               ))}
             </Select>

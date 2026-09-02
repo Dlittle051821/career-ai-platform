@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, Download, FileSignature } from "lucide-react";
+import { ChevronLeft, Download, FileSignature, Stamp } from "lucide-react";
 import { AgreementForm } from "@/components/admin/agreements/AgreementForm";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/admin/StatusBadge";
@@ -11,19 +11,25 @@ import {
   ResendSignatureRequestForm,
   CancelSignatureRequestForm,
 } from "@/components/admin/agreements/SignatureActionForms";
+import { RequestStampForm, RetryStampRequestForm, CancelStampRequestForm } from "@/components/admin/agreements/StampActionForms";
 import { getAgreementById } from "@/lib/supabase/admin/agreements";
 import { listAgreementVersions, listSignatureRequests } from "@/lib/supabase/admin/signatures";
+import { listStampRequests } from "@/lib/supabase/admin/stamping";
 import { listUniversityOptions } from "@/lib/supabase/admin/universities";
 import { listCounsellorOptions } from "@/lib/supabase/admin/counsellors";
 import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
 import { hasPermission } from "@/lib/admin/permissions";
 import { NON_TERMINAL_SIGNATURE_REQUEST_STATUSES } from "@/types/signatures";
+import { NON_TERMINAL_STAMP_REQUEST_STATUSES, STAMP_SIGN_SEQUENCE_LABELS } from "@/types/stamping";
 import {
   updateAgreementAction,
   createAgreementVersionAction,
   sendForSignatureAction,
   resendSignatureRequestFormAction,
   cancelSignatureRequestFormAction,
+  requestStampAction,
+  retryStampRequestFormAction,
+  cancelStampRequestFormAction,
 } from "../actions";
 
 interface AgreementDetailPageProps {
@@ -34,12 +40,13 @@ export const metadata: Metadata = { title: "Edit Agreement" };
 
 export default async function AgreementDetailPage({ params }: AgreementDetailPageProps) {
   const { id } = await params;
-  const [agreement, universityOptions, counsellorOptions, versions, requests, admin] = await Promise.all([
+  const [agreement, universityOptions, counsellorOptions, versions, requests, stampRequests, admin] = await Promise.all([
     getAgreementById(id),
     listUniversityOptions(),
     listCounsellorOptions(),
     listAgreementVersions(id),
     listSignatureRequests(id),
+    listStampRequests(id),
     getCurrentAdmin(),
   ]);
   if (!agreement) notFound();
@@ -48,10 +55,20 @@ export default async function AgreementDetailPage({ params }: AgreementDetailPag
   const boundAction = updateAgreementAction.bind(null, id);
   const boundCreateVersion = createAgreementVersionAction.bind(null, id);
   const boundSendForSignature = sendForSignatureAction.bind(null, id);
+  const boundRequestStamp = requestStampAction.bind(null, id);
 
   const draftVersions = versions.filter((v) => v.status === "draft");
   const activeRequest = requests.find((r) => NON_TERMINAL_SIGNATURE_REQUEST_STATUSES.includes(r.status));
   const hasSignedDocument = requests.some((r) => r.hasSignedDocument);
+
+  // A stamp request can target a version that is draft OR already locked
+  // (e.g. by an earlier signature request) — only superseded versions are
+  // ineligible (public.create_stamp_request(), 0012 PART 3).
+  const stampEligibleVersions = versions.filter((v) => v.status !== "superseded");
+  const activeStampRequest = stampRequests.find((r) => NON_TERMINAL_STAMP_REQUEST_STATUSES.includes(r.status));
+  const hasStampedDocument = stampRequests.some((r) => r.hasStampedDocument);
+  const stampNotConfigured = !agreement.stampSignSequence;
+  const stampOnlyExcluded = agreement.stampSignSequence === "SIGN_ONLY";
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -158,6 +175,78 @@ export default async function AgreementDetailPage({ params }: AgreementDetailPag
             <p className="text-sm text-muted">A signature request is already active — resend or cancel it above before sending a new one.</p>
           ) : null}
         </div>
+      </Card>
+
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-primary">
+            <Stamp aria-hidden="true" className="h-5 w-5" />
+            Electronic stamping
+          </h2>
+          {hasStampedDocument ? (
+            <a href={`/admin/agreements/${agreement.id}/stamped-document`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-secondary-dark hover:text-primary">
+              <Download aria-hidden="true" className="h-4 w-4" />
+              View stamped agreement
+            </a>
+          ) : null}
+        </div>
+        <p className="mt-1 text-xs text-muted">
+          {stampNotConfigured
+            ? "Electronic stamping is not configured for this agreement."
+            : stampOnlyExcluded
+              ? "This agreement is configured for signature only — electronic stamping does not apply."
+              : `Configured sequence: ${STAMP_SIGN_SEQUENCE_LABELS[agreement.stampSignSequence!]}. A version is locked (immutable) the moment it is sent for stamping, same as signing — editing means creating a new version.`}
+        </p>
+
+        {stampNotConfigured || stampOnlyExcluded ? null : (
+          <div className="mt-5 space-y-5">
+            <section>
+              <h3 className="text-sm font-semibold text-text">Stamp requests</h3>
+              {stampRequests.length === 0 ? (
+                <p className="mt-1 text-sm text-muted">No stamp requests yet.</p>
+              ) : (
+                <ul className="mt-2 space-y-3 text-sm">
+                  {stampRequests.map((r) => (
+                    <li key={r.id} className="rounded-[var(--radius-control)] border border-border-strong p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-medium text-text">
+                          {r.jurisdiction ?? "Jurisdiction not set"} {r.state ? `· ${r.state}` : ""}
+                        </span>
+                        <StatusBadge status={r.status} />
+                      </div>
+                      <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted sm:grid-cols-4">
+                        <div>Requested: {formatOrDash(r.requestedAt)}</div>
+                        <div>Processing: {formatOrDash(r.processingAt)}</div>
+                        <div>Completed: {formatOrDash(r.completedAt)}</div>
+                        <div>Stamp value: {r.stampValue !== null ? `${r.stampValue} (${r.currency})` : "—"}</div>
+                      </dl>
+                      {canWrite && NON_TERMINAL_STAMP_REQUEST_STATUSES.includes(r.status) ? (
+                        <div className="mt-3">
+                          <CancelStampRequestForm action={cancelStampRequestFormAction.bind(null, id, r.id)} />
+                        </div>
+                      ) : canWrite && (r.status === "failed" || r.status === "cancelled" || r.status === "expired") && !activeStampRequest ? (
+                        <div className="mt-3">
+                          <RetryStampRequestForm action={retryStampRequestFormAction.bind(null, id, r.id)} />
+                        </div>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            {canWrite && !activeStampRequest ? (
+              <section>
+                <h3 className="text-sm font-semibold text-text">Request E-Stamp</h3>
+                <div className="mt-2">
+                  <RequestStampForm action={boundRequestStamp} eligibleVersions={stampEligibleVersions} agreementType={agreement.agreementType} />
+                </div>
+              </section>
+            ) : activeStampRequest ? (
+              <p className="text-sm text-muted">A stamp request is already active — cancel it above before requesting a new one.</p>
+            ) : null}
+          </div>
+        )}
       </Card>
     </div>
   );

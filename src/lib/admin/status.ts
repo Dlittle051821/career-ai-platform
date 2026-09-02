@@ -1,4 +1,5 @@
-import type { AgreementStatus, ApplicationStage, ContentStatus, LeadStage, PaymentStatus, SignatureStatus } from "@/types/admin";
+import type { AgreementStatus, ApplicationStage, ContentStatus, LeadStage, PaymentStatus, SignatureStatus, StampStatus } from "@/types/admin";
+import type { DiscoverySessionStatus } from "@/types/discovery-session";
 import type { InvoiceStatus, PaymentAttemptStatus } from "@/types/payments";
 import type { PricingOfferStatus, PricingPlanVersionStatus } from "@/types/pricing";
 
@@ -63,6 +64,22 @@ export const SIGNATURE_STATUS_TRANSITIONS: Record<SignatureStatus, SignatureStat
   not_started: ["pending_signature", "signed"],
   pending_signature: ["signed", "not_started"],
   signed: [],
+};
+
+/** Milestone 11-A (F-123) — mirrors SIGNATURE_STATUS_TRANSITIONS exactly, same "manually settable but overridden by the real webhook-driven flow once one exists" posture (see public.sync_agreement_stamp_status(), 0012 PART 2.1). */
+export const STAMP_STATUS_TRANSITIONS: Record<StampStatus, StampStatus[]> = {
+  not_started: ["pending_stamp", "stamped"],
+  pending_stamp: ["stamped", "not_started"],
+  stamped: [],
+};
+
+/** Milestone 11-B — Discovery Session lifecycle. A session can be marked no_show only from 'scheduled' (never straight from 'requested' — it has to have had a scheduled time to be a no-show at); 'requested' can also go straight to 'no_show' is deliberately NOT allowed for the same reason. completed/cancelled/no_show are all terminal — a fresh Discovery Session is a new booking, never a reopened old one. */
+export const DISCOVERY_SESSION_STATUS_TRANSITIONS: Record<DiscoverySessionStatus, DiscoverySessionStatus[]> = {
+  requested: ["scheduled", "cancelled"],
+  scheduled: ["completed", "no_show", "cancelled"],
+  completed: [],
+  cancelled: [],
+  no_show: [],
 };
 
 export const CONTENT_STATUS_TRANSITIONS: Record<ContentStatus, ContentStatus[]> = {

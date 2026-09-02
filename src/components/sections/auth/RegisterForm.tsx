@@ -79,7 +79,7 @@ export function RegisterForm() {
             marketing_consent: values.marketingConsent,
           },
           emailRedirectTo:
-            typeof window !== "undefined" ? `${window.location.origin}/auth/callback?next=/dashboard` : undefined,
+            typeof window !== "undefined" ? `${window.location.origin}/auth/callback?next=/welcome` : undefined,
         },
       });
 
@@ -102,8 +102,10 @@ export function RegisterForm() {
 
       if (data.session) {
         // Email confirmation is disabled on this Supabase project — the
-        // account is immediately active with a live session.
-        router.push("/dashboard");
+        // account is immediately active with a live session. Milestone
+        // 11-B: land on the Assisted Onboarding choice screen, never
+        // straight into a mandatory profile form — see /welcome.
+        router.push("/welcome");
         router.refresh();
         return;
       }

@@ -7,7 +7,9 @@ import { LinkButton } from "@/components/ui/Button";
 import { DemoNotice } from "@/components/ui/DemoNotice";
 import { ProfileProgressBar } from "@/components/sections/profile/ProfileProgressBar";
 import { ProfileView } from "@/components/sections/profile/ProfileView";
+import { ProvenanceSummaryCard } from "@/components/sections/profile/ProvenanceSummaryCard";
 import { getStudentProfileSnapshot } from "@/lib/supabase/student-profile";
+import { getMySectionProvenanceMap } from "@/lib/supabase/profile-provenance";
 import { calculateCompletion } from "@/lib/profile/completion";
 import { snapshotToDraft } from "@/lib/profile/draft";
 
@@ -28,7 +30,7 @@ const STATUS_LABEL: Record<string, string> = {
  * defense in depth, not the primary gate.
  */
 export default async function ProfilePage() {
-  const snapshot = await getStudentProfileSnapshot();
+  const [snapshot, provenanceMap] = await Promise.all([getStudentProfileSnapshot(), getMySectionProvenanceMap()]);
   if (!snapshot) redirect("/login?next=/profile");
 
   const draft = snapshotToDraft(snapshot);
@@ -67,6 +69,8 @@ export default async function ProfilePage() {
         </div>
         <ProfileProgressBar percent={completion.percent} className="mt-3" />
       </Card>
+
+      {provenanceMap && <ProvenanceSummaryCard provenanceMap={provenanceMap} />}
 
       <ProfileView draft={draft} completion={completion} />
 

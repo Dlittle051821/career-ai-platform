@@ -135,6 +135,33 @@ export default defineConfig({
       "src/lib/signatures/**/*.test.ts",
       "src/lib/storage/**/*.test.ts",
       "src/lib/notifications/**/*.test.ts",
+      // Milestone 11-A (F-123) — Electronic Stamping: provider abstraction/
+      // mock-provider state machine, config env-parsing, request/retry/
+      // cancel business rules, and the migration-security regression guard
+      // (src/lib/stamping/) — same "pure, framework-free" convention as
+      // src/lib/signatures/ above; nothing here talks to Supabase (that
+      // lives in src/lib/supabase/admin/stamping.ts, untested here for the
+      // same reason as every other src/lib/supabase/ module).
+      "src/lib/stamping/**/*.test.ts",
+      // Milestone 11-B/C — Assisted Onboarding Revision: Discovery Session
+      // booking/lifecycle business rules and the migration-security
+      // regression guard for 0013_assisted_onboarding_and_recommendation_
+      // readiness.sql (src/lib/discovery-sessions/), plus (once M11-C2
+      // lands) the pure Recommendation Readiness computation
+      // (src/lib/recommendations/readiness.ts — covered by the existing
+      // src/lib/recommendations/**/*.test.ts pattern above, no new entry
+      // needed for that one). Same "pure, framework-free" convention;
+      // nothing in src/lib/discovery-sessions/ talks to Supabase (that
+      // lives in src/lib/supabase/discovery-sessions/ and
+      // src/lib/supabase/admin/discovery-sessions.ts, untested here for the
+      // same reason as every other src/lib/supabase/ module).
+      "src/lib/discovery-sessions/**/*.test.ts",
+      // Milestone 11-C1 — Profile Field Provenance business rules
+      // (src/lib/profile-provenance/) — same "pure, framework-free"
+      // convention; nothing here talks to Supabase (that lives in
+      // src/lib/supabase/admin/profile-provenance.ts, untested here for the
+      // same reason as every other src/lib/supabase/ module).
+      "src/lib/profile-provenance/**/*.test.ts",
     ],
   },
 });

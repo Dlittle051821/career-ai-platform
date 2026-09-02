@@ -2,8 +2,10 @@ import "server-only";
 import { createClient } from "../server";
 import { getCurrentUser } from "../profile";
 import { createSignedDownloadUrl } from "@/lib/storage/signed-documents";
+import { createStampedDownloadUrl } from "@/lib/storage/stamped-documents";
 import type { SignatureRequest, SignatureRequestStatus } from "@/types/signatures";
-import type { AgreementStatus, SignatureStatus } from "@/types/admin";
+import type { StampRequest, StampRequestStatus, StampSignSequence } from "@/types/stamping";
+import type { AgreementStatus, SignatureStatus, StampStatus } from "@/types/admin";
 
 /**
  * Milestone 10 (F-122) — student-facing agreement + signature reads.
@@ -27,6 +29,9 @@ export interface MyAgreementSummary {
   agreementType: string;
   status: AgreementStatus;
   signatureStatus: SignatureStatus;
+  /** Milestone 11-A (F-123). Null = electronic stamping is not configured for this agreement — see agreements.stamp_sign_sequence's own comment. */
+  stampSignSequence: StampSignSequence | null;
+  stampStatus: StampStatus;
   effectiveDate: string | null;
   updatedAt: string;
 }
@@ -36,11 +41,13 @@ interface AgreementRow {
   agreement_type: string;
   status: string;
   signature_status: string;
+  stamp_sign_sequence: string | null;
+  stamp_status: string;
   effective_date: string | null;
   updated_at: string;
 }
 
-const SUMMARY_COLUMNS = "id, agreement_type, status, signature_status, effective_date, updated_at";
+const SUMMARY_COLUMNS = "id, agreement_type, status, signature_status, stamp_sign_sequence, stamp_status, effective_date, updated_at";
 
 /** Every agreement belonging to the signed-in student, newest first. */
 export async function listMyAgreements(): Promise<MyAgreementSummary[]> {
@@ -62,6 +69,8 @@ export async function listMyAgreements(): Promise<MyAgreementSummary[]> {
     agreementType: row.agreement_type,
     status: row.status as AgreementStatus,
     signatureStatus: row.signature_status as SignatureStatus,
+    stampSignSequence: row.stamp_sign_sequence as StampSignSequence | null,
+    stampStatus: row.stamp_status as StampStatus,
     effectiveDate: row.effective_date,
     updatedAt: row.updated_at,
   }));
@@ -69,6 +78,7 @@ export async function listMyAgreements(): Promise<MyAgreementSummary[]> {
 
 export interface MyAgreementDetail extends MyAgreementSummary {
   latestSignatureRequest: SignatureRequest | null;
+  latestStampRequest: StampRequest | null;
 }
 
 interface SignatureRequestRow {
@@ -89,6 +99,30 @@ interface SignatureRequestRow {
   cancelled_at: string | null;
   expired_at: string | null;
   signed_document_storage_path: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface StampRequestRow {
+  id: string;
+  agreement_id: string;
+  agreement_version_id: string;
+  provider: string;
+  provider_request_id: string | null;
+  status: string;
+  jurisdiction: string | null;
+  state: string | null;
+  document_type: string | null;
+  stamp_value: number | null;
+  currency: string;
+  requested_at: string | null;
+  processing_at: string | null;
+  completed_at: string | null;
+  failed_at: string | null;
+  cancelled_at: string | null;
+  expired_at: string | null;
+  stamped_document_storage_path: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -133,13 +167,52 @@ export async function getMyAgreementById(agreementId: string): Promise<MyAgreeme
 
   const requestRow = ((requestRows ?? []) as SignatureRequestRow[])[0] ?? null;
 
+  const { data: stampRows, error: stampError } = await supabase
+    .from("stamp_requests")
+    .select(
+      "id, agreement_id, agreement_version_id, provider, provider_request_id, status, jurisdiction, state, document_type, stamp_value, currency, requested_at, processing_at, completed_at, failed_at, cancelled_at, expired_at, stamped_document_storage_path, created_by, created_at, updated_at"
+    )
+    .eq("agreement_id", agreementId)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (stampError) logDbError("getMyAgreementById:stampRequests", stampError);
+
+  const stampRow = ((stampRows ?? []) as StampRequestRow[])[0] ?? null;
+
   return {
     id: row.id,
     agreementType: row.agreement_type,
     status: row.status as AgreementStatus,
     signatureStatus: row.signature_status as SignatureStatus,
+    stampSignSequence: row.stamp_sign_sequence as StampSignSequence | null,
+    stampStatus: row.stamp_status as StampStatus,
     effectiveDate: row.effective_date,
     updatedAt: row.updated_at,
+    latestStampRequest: stampRow
+      ? {
+          id: stampRow.id,
+          agreementId: stampRow.agreement_id,
+          agreementVersionId: stampRow.agreement_version_id,
+          provider: stampRow.provider,
+          providerRequestId: stampRow.provider_request_id,
+          status: stampRow.status as StampRequestStatus,
+          jurisdiction: stampRow.jurisdiction,
+          state: stampRow.state,
+          documentType: stampRow.document_type,
+          stampValue: stampRow.stamp_value,
+          currency: stampRow.currency,
+          requestedAt: stampRow.requested_at,
+          processingAt: stampRow.processing_at,
+          completedAt: stampRow.completed_at,
+          failedAt: stampRow.failed_at,
+          cancelledAt: stampRow.cancelled_at,
+          expiredAt: stampRow.expired_at,
+          hasStampedDocument: !!stampRow.stamped_document_storage_path,
+          createdBy: stampRow.created_by,
+          createdAt: stampRow.created_at,
+          updatedAt: stampRow.updated_at,
+        }
+      : null,
     latestSignatureRequest: requestRow
       ? {
           id: requestRow.id,
@@ -187,4 +260,24 @@ export async function getMySignedDocumentUrl(agreementId: string): Promise<strin
     .maybeSingle();
   if (error || !data?.signed_document_storage_path) return null;
   return createSignedDownloadUrl(data.signed_document_storage_path);
+}
+
+/**
+ * Student "Download stamped agreement" — mirrors getMySignedDocumentUrl()
+ * exactly, for the stamped-document equivalent (Milestone 11-A, F-123).
+ * Re-verifies ownership independently via getMyAgreementById() before ever
+ * calling into Storage.
+ */
+export async function getMyStampedDocumentUrl(agreementId: string): Promise<string | null> {
+  const detail = await getMyAgreementById(agreementId);
+  if (!detail?.latestStampRequest?.hasStampedDocument) return null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("stamp_requests")
+    .select("stamped_document_storage_path")
+    .eq("id", detail.latestStampRequest.id)
+    .maybeSingle();
+  if (error || !data?.stamped_document_storage_path) return null;
+  return createStampedDownloadUrl(data.stamped_document_storage_path);
 }

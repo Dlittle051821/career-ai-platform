@@ -10,6 +10,11 @@ import {
   resendSignatureRequestAction as resendSignatureRequest,
   cancelSignatureRequestAction as cancelSignatureRequest,
 } from "@/lib/supabase/admin/signatures";
+import {
+  requestStamp,
+  retryStampRequest as retryStampRequestIo,
+  cancelStampRequestAction as cancelStampRequestIo,
+} from "@/lib/supabase/admin/stamping";
 import { friendlyAdminError, AdminValidationError, type ActionState } from "@/lib/admin/form-state";
 
 async function resolveStudentEmail(formData: FormData): Promise<FormData> {
@@ -90,6 +95,43 @@ export async function resendSignatureRequestFormAction(agreementId: string, requ
 export async function cancelSignatureRequestFormAction(agreementId: string, requestId: string, _prev: ActionState, _formData: FormData): Promise<ActionState> {
   try {
     await cancelSignatureRequest(requestId);
+  } catch (error) {
+    return { error: friendlyAdminError(error) };
+  }
+  revalidatePath("/admin/agreements");
+  revalidatePath(`/admin/agreements/${agreementId}`);
+  return { error: null };
+}
+
+// ---------------------------------------------------------------------------
+// Milestone 11-A (F-123) — electronic stamping
+// ---------------------------------------------------------------------------
+
+export async function requestStampAction(agreementId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    await requestStamp(agreementId, formData);
+  } catch (error) {
+    return { error: friendlyAdminError(error) };
+  }
+  revalidatePath("/admin/agreements");
+  revalidatePath(`/admin/agreements/${agreementId}`);
+  return { error: null };
+}
+
+export async function retryStampRequestFormAction(agreementId: string, requestId: string, _prev: ActionState, _formData: FormData): Promise<ActionState> {
+  try {
+    await retryStampRequestIo(agreementId, requestId);
+  } catch (error) {
+    return { error: friendlyAdminError(error) };
+  }
+  revalidatePath("/admin/agreements");
+  revalidatePath(`/admin/agreements/${agreementId}`);
+  return { error: null };
+}
+
+export async function cancelStampRequestFormAction(agreementId: string, requestId: string, _prev: ActionState, _formData: FormData): Promise<ActionState> {
+  try {
+    await cancelStampRequestIo(agreementId, requestId);
   } catch (error) {
     return { error: friendlyAdminError(error) };
   }

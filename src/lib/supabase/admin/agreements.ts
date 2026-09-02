@@ -3,9 +3,10 @@ import { createClient } from "../server";
 import { requireAdminPermission } from "../admin-auth";
 import { recordAuditLog } from "./audit";
 import { AdminValidationError } from "@/lib/admin/form-state";
-import { AGREEMENT_STATUS_TRANSITIONS, SIGNATURE_STATUS_TRANSITIONS, isValidTransition } from "@/lib/admin/status";
+import { AGREEMENT_STATUS_TRANSITIONS, SIGNATURE_STATUS_TRANSITIONS, STAMP_STATUS_TRANSITIONS, isValidTransition } from "@/lib/admin/status";
 import { cleanFilterParam, clampPageSize, pageToRange, parsePageParam } from "@/lib/admin/pagination";
-import type { AdminListResult, Agreement, AgreementStatus, SignatureStatus } from "@/types/admin";
+import type { AdminListResult, Agreement, AgreementStatus, SignatureStatus, StampStatus } from "@/types/admin";
+import { STAMP_SIGN_SEQUENCES, type StampSignSequence } from "@/types/stamping";
 
 /**
  * Agreement TRACKING only — no e-signature is performed here, and there is
@@ -66,6 +67,8 @@ interface AgreementRow {
   expiry_date: string | null;
   document_reference_url: string | null;
   signature_status: string;
+  stamp_sign_sequence: string | null;
+  stamp_status: string;
   internal_notes: string | null;
   created_at: string;
   updated_at: string;
@@ -93,6 +96,8 @@ function toAgreement(
     expiryDate: row.expiry_date,
     documentReferenceUrl: row.document_reference_url,
     signatureStatus: row.signature_status as SignatureStatus,
+    stampSignSequence: row.stamp_sign_sequence as StampSignSequence | null,
+    stampStatus: row.stamp_status as StampStatus,
     internalNotes: row.internal_notes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -170,10 +175,13 @@ interface AgreementInput {
   expiryDate: string | null;
   documentReferenceUrl: string | null;
   signatureStatus: SignatureStatus;
+  stampSignSequence: StampSignSequence | null;
+  stampStatus: StampStatus;
   internalNotes: string | null;
 }
 
 const SIGNATURE_STATUSES: SignatureStatus[] = ["not_started", "pending_signature", "signed"];
+const STAMP_STATUSES: StampStatus[] = ["not_started", "pending_stamp", "stamped"];
 
 function parseAgreementForm(formData: FormData): AgreementInput {
   const agreementType = String(formData.get("agreementType") ?? "").trim();
@@ -194,6 +202,12 @@ function parseAgreementForm(formData: FormData): AgreementInput {
   const signatureStatusRaw = String(formData.get("signatureStatus") ?? "not_started").trim();
   const signatureStatus = SIGNATURE_STATUSES.includes(signatureStatusRaw as SignatureStatus) ? (signatureStatusRaw as SignatureStatus) : "not_started";
 
+  const stampSignSequenceRaw = String(formData.get("stampSignSequence") ?? "").trim();
+  const stampSignSequence = STAMP_SIGN_SEQUENCES.includes(stampSignSequenceRaw as StampSignSequence) ? (stampSignSequenceRaw as StampSignSequence) : null;
+
+  const stampStatusRaw = String(formData.get("stampStatus") ?? "not_started").trim();
+  const stampStatus = STAMP_STATUSES.includes(stampStatusRaw as StampStatus) ? (stampStatusRaw as StampStatus) : "not_started";
+
   return {
     agreementType,
     studentUserId,
@@ -204,6 +218,8 @@ function parseAgreementForm(formData: FormData): AgreementInput {
     expiryDate: String(formData.get("expiryDate") ?? "").trim() || null,
     documentReferenceUrl: documentReferenceUrl || null,
     signatureStatus,
+    stampSignSequence,
+    stampStatus,
     internalNotes: String(formData.get("internalNotes") ?? "").trim() || null,
   };
 }
@@ -227,6 +243,8 @@ export async function createAgreement(formData: FormData): Promise<string> {
       expiry_date: input.expiryDate,
       document_reference_url: input.documentReferenceUrl,
       signature_status: input.signatureStatus,
+      stamp_sign_sequence: input.stampSignSequence,
+      stamp_status: input.stampStatus,
       internal_notes: input.internalNotes,
     })
     .select("id")
@@ -242,7 +260,7 @@ export async function createAgreement(formData: FormData): Promise<string> {
     entityType: "agreement",
     entityId: data.id,
     entityLabel: `agreement "${input.agreementType}"`,
-    after: { status: "draft", signatureStatus: input.signatureStatus },
+    after: { status: "draft", signatureStatus: input.signatureStatus, stampSignSequence: input.stampSignSequence },
   });
 
   return data.id;
@@ -266,6 +284,14 @@ export async function updateAgreement(id: string, formData: FormData): Promise<v
   if (!isValidTransition(SIGNATURE_STATUS_TRANSITIONS, before.signatureStatus, requestedSignature)) {
     throw new AdminValidationError(`Cannot move signature status from "${before.signatureStatus}" directly to "${requestedSignature}".`);
   }
+  // stamp_status is manually settable here for the same reason
+  // signature_status is: a real stamp_requests-driven flow (once one
+  // exists for this agreement) overrides it automatically via
+  // public.sync_agreement_stamp_status() (0012 PART 2.1) regardless of
+  // what is saved through this form.
+  if (!isValidTransition(STAMP_STATUS_TRANSITIONS, before.stampStatus, input.stampStatus)) {
+    throw new AdminValidationError(`Cannot move stamp status from "${before.stampStatus}" directly to "${input.stampStatus}".`);
+  }
 
   const { error } = await supabase
     .from("agreements")
@@ -280,6 +306,8 @@ export async function updateAgreement(id: string, formData: FormData): Promise<v
       expiry_date: input.expiryDate,
       document_reference_url: input.documentReferenceUrl,
       signature_status: requestedSignature,
+      stamp_sign_sequence: input.stampSignSequence,
+      stamp_status: input.stampStatus,
       internal_notes: input.internalNotes,
     })
     .eq("id", id);
@@ -292,6 +320,8 @@ export async function updateAgreement(id: string, formData: FormData): Promise<v
   const fieldChangeSummaries: string[] = [];
   if (before.status !== requestedStatus) fieldChangeSummaries.push(`status: ${before.status} -> ${requestedStatus}`);
   if (before.signatureStatus !== requestedSignature) fieldChangeSummaries.push(`signatureStatus: ${before.signatureStatus} -> ${requestedSignature}`);
+  if (before.stampSignSequence !== input.stampSignSequence) fieldChangeSummaries.push(`stampSignSequence: ${before.stampSignSequence ?? "(none)"} -> ${input.stampSignSequence ?? "(none)"}`);
+  if (before.stampStatus !== input.stampStatus) fieldChangeSummaries.push(`stampStatus: ${before.stampStatus} -> ${input.stampStatus}`);
 
   await recordAuditLog({
     action: "Updated",
@@ -299,7 +329,7 @@ export async function updateAgreement(id: string, formData: FormData): Promise<v
     entityId: id,
     entityLabel: `agreement "${input.agreementType}"`,
     fieldChangeSummaries,
-    before: { status: before.status, signatureStatus: before.signatureStatus },
-    after: { status: requestedStatus, signatureStatus: requestedSignature },
+    before: { status: before.status, signatureStatus: before.signatureStatus, stampSignSequence: before.stampSignSequence, stampStatus: before.stampStatus },
+    after: { status: requestedStatus, signatureStatus: requestedSignature, stampSignSequence: input.stampSignSequence, stampStatus: input.stampStatus },
   });
 }

@@ -92,6 +92,22 @@ const STATUS_TONE: Record<string, Tone> = {
   imported: "success",
   skipped: "neutral",
   duplicate: "warning",
+  // Milestone 11-C1 — student_profile_section_provenance.provenance, passed
+  // in lowercased (see ProfileProvenanceCard). "verified" above is already
+  // taken by a different, unrelated status (education accreditation), so
+  // these use their own distinct keys rather than colliding with it.
+  self_entered: "neutral",
+  counsellor_entered: "info",
+  counsellor_verified: "success",
+  system_derived: "accent",
+  // Milestone 11-C2 — recommendation_readiness levels, passed in
+  // lowercased (see RecommendationReadinessCard). not_ready/preliminary/
+  // ready are distinct from every status above; counsellor_verified is
+  // reused as-is from the provenance entry directly above (same string,
+  // same meaning: a counsellor's explicit sign-off).
+  not_ready: "neutral",
+  preliminary: "info",
+  ready: "success",
 };
 
 function label(status: string): string {

@@ -221,18 +221,37 @@ been `paid`. Every status or amount change is written to the audit log (§12) re
 the record, since those two fields are the financially sensitive ones. Write access (`payments:write`) is
 restricted to `super_admin`, `admin`, and `finance` — a `counsellor` cannot read or write payments at all.
 
-## 8. Agreements module — tracking only, no e-signature
+## 8. Agreements module — tracking, plus real (mock-provider) e-signature and e-stamping
 
-There is no e-signature integration anywhere in this project. `signature_status` (`not_started` /
-`pending_signature` / `signed`) is set manually by an admin who has verified the state some other way (in person,
-by email, by a third-party tool outside this system) — it is never flipped automatically, and the form says so
-directly. `document_reference_url` is a plain reference link an admin types in (e.g. to a file stored in Google
-Drive or another system already in use); nothing is uploaded to or stored by this application, and no document
-content is ever rendered from here. An agreement must be linked to at least one party (a student, a counsellor, or
-a university — enforced by a database check constraint), and status changes follow
-`AGREEMENT_STATUS_TRANSITIONS`/`SIGNATURE_STATUS_TRANSITIONS` (`src/lib/admin/status.ts`) the same way payments and
-applications do. Write access is `super_admin`/`admin` only; a `counsellor` can read agreements linked to them but
-never create or edit one.
+**As originally shipped in this milestone, there was no e-signature integration anywhere in this project** —
+`signature_status` (`not_started` / `pending_signature` / `signed`) was set manually by an admin who had verified
+the state some other way (in person, by email, by a third-party tool outside this system), never flipped
+automatically. `document_reference_url` is (and remains) a plain reference link an admin types in — e.g. to a file
+stored in Google Drive or another system already in use — for agreements that never go through the electronic flow
+below; nothing about that link is ever uploaded to or stored by this application. An agreement must be linked to at
+least one party (a student, a counsellor, or a university — enforced by a database check constraint), and status
+changes follow `AGREEMENT_STATUS_TRANSITIONS`/`SIGNATURE_STATUS_TRANSITIONS` (`src/lib/admin/status.ts`) the same
+way payments and applications do. Write access is `super_admin`/`admin` only; a `counsellor` can read agreements
+linked to them but never create or edit one.
+
+**This is no longer the whole picture.** Two later milestones added real, provider-agnostic electronic workflows on
+top of the same `agreements` table, each with a fully-functional in-memory mock provider shipped and no real
+third-party vendor connected by default:
+
+- **F-122 Electronic Signature Integration** (`docs/milestones/M10-electronic-signature.md`) — `agreement_versions`
+  (immutable-once-locked content snapshots) and `signature_requests` (full send/view/sign/decline/cancel lifecycle,
+  verified-webhook-driven), with `agreements.signature_status` now kept in sync automatically by a database trigger
+  for any agreement that has gone through this flow — the manual-entry description above still applies only to an
+  agreement that never has.
+- **F-123 Electronic Stamping** (`docs/milestones/M11-electronic-stamping-assisted-onboarding.md` Part A) —
+  `stamp_requests` and two new `agreements` columns (`stamp_sign_sequence`, `stamp_status`), the same
+  request/webhook/status-sync pattern, configurable to run stamping and signing in either order (or either alone),
+  since this application makes no universal claim about which a given jurisdiction requires.
+
+Neither addition claims legal validity or jurisdiction-specific compliance (stamp-duty or otherwise) for any
+provider, mock or real — see each milestone doc's own "Legal/compliance note." Both are still gated by the exact
+same `agreements:write` permission and `super_admin`/`admin`-only write access described above; no new admin
+permission was introduced for either.
 
 ## 9. Data honesty & content safety
 
@@ -381,9 +400,13 @@ this file; every list page's empty state is honest, not a placeholder.
 
 ## 15. Known limitations & future integrations
 
-- **No live payment processor, no e-signature provider, no SMS/WhatsApp/email sending integration.** Every module
-  that references these (payments, agreements, leads' "contact" fields) is explicitly tracking-only, as documented
-  in §7, §8, and the lead form's own on-page warning. Wiring any of these up is future work, not part of M7.
+- **No live payment processor, no real e-signature/e-stamping VENDOR, no SMS/WhatsApp/email sending integration.**
+  This is the state as of Milestone 7 specifically. Payments (§7) and the lead form's own on-page warning are still
+  exactly this — tracking-only, no live integration. Agreements (§8) is a partial exception as of later milestones:
+  real (mock-provider-backed) electronic signature and stamping WORKFLOWS now exist, but still no real third-party
+  vendor is connected by default — see §8's own update. Milestone 8 separately added a genuine, live payment
+  processor (Razorpay) — see `docs/payments-billing-guide.md` — so "no live payment processor" is also no longer
+  true project-wide, only true of the original Milestone 7 Payments module specifically.
 - **No public page reads `content_items` or the `is_visible` flag on universities/courses yet.** This is
   intentional scope control for M7 (§9) — a future milestone can wire a page to read published content without any
   change needed here.

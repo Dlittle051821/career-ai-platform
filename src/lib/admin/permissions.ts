@@ -80,6 +80,34 @@ export const ADMIN_PERMISSIONS = [
   // read-only for reporting (click counts, search-gap queue).
   "trusted-portals:read",
   "trusted-portals:write",
+  // Milestone 11-B — Assisted Onboarding Revision. Its own permission pair
+  // rather than folded into "leads:*" or "counsellors:*": a Discovery
+  // Session is a student-initiated booking on an existing account, a
+  // meaningfully different object than a pre-registration CRM lead or the
+  // counsellor directory itself. Granted to counsellor (they are the ones
+  // who actually run these sessions), unlike leads:write's broader set.
+  "discovery-sessions:read",
+  "discovery-sessions:write",
+  // Milestone 11-C1 — Profile Completeness + Counsellor Verification. A
+  // separate pair from "students:*": marking a Student Digital Profile
+  // section's provenance is a narrower, additive-metadata-only action (see
+  // src/lib/supabase/admin/profile-provenance.ts) — it never touches
+  // admin_student_meta or any student_* table the way students:write's
+  // updateStudentMeta()/recordAuditLog() surface does, so it gets its own
+  // permission rather than reusing (or widening) students:write, which
+  // counsellor deliberately does not hold.
+  "profile-verification:read",
+  "profile-verification:write",
+  // Milestone 11-C2 — Recommendation Readiness + Dashboard Integration. Its
+  // own pair rather than reusing "profile-verification:*": verifying a
+  // recommendation TYPE's readiness (src/lib/supabase/admin/
+  // recommendation-readiness.ts) writes to a different table
+  // (student_recommendation_verifications) with a materially different RLS
+  // write constraint — verified_by_counsellor_id is NOT NULL there, so only
+  // a linked counsellor can ever write a row at all, unlike profile section
+  // provenance where a plain admin can record COUNSELLOR_ENTERED.
+  "recommendation-readiness:read",
+  "recommendation-readiness:write",
 ] as const;
 
 export type AdminPermission = (typeof ADMIN_PERMISSIONS)[number];
@@ -141,6 +169,15 @@ export const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
     // management.
     "trusted-portals:read",
     "trusted-portals:write",
+    // Milestone 11-B — admin gets full Discovery Session management.
+    "discovery-sessions:read",
+    "discovery-sessions:write",
+    // Milestone 11-C1 — admin gets full profile-provenance management.
+    "profile-verification:read",
+    "profile-verification:write",
+    // Milestone 11-C2 — admin gets full recommendation-readiness management.
+    "recommendation-readiness:read",
+    "recommendation-readiness:write",
   ],
   counsellor: [
     "dashboard:read",
@@ -158,6 +195,23 @@ export const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
     // to draft/unpublished pricing here; they see the same
     // published-and-active plans any signed-in student sees, via the
     // public-scoped RLS policy, not this admin permission.
+    // Milestone 11-B — counsellors run Discovery Sessions themselves; RLS
+    // (0013 PART 2) further scopes what they can actually see/update to
+    // unassigned sessions plus their own, same "app permission is UX, RLS
+    // is the boundary" split as every other module here.
+    "discovery-sessions:read",
+    "discovery-sessions:write",
+    // Milestone 11-C1 — counsellors are the ones who actually verify a
+    // student's profile sections; RLS (0013 PART 4 as widened by 0014)
+    // further scopes which students' sections they can touch.
+    "profile-verification:read",
+    "profile-verification:write",
+    // Milestone 11-C2 — counsellors are the only role that can actually
+    // write a recommendation verification at all (verified_by_counsellor_id
+    // is NOT NULL); RLS (0013 PART 5 as widened by 0014) further scopes
+    // which students they can verify.
+    "recommendation-readiness:read",
+    "recommendation-readiness:write",
   ],
   finance: [
     "dashboard:read",
@@ -217,6 +271,17 @@ export const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
     // Trusted Global Course Search — analyst is read-only here too, for
     // click-count/search-gap reporting.
     "trusted-portals:read",
+    // Milestone 11-C1 — analyst is read-only here too, for reporting.
+    // (Deliberately NOT "discovery-sessions:read": that table's RLS read
+    // policy — 0013 PART 2 — was never extended to 'analyst', so granting
+    // the app permission without the matching RLS grant would just show an
+    // always-empty list; out of scope to widen here.)
+    "profile-verification:read",
+    // Milestone 11-C2 — analyst is read-only here too. Unlike discovery-
+    // sessions above, student_recommendation_verifications' RLS read policy
+    // (0013 PART 5) DOES include 'analyst' directly, so this one is safe to
+    // grant.
+    "recommendation-readiness:read",
   ],
 };
 

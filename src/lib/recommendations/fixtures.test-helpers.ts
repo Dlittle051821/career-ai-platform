@@ -33,6 +33,11 @@ const EMPTY_PROFILE: StudentProfile = {
   onboardingCurrentStep: 1,
 };
 
+/** A full StudentProfile with sensible empty defaults, for callers (e.g. readiness.test.ts) that only need to override a field or two like `currentStatus` without retyping every other required field. */
+export function studentProfile(overrides: Partial<StudentProfile> = {}): StudentProfile {
+  return { ...EMPTY_PROFILE, ...overrides };
+}
+
 export function buildSnapshot(overrides: Partial<StudentProfileSnapshot> = {}): StudentProfileSnapshot {
   return {
     profile: { ...EMPTY_PROFILE, ...overrides.profile },
