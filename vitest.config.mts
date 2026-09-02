@@ -162,6 +162,13 @@ export default defineConfig({
       // src/lib/supabase/admin/profile-provenance.ts, untested here for the
       // same reason as every other src/lib/supabase/ module).
       "src/lib/profile-provenance/**/*.test.ts",
+      // AccountMenu role-awareness fix — pure account_type -> label/links
+      // mapping (src/lib/navigation/account-menu.ts). Same "pure,
+      // framework-free" convention; the React components that consume it
+      // (AccountMenu.tsx, the useAuthProfile hook) are untested here for the
+      // same "no React Testing Library/jsdom in this project" reason
+      // documented above for src/config/ (the branding rebrand pass).
+      "src/lib/navigation/**/*.test.ts",
     ],
   },
 });

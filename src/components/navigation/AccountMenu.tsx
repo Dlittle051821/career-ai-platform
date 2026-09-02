@@ -3,15 +3,44 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, LayoutDashboard, LogIn, LogOut, Receipt, Settings, UserCircle, UserPlus } from "lucide-react";
+import {
+  ChevronDown,
+  LayoutDashboard,
+  LogIn,
+  LogOut,
+  Receipt,
+  Settings,
+  ShieldCheck,
+  UserCircle,
+  UserCog,
+  UserPlus,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { logout } from "@/lib/supabase/actions";
-import { firstNameOf, useAuthUser } from "@/lib/supabase/use-auth-user";
+import { firstNameOf } from "@/lib/supabase/use-auth-user";
+import { useAuthProfile } from "@/lib/supabase/use-auth-profile";
+import { getAccountMenuLinks, resolveAccountMenuLabel, type AccountMenuLinkKind } from "@/lib/navigation/account-menu";
+
+const LINK_ICONS: Record<AccountMenuLinkKind, LucideIcon> = {
+  dashboard: LayoutDashboard,
+  payments: Receipt,
+  "admin-dashboard": ShieldCheck,
+  "counsellor-workspace": UserCog,
+};
 
 /**
- * Replaces the Milestone 1 "Student login" (coming-soon) modal with a real
- * auth-aware control. Logged out: compact Log in / Register links. Logged
- * in: a small dropdown with the student's name, Dashboard, a Settings
- * placeholder, and Log out.
+ * Replaces the Milestone 1 "Student login" (coming-soon) modal with a real,
+ * role-aware auth control. Logged out: compact Log in / Register links.
+ * Logged in: a small dropdown with the account's role label, name, the
+ * links appropriate to that role (student/admin/counsellor — see
+ * src/lib/navigation/account-menu.ts), a Settings placeholder, and Log out.
+ *
+ * Role comes from `public.profiles.account_type` via useAuthProfile
+ * (src/lib/supabase/use-auth-profile.ts) — this used to only read
+ * `supabase.auth.getUser()` (no role on it at all), which is why this menu
+ * was always student-oriented regardless of the signed-in account's actual
+ * role. This is presentation/navigation only, not authorization — see the
+ * docblocks on use-auth-profile.ts and account-menu.ts for why that's safe.
  *
  * Auth state is read client-side (getUser() + onAuthStateChange) rather
  * than passed from the server layout, so a login/register/logout — which
@@ -19,7 +48,7 @@ import { firstNameOf, useAuthUser } from "@/lib/supabase/use-auth-user";
  * instantly without adding a Supabase round trip to every page render.
  */
 export function AccountMenu() {
-  const { user, ready } = useAuthUser();
+  const { user, accountType, ready } = useAuthProfile();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -78,6 +107,8 @@ export function AccountMenu() {
   }
 
   const firstName = firstNameOf(user);
+  const roleLabel = resolveAccountMenuLabel(accountType);
+  const roleLinks = getAccountMenuLinks(accountType);
 
   return (
     <div ref={containerRef} className="relative shrink-0">
@@ -87,11 +118,11 @@ export function AccountMenu() {
         aria-expanded={open}
         aria-haspopup="menu"
         aria-controls="account-menu-panel"
-        aria-label={`Account menu for ${firstName}`}
+        aria-label={`Account menu for ${firstName}, ${roleLabel}`}
         className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-sm font-medium text-text-soft hover:bg-surface-alt hover:text-primary"
       >
         <UserCircle aria-hidden="true" className="h-5 w-5" />
-        <span className="hidden 2xl:inline">{firstName}</span>
+        <span className="hidden 2xl:inline">{roleLabel}</span>
         <ChevronDown aria-hidden="true" className="h-3.5 w-3.5" />
       </button>
 
@@ -104,25 +135,24 @@ export function AccountMenu() {
         >
           <div className="px-3 py-2">
             <p className="truncate text-sm font-semibold text-primary">{firstName}</p>
+            <p className="truncate text-xs font-medium text-secondary-dark">{roleLabel}</p>
             <p className="truncate text-xs text-muted">{user.email}</p>
           </div>
           <div className="my-1 border-t border-border" />
-          <Link
-            href="/dashboard"
-            role="menuitem"
-            className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-text-soft hover:bg-surface-alt hover:text-primary"
-          >
-            <LayoutDashboard aria-hidden="true" className="h-4 w-4" />
-            Dashboard
-          </Link>
-          <Link
-            href="/payments"
-            role="menuitem"
-            className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-text-soft hover:bg-surface-alt hover:text-primary"
-          >
-            <Receipt aria-hidden="true" className="h-4 w-4" />
-            Payments
-          </Link>
+          {roleLinks.map((link) => {
+            const Icon = LINK_ICONS[link.kind];
+            return (
+              <Link
+                key={link.kind}
+                href={link.href}
+                role="menuitem"
+                className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-text-soft hover:bg-surface-alt hover:text-primary"
+              >
+                <Icon aria-hidden="true" className="h-4 w-4" />
+                {link.label}
+              </Link>
+            );
+          })}
           <button
             type="button"
             role="menuitem"
