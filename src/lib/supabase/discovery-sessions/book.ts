@@ -21,6 +21,21 @@ function logDbError(context: string, error: unknown) {
   console.error(`[discovery-sessions/book] ${context}:`, error);
 }
 
+/**
+ * Postgres unique-violation (23505) — same code/helper pattern as
+ * src/lib/supabase/education/saved-items.ts's isUniqueViolation(). Here it
+ * means discovery_sessions_one_active_per_student
+ * (supabase/migrations/0015_discovery_session_duplicate_booking_guard.sql)
+ * fired: two concurrent booking requests for the same student both passed
+ * the getMyActiveDiscoverySession() check below before either INSERT
+ * landed. Translated to the exact same message
+ * validateBookDiscoverySession() already gives for the common (non-race)
+ * case, so the student never sees a raw database error.
+ */
+function isUniqueViolation(error: { code?: string } | null): boolean {
+  return error?.code === "23505";
+}
+
 interface DiscoverySessionRow {
   id: string;
   student_user_id: string;
@@ -137,6 +152,9 @@ export async function bookDiscoverySession(input: BookDiscoverySessionInput): Pr
     .single();
 
   if (error) {
+    if (isUniqueViolation(error)) {
+      throw new Error("You already have a Discovery Session request in progress — no need to book another one.");
+    }
     logDbError("bookDiscoverySession", error);
     throw new Error(error.message);
   }
