@@ -143,8 +143,8 @@ export default async function DashboardPage() {
                 {careerReadiness && <ReadinessBadge level={careerReadiness.level} />}
               </div>
               <p className="mt-1 text-sm leading-relaxed text-muted">
-                {careerReadiness && careerReadiness.level === "NOT_READY"
-                  ? "Add a bit more to your profile — subjects, interests, or skills — to unlock reliable career recommendations."
+                {careerReadiness && (careerReadiness.level === "NOT_READY" || careerReadiness.level === "PRELIMINARY") && careerReadiness.nextActions.length > 0
+                  ? `A bit more first: ${careerReadiness.nextActions.slice(0, 2).join(" ")}`
                   : "Careers ranked against your Student Digital Profile, with plain-language reasons for each one — a structured decision-support tool, not a scientific or AI-generated assessment."}
               </p>
               <LinkButton href="/recommendations" size="sm" className="mt-4">

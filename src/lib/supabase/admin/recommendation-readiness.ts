@@ -3,6 +3,7 @@ import { createClient } from "../server";
 import { requireAdminPermission } from "../admin-auth";
 import { recordAuditLog } from "./audit";
 import { fetchStudentProfileSnapshotByUserId } from "../student-profile";
+import { getSectionProvenanceMap } from "./profile-provenance";
 import { calculateCompletion } from "@/lib/profile/completion";
 import { computeAllRecommendationReadiness, type RecommendationVerificationOverride } from "@/lib/recommendations/readiness";
 import { validateClearRecommendationVerification, validateSetRecommendationVerification } from "@/lib/recommendations/readiness-rules";
@@ -46,9 +47,17 @@ export async function getRecommendationReadinessForAdmin(studentUserId: string):
   await requireAdminPermission("recommendation-readiness:read");
   const supabase = await createClient();
 
-  const [snapshot, verificationsRes] = await Promise.all([
+  // getSectionProvenanceMap() independently requires "profile-verification:read"
+  // — every role granted "recommendation-readiness:read" today (super_admin,
+  // admin, counsellor, analyst) also holds "profile-verification:read" (see
+  // src/lib/admin/permissions.ts), so this reuse of the existing provenance
+  // helper (rather than a second, parallel query) never actually fails for a
+  // caller who reached this far; if that role mapping ever diverges, this is
+  // the one place that assumption would need revisiting.
+  const [snapshot, verificationsRes, sectionProvenance] = await Promise.all([
     fetchStudentProfileSnapshotByUserId(supabase, studentUserId),
     supabase.from("student_recommendation_verifications").select("*").eq("student_user_id", studentUserId),
+    getSectionProvenanceMap(studentUserId),
   ]);
   if (verificationsRes.error) logDbError("getRecommendationReadinessForAdmin", verificationsRes.error);
 
@@ -67,7 +76,7 @@ export async function getRecommendationReadinessForAdmin(studentUserId: string):
   }
 
   const completion = calculateCompletion(snapshot);
-  return computeAllRecommendationReadiness(completion, overridesByType);
+  return computeAllRecommendationReadiness(completion, overridesByType, sectionProvenance);
 }
 
 /**

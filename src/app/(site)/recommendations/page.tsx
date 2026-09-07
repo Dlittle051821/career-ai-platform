@@ -50,9 +50,22 @@ export default async function RecommendationsPage() {
           <h2 className="text-lg font-semibold text-primary">Your profile needs a bit more first</h2>
           <p className="max-w-md text-sm text-muted">
             Recommendations compare your Student Digital Profile against our career library — the more of it you
-            fill in, the more useful and reliable your results will be. Add at least a couple of subject strengths,
-            interests, or skills to get started.
+            fill in, the more useful and reliable your results will be.
           </p>
+          {careerReadiness && careerReadiness.nextActions.length > 0 ? (
+            <ul className="max-w-md space-y-1.5 text-left text-sm text-text-soft">
+              {careerReadiness.nextActions.slice(0, 4).map((action) => (
+                <li key={action} className="flex items-start gap-2">
+                  <span aria-hidden="true" className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-secondary-dark" />
+                  {action}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="max-w-md text-sm text-muted">
+              Add at least a couple of subject strengths, interests, or skills to get started.
+            </p>
+          )}
           <LinkButton href="/profile/onboarding" className="mt-2">
             Continue your profile
           </LinkButton>

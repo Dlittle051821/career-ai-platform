@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "./server";
 import { fetchStudentProfileSnapshotByUserId } from "./student-profile";
+import { getMySectionProvenanceMap } from "./profile-provenance";
 import { calculateCompletion } from "@/lib/profile/completion";
 import { computeAllRecommendationReadiness, type RecommendationVerificationOverride } from "@/lib/recommendations/readiness";
 import { RECOMMENDATION_TYPES, type RecommendationType, type RecommendationReadiness } from "@/types/recommendation-readiness";
@@ -22,9 +23,10 @@ export async function getMyRecommendationReadiness(): Promise<Record<Recommendat
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [snapshot, verificationsRes] = await Promise.all([
+  const [snapshot, verificationsRes, sectionProvenance] = await Promise.all([
     fetchStudentProfileSnapshotByUserId(supabase, user.id),
     supabase.from("student_recommendation_verifications").select("recommendation_type, verified_by_counsellor_id, verified_at, note").eq("student_user_id", user.id),
+    getMySectionProvenanceMap(),
   ]);
 
   const overridesByType: Partial<Record<RecommendationType, RecommendationVerificationOverride>> = {};
@@ -39,5 +41,8 @@ export async function getMyRecommendationReadiness(): Promise<Record<Recommendat
   }
 
   const completion = calculateCompletion(snapshot);
-  return computeAllRecommendationReadiness(completion, overridesByType);
+  // getMySectionProvenanceMap() only returns null when logged out, which
+  // can't happen here (we already returned above if !user) — the fallback
+  // is defensive only.
+  return computeAllRecommendationReadiness(completion, overridesByType, sectionProvenance ?? {});
 }

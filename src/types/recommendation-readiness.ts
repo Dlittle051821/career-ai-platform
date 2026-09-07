@@ -62,6 +62,12 @@ export interface RecommendationReadiness {
   relevantCompletionPercent: number;
   /** Profile section keys (src/types/profile-provenance.ts's ProfileSectionKey) relevant to this type that are not yet complete. */
   missingSectionKeys: string[];
+  /** How many of this type's relevant sections exist at all (constant per type — the denominator behind relevantCompletionPercent, exposed so a caller can render "3 of 7 sections" rather than only a percentage). */
+  relevantSectionCount: number;
+  /** Milestone 11-C — how many of this type's relevant sections currently carry COUNSELLOR_VERIFIED provenance (src/types/profile-provenance.ts). Improves `confidence` (never `level` — see computeRecommendationReadiness()'s own comment) when a counsellor has independently reviewed enough of the underlying data. */
+  verifiedRelevantSectionCount: number;
+  /** Milestone 11-C — one plain-language action per missing relevant section (e.g. "Tell us whether you prefer India, abroad, or both."), in the same order as missingSectionKeys — what a student-facing UI should show instead of a generic "profile incomplete" message. Empty when nothing is missing. */
+  nextActions: string[];
   verifiedByCounsellorId: string | null;
   verifiedByCounsellorName: string | null;
   verifiedAt: string | null;

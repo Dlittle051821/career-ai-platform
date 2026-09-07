@@ -2,7 +2,26 @@ import { describe, expect, it } from "vitest";
 import { calculateCompletion } from "@/lib/profile/completion";
 import { computeAllRecommendationReadiness, computeRecommendationReadiness, type RecommendationVerificationOverride } from "./readiness";
 import { RECOMMENDATION_TYPES } from "@/types/recommendation-readiness";
+import type { ProfileSectionKey, SectionProvenance } from "@/types/profile-provenance";
 import { buildSnapshot, studentProfile, subjectStrength, interest, skill, fullWorkPreferences, partialCareerPriorities, educationRecord, studyPreferences } from "./fixtures.test-helpers";
+
+/** Builds a Milestone-11-C section-provenance map with COUNSELLOR_VERIFIED for exactly the given keys, SELF_ENTERED (the real default) for everything else — mirrors the shape getSectionProvenanceMap()/getMySectionProvenanceMap() actually return. */
+function provenanceMap(verifiedKeys: ProfileSectionKey[]): Partial<Record<ProfileSectionKey, SectionProvenance>> {
+  const result: Partial<Record<ProfileSectionKey, SectionProvenance>> = {};
+  for (const key of verifiedKeys) {
+    result[key] = {
+      sectionKey: key,
+      provenance: "COUNSELLOR_VERIFIED",
+      verifiedByCounsellorId: "counsellor-1",
+      verifiedByCounsellorName: "Priya Sharma",
+      verifiedAt: "2026-01-01T00:00:00.000Z",
+      lastUpdatedBy: "counsellor-1",
+      note: null,
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    };
+  }
+  return result;
+}
 
 const EMPTY_SNAPSHOT = buildSnapshot();
 
@@ -88,6 +107,56 @@ describe("recommendations/readiness", () => {
       // The override does not change the underlying completion math — it
       // only overrides level/confidence, so callers can still show "why".
       expect(readiness.relevantCompletionPercent).toBe(0);
+    });
+
+    it("exposes a plain-language next action for every missing relevant section, in the same order as missingSectionKeys", () => {
+      const completion = calculateCompletion(EMPTY_SNAPSHOT);
+      const readiness = computeRecommendationReadiness("college", completion);
+      expect(readiness.nextActions).toHaveLength(readiness.missingSectionKeys.length);
+      expect(readiness.missingSectionKeys).toContain("study_location");
+      const studyLocationIndex = readiness.missingSectionKeys.indexOf("study_location");
+      expect(readiness.nextActions[studyLocationIndex]).toBe("Tell us whether you prefer India, abroad, or both.");
+      expect(readiness.relevantSectionCount).toBeGreaterThan(0);
+    });
+
+    it("is an empty array when nothing relevant is missing", () => {
+      const completion = calculateCompletion(FULLY_COMPLETE_SNAPSHOT);
+      const readiness = computeRecommendationReadiness("career", completion);
+      expect(readiness.nextActions).toEqual([]);
+    });
+
+    it("Milestone 11-C: counsellor-verified section provenance raises confidence one tier (never level) when at least half of the relevant sections are verified", () => {
+      const completion = calculateCompletion(CAREER_SECTIONS_ONLY_SNAPSHOT);
+      // course's relevant sections are about_you/education/subject_strengths/career_goals/study_location;
+      // about_you, subject_strengths, and career_goals are already complete on this fixture (3 of 5 = 60%).
+      const verified = provenanceMap(["about_you", "subject_strengths", "career_goals"]);
+
+      const withoutProvenance = computeRecommendationReadiness("course", completion);
+      expect(withoutProvenance.level).toBe("PRELIMINARY");
+      expect(withoutProvenance.confidence).toBe("MEDIUM");
+
+      const withProvenance = computeRecommendationReadiness("course", completion, null, verified);
+      expect(withProvenance.level).toBe("PRELIMINARY"); // unchanged — verification never moves the level
+      expect(withProvenance.confidence).toBe("HIGH"); // bumped one tier: MEDIUM -> HIGH
+      expect(withProvenance.verifiedRelevantSectionCount).toBe(3);
+      expect(withProvenance.relevantSectionCount).toBe(5);
+    });
+
+    it("Milestone 11-C: verified provenance alone does NOT force NOT_READY to READY, even if every relevant section (however empty) is marked verified", () => {
+      const completion = calculateCompletion(EMPTY_SNAPSHOT);
+      const collegeKeys: ProfileSectionKey[] = ["about_you", "education", "study_location", "budget_funding"];
+      const readiness = computeRecommendationReadiness("college", completion, null, provenanceMap(collegeKeys));
+
+      expect(readiness.level).toBe("NOT_READY"); // the data still isn't there — provenance can't manufacture it
+      expect(readiness.confidence).toBe("MEDIUM"); // LOW -> MEDIUM, one tier, same rule as any other case
+      expect(readiness.relevantCompletionPercent).toBe(0);
+    });
+
+    it("Milestone 11-C: a below-threshold share of verified sections does not move confidence at all", () => {
+      const completion = calculateCompletion(CAREER_SECTIONS_ONLY_SNAPSHOT);
+      // Only 1 of course's 5 relevant sections verified (20%, below the 50% threshold).
+      const readiness = computeRecommendationReadiness("course", completion, null, provenanceMap(["about_you"]));
+      expect(readiness.confidence).toBe("MEDIUM"); // unchanged from the no-provenance case
     });
   });
 
