@@ -58,6 +58,36 @@
   --brand-info-pale: #e5eeff;       /* PROVISIONAL */
 
   /* ------------------------------------------------------------------
+     UX01-02 — "intelligence" accent (new, additive, PROVISIONAL).
+     The UX01-02 brief specifies a brand palette (Deep Navy #0B1F3A /
+     Primary Blue #2563EB / Cyan #22C7F2 / Off White #F8FAFC) as "the
+     existing NextWise brand." It is not: the REAL, logo-sampled colors
+     above (--brand-primary #005ef6, --brand-primary-strong #011f66,
+     --brand-ink #000c24) predate this brief, are documented as sampled
+     directly from the shipped logo, and are WCAG-checked throughout the
+     product (see the Milestone 11 note above). Overwriting them with the
+     brief's generic suggested hex would both contradict the actual logo
+     and throw away already-verified contrast work, so this pass keeps
+     the REAL brand colors as authoritative and does NOT change
+     --brand-primary / --brand-primary-strong / --brand-ink or any
+     --color-* token derived from them.
+     What the brief asks for that genuinely does not exist yet is a
+     "controlled, restrained accent for AI/intelligence moments" — no
+     cyan or teal-adjacent token served that purpose before this pass
+     (--color-secondary is a separate, already-heavily-used teal for
+     links/secondary actions). So --brand-intelligence is added here,
+     additively, following the same two-tone pattern already used for
+     --brand-signal: a vivid chip/background tone plus a darker "-strong"
+     tone for text/icon use, because the vivid tone alone fails AA as
+     text. Use is meant to be sparing — small badges, icons, or a single
+     accent line signalling "this came from Nextwise's guidance/matching
+     logic" — never a background wash. See docs/ux/UX01-02_FOUNDATION.md.
+  ------------------------------------------------------------------- */
+  --brand-intelligence: #22c7f2;         /* PROVISIONAL — vivid cyan. BACKGROUND/CHIP/ICON USE ONLY, fails AA as small text */
+  --brand-intelligence-pale: #e3f7fc;    /* PROVISIONAL — pale tint background for cyan-toned accents */
+  --brand-intelligence-strong: #0e7490;  /* PROVISIONAL — deep cyan, safe for text/icon use (5.6:1 on white, 5.2:1 on paper) */
+
+  /* ------------------------------------------------------------------
      Existing --color-* tokens, redefined as var(--brand-*) aliases
      wherever a direct, sensible mapping exists — this is what actually
      re-themes every component using bg-primary/text-muted/etc. WITHOUT
@@ -110,6 +140,11 @@
   --color-error-light: var(--brand-danger-pale);
   --color-info: var(--brand-info);
   --color-info-light: var(--brand-info-pale);
+
+  /* Intelligence accent — see the UX01-02 note above. Sparing use only. */
+  --color-intelligence: var(--brand-intelligence);
+  --color-intelligence-light: var(--brand-intelligence-pale);
+  --color-intelligence-strong: var(--brand-intelligence-strong);
 
   --radius-card: 1rem;
   --radius-control: 0.625rem;

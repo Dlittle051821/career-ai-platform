@@ -1,8 +1,8 @@
-import { ArrowRight, ShieldCheck, Users2, GitCompareArrows, Sparkle } from "lucide-react";
+import { ArrowRight, Compass, ShieldCheck, Users2, GitCompareArrows, Sparkle } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { LinkButton } from "@/components/ui/Button";
 import { RoadmapVisual } from "./RoadmapVisual";
-import { BRAND_NAME } from "@/config/site";
+import { BRAND_NAME, BRAND_TAGLINE } from "@/config/site";
 
 const REASSURANCE = [
   { icon: ShieldCheck, label: "Transparent guidance" },
@@ -21,7 +21,8 @@ export function Hero() {
 
       <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
         <div>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-secondary/25 bg-secondary-light px-3.5 py-1.5 text-sm font-semibold text-secondary-dark">
+          <p className="text-sm font-semibold uppercase tracking-wide text-intelligence-strong">{BRAND_TAGLINE}</p>
+          <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-secondary/25 bg-secondary-light px-3.5 py-1.5 text-sm font-semibold text-secondary-dark">
             <Sparkle aria-hidden="true" className="h-3.5 w-3.5" />
             Career decisions before course decisions
           </span>
@@ -34,14 +35,29 @@ export function Hero() {
             choose the course, university, and country that genuinely fit.
           </p>
 
-          <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-            <LinkButton href="/career-discovery" size="lg" trailingIcon={<ArrowRight aria-hidden="true" className="h-4 w-4" />}>
-              Start career discovery
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <LinkButton
+              href="/career-discovery"
+              size="lg"
+              trailingIcon={<ArrowRight aria-hidden="true" className="h-4 w-4" />}
+            >
+              Find My Direction
             </LinkButton>
-            <LinkButton href="/how-it-works" size="lg" variant="outline">
-              See how it works
+            <LinkButton
+              href="/careers"
+              size="lg"
+              variant="outline"
+              icon={<Compass aria-hidden="true" className="h-4 w-4" />}
+            >
+              Explore Options
             </LinkButton>
           </div>
+          <p className="mt-3 text-sm text-muted">
+            Not sure where to start?{" "}
+            <span className="font-medium text-text-soft">Find My Direction</span> guides you.{" "}
+            <span className="font-medium text-text-soft">Explore Options</span> lets you browse careers, courses,
+            and universities freely — no account needed.
+          </p>
 
           <ul className="mt-9 flex flex-wrap gap-x-6 gap-y-3">
             {REASSURANCE.map(({ icon: Icon, label }) => (

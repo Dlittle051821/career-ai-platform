@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-type Variant = "primary" | "secondary" | "outline" | "ghost";
+type Variant = "primary" | "secondary" | "outline" | "ghost" | "destructive";
 type Size = "md" | "lg" | "sm";
 
 const VARIANT_CLASSES: Record<Variant, string> = {
@@ -13,6 +13,16 @@ const VARIANT_CLASSES: Record<Variant, string> = {
   outline:
     "border border-border-strong bg-transparent text-primary hover:bg-surface-alt",
   ghost: "bg-transparent text-primary hover:bg-surface-alt",
+  /**
+   * Destructive — for actions with irreversible or high-consequence effects
+   * (cancel, remove, delete). Matches the color pattern already used by
+   * `admin/ConfirmSubmitButton.tsx`'s hand-rolled "armed" state, added here
+   * so new destructive actions can use the shared `Button` instead of
+   * duplicating base classes. Existing `ConfirmSubmitButton` is left as-is
+   * (it has its own two-step arm/confirm UX) rather than refactored in this
+   * foundation pass — see docs/ux/UX01-02_FOUNDATION.md.
+   */
+  destructive: "bg-error text-white hover:bg-error/90 active:bg-error/90 shadow-soft",
 };
 
 const SIZE_CLASSES: Record<Size, string> = {
@@ -68,7 +78,17 @@ export function LinkButton({
   );
 }
 
-interface ButtonProps extends CommonProps, Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> {}
+interface ButtonProps extends CommonProps, Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
+  /**
+   * Marks the button as mid-action (e.g. an in-flight client-side request).
+   * Disables the button, sets `aria-busy`, and swaps the leading icon for a
+   * spinner — `children` stays visible so callers can pass loading copy
+   * (e.g. "Saving…") themselves, matching the pattern `SubmitButton.tsx`
+   * already uses for Server Actions via `useFormStatus()`. Purely additive:
+   * omitting `loading` (the default) changes nothing about existing usage.
+   */
+  loading?: boolean;
+}
 
 /** Action button for form submits and interactive controls (not navigation). */
 export function Button({
@@ -79,15 +99,34 @@ export function Button({
   icon,
   trailingIcon,
   type = "button",
+  loading = false,
+  disabled,
   ...rest
 }: ButtonProps) {
   return (
     <button
       type={type}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       className={cn(BASE_CLASSES, VARIANT_CLASSES[variant], SIZE_CLASSES[size], className)}
       {...rest}
     >
-      {icon}
+      {loading ? (
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          className="h-4 w-4 animate-spin motion-reduce:animate-none"
+        >
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4z"
+          />
+        </svg>
+      ) : (
+        icon
+      )}
       {children}
       {trailingIcon}
     </button>
