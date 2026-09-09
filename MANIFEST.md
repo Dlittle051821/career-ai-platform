@@ -1,140 +1,124 @@
-# Milestone 11 File Manifest
+# UX03-04 File Manifest
 
-Every file created or modified for Milestone 11 (structured plan inclusions, presentation/comparison fields, the
-redesigned `/pricing` page, the `--brand-*` visual-identity token system, and light-touch invoice PDF accents),
-organized by category. Paths are repo-relative from `/home/claude/careerpath-ai`. See `PRICING-BRAND-INSTALL.md` for
-the database install steps and `docs/nextwise-pricing-offers-guide.md` §15 for the full architecture writeup.
+Every file created or modified for UX03 (Design System Consistency) and UX04 (Student Journey Experience),
+organized by category. Paths are repo-relative. See `UX03-04_COMPLETION_REPORT.md` for the full
+audit/design writeup, `UX03-04_INSTALL_INSTRUCTIONS.md` for the install steps, and
+`docs/ux/UX03-04_DESIGN_SYSTEM_JOURNEY.md` for the complete per-component audit and per-stage journey data
+source table.
+
+This manifest describes UX03-04 only. It supersedes the previous "Milestone 13 File Manifest" that lived at
+this path — see `git log -- MANIFEST.md` (or `M13_COMPLETION_REPORT.md`) for that history.
+
+## Baseline
+
+- Repository: `Dlittle051821/career-ai-platform`, branch `release/m10`
+- Real remote `origin/release/m10` SHA at audit time: `6ac3fe147c9e8cb489cd118a900d2e2c20b89015` (M12)
+- This environment's working HEAD at audit time: `09fb6b416bb3e325fa324f7de1eb545e6475cd7c` (M13, committed
+  locally, not yet pushed to the real remote — see `UX03-04_COMPLETION_REPORT.md` for why)
+
+## UX03 audit summary
+
+- **Card system**: 110 existing call sites of `src/components/ui/Card.tsx`, plus 18 hand-rolled bordered
+  divs surveyed. One genuine consolidation made (`AuthLayout.tsx`, below); the rest documented as either
+  structurally not a card (dialogs, menus, sticky trays, accordions) or a deliberately-deferred table-scroll
+  wrapper pattern (5 files, left alone — see design doc §2.1).
+- **Badge/status system**: audited all four tone-map components (`StatusBadge`, `TrustBadge`,
+  `ReadinessBadge`, `MatchBandBadge`). Finding: all four already render through the shared `Badge`
+  component's six-tone palette — the "shared appearance layer" this milestone asks for already exists.
+  Deliberately left unchanged (see design doc §2.2).
+- **Typography/spacing**: `PageHero`/`SectionHeading`/`Container`/`Section` already consistent across every
+  page type audited. No new abstraction introduced.
+- **Loading/empty/error states**: one genuine duplication found and consolidated (three form
+  success-notice blocks, below). Route-level loading/error boundaries beyond `/pricing` audited and
+  recorded as a deferred UX05+ item (not touched this pass).
+- **Accessibility**: spot-checked (focus-visible, heading hierarchy, touch targets, reduced motion, colour
+  independence) — no regressions found; new components built to the same bar.
+
+## UX04 journey model summary
+
+Six stages — Explore, Build Profile, Recommendations, Saved Options, Decide, Apply — computed by
+`computeJourneyProgress()` from data the dashboard already fetches. Full per-stage data source, completion
+logic, and known limitations: `docs/ux/UX03-04_DESIGN_SYSTEM_JOURNEY.md` §3.1. Summary:
+
+| Stage | Data source | Limitation |
+|---|---|---|
+| Explore | Derived from downstream activity (no direct source) | Cannot use real page-view tracking without a new RLS policy (database change) — avoided per spec |
+| Build Profile | `calculateCompletion()` | None — direct, already-shown status |
+| Recommendations | `getMyRecommendationReadiness()` | "Complete" means ready to view, not reviewed (no "reviewed" signal exists) |
+| Saved Options | `listSavedItems()` | Labelled "Saved Options", not "Shortlist" — the underlying model is a flat saved boolean |
+| Decide | None exists | Permanently informational; never completes; never blocks Apply |
+| Apply | `listMyApplications()` | "Complete" means a record exists, not that it was submitted |
+
+## New files
+
+**Lib**
+- `src/lib/dashboard/journey-progress.ts` — `computeJourneyProgress()`, the UX04 journey model.
+- `src/lib/dashboard/journey-progress.test.ts` — coverage: new/incomplete-profile/recommendation-ready/
+  saved-item/existing-application journeys, no false completion, Decide never completes or blocks Apply,
+  stage ordering.
+- `src/lib/dashboard/next-best-action.ts` — `getNextBestAction()`, extracted verbatim from
+  `src/app/(site)/dashboard/page.tsx` (same logic, same copy — purely relocated so it can be tested).
+- `src/lib/dashboard/next-best-action.test.ts` — coverage of its full priority chain.
+
+**UI**
+- `src/components/sections/dashboard/JourneyProgress.tsx` — the dashboard "Your journey" component
+  (horizontal stepper ≥640px, vertical list below that).
+- `src/components/ui/FormSuccessNotice.tsx` — shared "form preview completed" success notice, replacing
+  three hand-rolled duplicates.
+
+**Documentation**
+- `docs/ux/UX03-04_DESIGN_SYSTEM_JOURNEY.md` — full UX03 audit + UX04 journey model design doc.
+- `UX03-04_COMPLETION_REPORT.md` — this milestone's completion report.
+- `UX03-04_INSTALL_INSTRUCTIONS.md` — step-by-step install/QA guide (includes the manual QA checklist).
+- `MANIFEST.md` — this file.
+
+## Modified files
+
+- `src/app/(site)/dashboard/page.tsx` — removed the inline `getNextBestAction()` definition (now imported
+  from `src/lib/dashboard/next-best-action.ts`); added `computeJourneyProgress()` call and the new
+  `<JourneyProgress>` card directly below "Your next step"; reordered "Your account" and "Your roadmap"
+  further down the page (content of both cards is unchanged — only their position moved). No data-fetching
+  logic changed; the same queries that already ran are simply also passed into the new journey computation.
+- `src/components/sections/auth/AuthLayout.tsx` — migrated its hand-rolled bordered surface onto the shared
+  `Card` component (`padded={false}` plus an explicit className reproduces the original classes exactly).
+- `src/components/sections/book-counselling/BookingForm.tsx` — its "form preview completed" success block
+  now renders via `FormSuccessNotice`; wording unchanged.
+- `src/components/sections/career-discovery/WaitlistForm.tsx` — same consolidation, `size="sm"` to match
+  its original (smaller) padding/icon size; wording unchanged.
+- `src/components/sections/contact/ContactForm.tsx` — same consolidation as BookingForm; wording unchanged.
+- `vitest.config.mts` — added `src/lib/dashboard/**/*.test.ts` to the test-include list (a new pure-logic
+  directory needs an explicit entry, same as every prior milestone's own lib directory) plus a matching doc
+  comment. No existing include entry changed or removed.
 
 ## Database
 
-**Created**
-- `supabase/migrations/0008_pricing_inclusions_and_presentation.sql` — `pricing_plan_inclusions` table + RLS, 10 new
-  presentation columns on `pricing_plan_versions`, extended immutability trigger, 3 new snapshot columns on
-  `pricing_purchases`, extended `purchase_pricing_plan()`, security re-review, manual verification queries.
-- `supabase/seed/0005_pricing_inclusions_seed.sql` — idempotent seed loading verbatim inclusions/limits for all 9
-  plans as a new draft version, then publishing it and archiving the prior version. No price changes.
+**None.** No migration added. No table, column, policy, or function changed.
 
-**Left unchanged (by design)**
-- `supabase/migrations/0001_profiles.sql` through `0007_nextwise_pricing_offers.sql` — never altered, per this
-  repo's migration convention.
-- `supabase/seed/0001_careers_seed.sql` through `0004_pricing_offers_seed.sql` — never altered.
+## Environment
 
-## Types
+**None.** No new environment variable required.
 
-**Modified**
-- `src/types/pricing.ts` — 10 new fields on `PricingPlanVersion`; new `PricingInclusion`, `PricingInclusionSnapshot`,
-  `PricingPresentationLimitsSnapshot` interfaces; `inclusions` added to `PricingPlanWithVersion`; 3 new snapshot
-  fields on `PricingPurchase`.
-- `src/types/database.ts` — 10 new snake_case columns on `PricingPlanVersionsRow`; new `PricingPlanInclusionsRow`
-  type; 3 new columns on `PricingPurchasesRow`; `pricing_plan_inclusions` added to the `Tables` map.
+## M13 isolation
 
-## Lib — pure logic & data access
+Confirmed via `git diff --stat` against this milestone's starting commit (`09fb6b4`): no file under
+`supabase/`, `src/lib/payments/`, `src/lib/supabase/admin/refunds.ts`, `src/app/admin/refunds/`,
+`src/components/admin/refunds/`, or `src/app/(site)/payments/` appears in this milestone's changed-file
+list. `docs/payments-billing-guide.md` was not touched. No refund, payment, invoice, or gateway logic was
+read, referenced, or modified by any file in this manifest.
 
-**Created**
-- `src/lib/pricing/official-catalog.ts` — pure fixture data (all 9 plans' prices/session counts/limits) used only as
-  a regression-test source of truth; not read by runtime code.
-- `src/lib/pricing/official-catalog.test.ts` — Vitest coverage for all 9 prices/minor units, Indian-formatted
-  display strings, session counts, category groupings, counsellor-tier/mock-interview presence rules.
+## Test results
 
-**Modified**
-- `src/lib/pricing/plan-versions.ts` — added `sortInclusionsByDisplayOrder`, `activeInclusions`,
-  `visibleInclusionsInOrder`, `highlightedInclusions`, `PricingComparisonRow`, `buildComparisonRow`,
-  `formatComparisonCell`.
-- `src/lib/pricing/plan-versions.test.ts` — extended with fixtures and test suites for all of the above.
-- `src/lib/supabase/pricing/public-plans.ts` — added `InclusionRow`, `toPricingInclusion()`,
-  `fetchInclusionsByVersion()`; extended version mapping with the 10 new fields; `listPublicPricingPlans()` and
-  `getPublicPricingPlanBySlug()` now attach `inclusions` to each plan.
-- `src/lib/supabase/pricing/my-purchases.ts` — added the 3 new snapshot columns to `PurchaseRow`, plus
-  `toInclusionSnapshots()`/`toPresentationLimits()` mappers and their use in `toPurchase()`.
-- `src/lib/supabase/admin/pricing.ts` — extended `PlanVersionInput`/`parsePlanVersionForm()` with the 10 new
-  presentation fields; extended create/update version payloads; added the full inclusions CRUD/reorder surface
-  (`listPricingInclusions`, `getPricingInclusionById`, `parseInclusionForm`, `requireDraftVersion`,
-  `createPricingInclusion`, `updatePricingInclusion`, `deletePricingInclusion`, `reorderPricingInclusions`).
-- `src/lib/payments/pdf.ts` — added `hexToPdfRgb()` and brand color constants; `drawHeader()` now draws a thin
-  brand-accent rule; new `statusColor()` helper colors the invoice status label; line-items table header tint uses a
-  brand tint. `sanitizeForPdf()`, `loadLogoBytes()`/`drawLogo()` untouched.
-
-## Admin UI
-
-**Created**
-- `src/components/admin/pricing/PricingInclusionForm.tsx` — create/edit form for one inclusion.
-- `src/components/admin/pricing/PricingInclusionsManager.tsx` — list with reorder (up/down), edit link, two-step
-  confirm delete.
-- `src/app/admin/pricing/[id]/versions/[versionId]/inclusions/new/page.tsx` — new-inclusion route (draft-only guard).
-- `src/app/admin/pricing/[id]/versions/[versionId]/inclusions/[inclusionId]/page.tsx` — edit-inclusion route
-  (draft-only + ownership guard).
-
-**Modified**
-- `src/app/admin/pricing/actions.ts` — added `createPricingInclusionAction`, `updatePricingInclusionAction`,
-  `deletePricingInclusionAction` (non-redirecting, called imperatively), `reorderPricingInclusionsAction`.
-- `src/app/admin/pricing/[id]/versions/[versionId]/page.tsx` — draft versions render the inclusions manager +
-  presentation-settings form section; published/archived versions show the new read-only fields and the structured
-  inclusions list alongside the legacy free-text list (relabeled "legacy").
-- `src/components/admin/pricing/PricingPlanVersionForm.tsx` — added the "Presentation & comparison-table settings"
-  form section (10 fields); relabeled the legacy included-services hint.
-
-## Public UI
-
-**Created**
-- `src/components/sections/pricing/PricingTabs.tsx` — WAI-ARIA tabs (roving tabindex, arrow/Home/End key handling).
-- `src/components/sections/pricing/ViewAllServicesDialog.tsx` — native `<dialog>` modal, focus-return to trigger.
-- `src/components/sections/pricing/PricingComparisonTable.tsx` — accessible `<table>` (caption + scoped `<th>`s),
-  not a div-grid.
-- `src/app/(site)/pricing/loading.tsx` — route-level loading skeleton.
-- `src/app/(site)/pricing/error.tsx` — client error boundary, never shows raw error detail.
-
-**Modified**
-- `src/app/(site)/pricing/page.tsx` — full redesign: 3 tabs (School Guidance / Bachelor Abroad / Master Abroad),
-  editorial hero copy, mandatory-terms section (verbatim 6 bullets), per-tab comparison table when >1 plan.
-- `src/app/(site)/pricing/checkout/[slug]/page.tsx` — order summary now shows session count and the structured
-  inclusions list (falling back to legacy/neutral copy).
-- `src/components/sections/pricing/PublicPricingPlanCard.tsx` — added stats block (session count, audience, limits),
-  Recommended badge restyled with Star icon, structured "What's included" list (first 5 + "View all services"
-  dialog) with legacy/neutral fallback, added a second "Book a free consultation" CTA alongside "Choose package".
-- `src/components/sections/home/PricingPreview.tsx` — passes the new `inclusions` prop through to the plan card.
-
-## Visual identity
-
-**Modified**
-- `src/app/globals.css` — added the documented `--brand-*` token block (REAL and PROVISIONAL, each labeled);
-  existing `--color-*` tokens aliased to `var(--brand-*)`; `--color-accent`/`-dark`/`-light` deliberately left
-  un-aliased (contrast reasoning documented inline); `:focus-visible` repointed at `--brand-focus`.
-
-**Created**
-- `src/config/brand-tokens.test.ts` — asserts every required `--brand-*` token is declared, every non-REAL token is
-  labeled PROVISIONAL, `:focus-visible` uses `--brand-focus`, and `--color-accent` is never aliased.
-
-**Explicitly not touched**
-- No logo files under `public/` were replaced, redrawn, or recolored.
-
-## Tests (brand-safety regression guard)
-
-**Modified**
-- `src/config/site.test.ts` — added 5 new pricing-related files to
-  `FILES_THAT_MUST_NOT_MENTION_THE_OLD_BRAND`.
-
-## Documentation
-
-**Modified**
-- `docs/nextwise-pricing-offers-guide.md` — appended "## 15. Milestone 11 — Inclusions, presentation settings, and
-  the NextWise visual identity" (architecture decisions, immutability layer, purchase-snapshot extension, admin UI,
-  public page redesign, visual identity, testing + manual SQL verification appendix); added a callout after the
-  existing §14 "Known limitations" list noting which limitations Milestone 11 resolves; updated the table of
-  contents.
-- `README.md` — added a Milestone 11 bullet to the top milestone list; added migration `0008`/seed `0005` steps to
-  the database-setup numbered list and the "Pricing & Offers setup" section; added the two new admin inclusion
-  routes to the routes table; updated the Milestone 10 "What's real" bullet and added a new Milestone 11 "What's
-  real" bullet; extended "## Design notes" with a `--brand-*` token paragraph.
-
-**Created**
-- `PRICING-BRAND-INSTALL.md` — exact install steps (run migration 0008, run seed 0005, verification SQL, rollback
-  notes, brand-token change process).
-- `MANIFEST.md` — this file.
+- `npm run typecheck` — clean, no errors.
+- `npm run lint` — clean, no errors or warnings.
+- `npm test` — **946/946 passing** across 60 test files (up from 926/58 before this milestone; +20 new
+  tests across the 2 new `src/lib/dashboard/` test files, zero pre-existing tests changed or removed).
+  Milestone 11-A/B/C, Milestone 12 pricing, and Milestone 13 refund test suites all remain green.
+- `npm run build` — succeeded; all 77 routes compiled/generated without error.
 
 ## Everything else in the repository
 
-Not modified. In particular: no changes to `.env.local` or `.env.example`, no changes to any file under
-`public/` (logo assets untouched), no changes to `supabase/migrations/0001`–`0007`, no changes to
-`supabase/seed/0001`–`0004`, no new pricing route (the redesign reuses the existing `/pricing` and
-`/pricing/checkout/[slug]` routes), and no changes to the payment/webhook/refund code paths in
-`src/lib/payments/` beyond the documented `pdf.ts` color additions.
+Not modified. In particular: no changes to `.env.local`/`.env.example`, no changes to any file under
+`supabase/migrations/` or `supabase/seed/`, no changes to any M8–M13 payments/refunds/pricing/signature/
+stamping/onboarding/readiness business logic, no changes to `src/components/ui/Card.tsx` or
+`src/components/ui/Badge.tsx` themselves (both were audited and found already correct — see
+`docs/ux/UX03-04_DESIGN_SYSTEM_JOURNEY.md` §2.1–2.2), and no new npm dependency.

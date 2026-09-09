@@ -82,6 +82,16 @@ import { defineConfig } from "vitest/config";
  *     behavior (stamp_product_event, sync_student_outcome_from_
  *     application) cannot be unit-tested via Vitest — see
  *     docs/M9_TEST_REPORT.md for the manual verification appendix.
+ *   - src/lib/dashboard/         — UX03/UX04's "what's next"/"where am I"
+ *     dashboard logic: getNextBestAction() (extracted from the dashboard
+ *     page during UX01-02, unchanged) and computeJourneyProgress() (new —
+ *     the Student Journey Progress model). Same "pure, framework-free"
+ *     convention as every directory above: both functions take plain,
+ *     already-fetched data in and return plain data out, with no
+ *     Supabase/React dependency of their own — the dashboard page itself
+ *     (which does the fetching and rendering) is untested here for the
+ *     same "no React Testing Library/jsdom in this project" reason
+ *     documented above for src/config/.
  * (plus label/characteristic helpers those tests exercise indirectly)
  */
 export default defineConfig({
@@ -169,6 +179,7 @@ export default defineConfig({
       // same "no React Testing Library/jsdom in this project" reason
       // documented above for src/config/ (the branding rebrand pass).
       "src/lib/navigation/**/*.test.ts",
+      "src/lib/dashboard/**/*.test.ts",
     ],
   },
 });

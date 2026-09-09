@@ -6,12 +6,13 @@ import { Badge } from "@/components/ui/Badge";
 import { DemoNotice } from "@/components/ui/DemoNotice";
 import { LinkButton } from "@/components/ui/Button";
 import { ProfileProgressBar } from "@/components/sections/profile/ProfileProgressBar";
+import { JourneyProgress } from "@/components/sections/dashboard/JourneyProgress";
 import { getCurrentProfile, firstNameFrom } from "@/lib/supabase/profile";
 import { getStudentProfileSnapshot } from "@/lib/supabase/student-profile";
 import { calculateCompletion } from "@/lib/profile/completion";
 import { listMyInvoices } from "@/lib/supabase/payments/student-invoices";
 import { listMyPurchases } from "@/lib/supabase/pricing/my-purchases";
-import { listMyAgreements, type MyAgreementSummary } from "@/lib/supabase/agreements/my-agreements";
+import { listMyAgreements } from "@/lib/supabase/agreements/my-agreements";
 import { INVOICE_STATUS_LABELS, PAYABLE_INVOICE_STATUSES } from "@/types/payments";
 import { formatMoney } from "@/lib/admin/money";
 import { listSavedItems } from "@/lib/supabase/education/saved-items";
@@ -21,7 +22,8 @@ import { DISCOVERY_SESSION_STATUS_LABELS } from "@/types/discovery-session";
 import { getMyRecommendationReadiness } from "@/lib/supabase/recommendation-readiness";
 import { ReadinessBadge } from "@/components/sections/recommendations/ReadinessBadge";
 import { BRAND_NAME } from "@/config/site";
-import type { RecommendationReadiness } from "@/types/recommendation-readiness";
+import { getNextBestAction } from "@/lib/dashboard/next-best-action";
+import { computeJourneyProgress } from "@/lib/dashboard/journey-progress";
 
 const STUDENT_PROFILE_STATUS_LABEL: Record<string, string> = {
   not_started: "Not started",
@@ -38,106 +40,6 @@ function greeting(): string {
   if (hour < 12) return "Good morning";
   if (hour < 17) return "Good afternoon";
   return "Good evening";
-}
-
-interface NextBestAction {
-  title: string;
-  description: string;
-  href: string;
-  cta: string;
-}
-
-/**
- * UX01-02 — "Next Best Action" for the dashboard's Decision Dashboard
- * hierarchy: one obvious, prioritised action instead of a flat feature
- * grid. Every branch reads only real, already-fetched application state
- * (profile completion, payments, agreements, recommendation readiness,
- * Discovery Session) — nothing here is a hard-coded or fabricated claim,
- * and no stage is ever presented as complete unless the underlying data
- * says so. Order reflects the spec's priority: an incomplete profile (the
- * thing that unlocks everything else) outranks a payment or signature,
- * which outrank recommendation guidance, which outranks an optional
- * Discovery Session invitation, which falls back to free exploration.
- */
-function getNextBestAction(args: {
-  profileStatus: "not_started" | "in_progress" | "completed";
-  profilePercent: number;
-  payableInvoiceCount: number;
-  pendingSignatureAgreement: MyAgreementSummary | undefined;
-  careerReadiness: RecommendationReadiness | null;
-  hasActiveDiscoverySession: boolean;
-}): NextBestAction {
-  const { profileStatus, profilePercent, payableInvoiceCount, pendingSignatureAgreement, careerReadiness, hasActiveDiscoverySession } = args;
-
-  if (profileStatus === "not_started") {
-    return {
-      title: "Start your Student Digital Profile",
-      description: "A few minutes now unlocks personalised career recommendations and lets a counsellor pick up right where you left off.",
-      href: "/profile/onboarding",
-      cta: "Start my profile",
-    };
-  }
-
-  if (profileStatus === "in_progress") {
-    return {
-      title: `Continue your Student Digital Profile — ${profilePercent}% complete`,
-      description: "Pick up where you left off. The more you add, the more useful your recommendations become.",
-      href: "/profile/onboarding",
-      cta: "Continue my profile",
-    };
-  }
-
-  if (payableInvoiceCount > 0) {
-    return {
-      title: "You have a payment due",
-      description: `${payableInvoiceCount} invoice${payableInvoiceCount === 1 ? "" : "s"} awaiting payment.`,
-      href: "/payments",
-      cta: "View payments",
-    };
-  }
-
-  if (pendingSignatureAgreement) {
-    return {
-      title: "An agreement is waiting for your signature",
-      description: `${pendingSignatureAgreement.agreementType} needs your signature before work can continue.`,
-      href: `/agreements/${pendingSignatureAgreement.id}`,
-      cta: "Review & sign",
-    };
-  }
-
-  if (careerReadiness && (careerReadiness.level === "NOT_READY" || careerReadiness.level === "PRELIMINARY") && careerReadiness.nextActions.length > 0) {
-    return {
-      title: "Your recommendations are almost ready",
-      description: careerReadiness.nextActions.slice(0, 2).join(" "),
-      href: "/recommendations",
-      cta: "See what's needed",
-    };
-  }
-
-  if (careerReadiness && (careerReadiness.level === "READY" || careerReadiness.level === "COUNSELLOR_VERIFIED")) {
-    return {
-      title: "Your recommendations are ready",
-      description: "Explore careers ranked against your Student Digital Profile, with plain-language reasons for each one.",
-      href: "/recommendations",
-      cta: "View my recommendations",
-    };
-  }
-
-  if (!hasActiveDiscoverySession) {
-    return {
-      title: "Want to talk it through?",
-      description: "Book a free, no-obligation Discovery Session with a counsellor — a good next step if you'd rather talk than fill in a form.",
-      href: "/discovery-session/book",
-      cta: "Book my free Discovery Session",
-    };
-  }
-
-  return {
-    title: "Keep exploring",
-    description: "Browse careers, courses, and universities to find options worth comparing.",
-    href: "/careers",
-    cta: "Explore options",
-  };
 }
 
 export default async function DashboardPage() {
@@ -176,6 +78,14 @@ export default async function DashboardPage() {
     hasActiveDiscoverySession: Boolean(activeDiscoverySession),
   });
 
+  const journeyProgress = computeJourneyProgress({
+    profileStatus: studentCompletion.status,
+    profilePercent: studentCompletion.percent,
+    careerReadinessLevel: careerReadiness?.level ?? null,
+    savedItemCount: savedItems.length,
+    applicationCount: applications.length,
+  });
+
   return (
     <Section tone="muted" className="pt-10 sm:pt-14">
       <div className="mb-8">
@@ -203,56 +113,7 @@ export default async function DashboardPage() {
         </LinkButton>
       </Card>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-primary">Your account</h2>
-            <Badge tone="success">Active</Badge>
-          </div>
-          <dl className="mt-5 space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
-                <UserRound aria-hidden="true" className="h-4 w-4" />
-              </span>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Full name</dt>
-                <dd className="text-sm font-medium text-text">{profile?.fullName ?? "Not set"}</dd>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
-                <Mail aria-hidden="true" className="h-4 w-4" />
-              </span>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Email</dt>
-                <dd className="text-sm font-medium text-text">{profile?.email ?? "Not set"}</dd>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
-                <Phone aria-hidden="true" className="h-4 w-4" />
-              </span>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Phone</dt>
-                <dd className="text-sm font-medium text-text">{profile?.phone ?? "Not set"}</dd>
-              </div>
-            </div>
-          </dl>
-        </Card>
-
-        <Card>
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-light text-accent-dark">
-            <Map aria-hidden="true" className="h-5 w-5" />
-          </span>
-          <h2 className="mt-4 text-lg font-semibold text-primary">Your roadmap</h2>
-          <p className="mt-2 text-sm leading-relaxed text-muted">
-            A sample, illustrative career-to-course roadmap based on the {BRAND_NAME} journey.
-          </p>
-          <LinkButton href="/roadmap" size="sm" variant="outline" className="mt-4 w-full justify-center">
-            View roadmap
-          </LinkButton>
-        </Card>
-      </div>
+      <JourneyProgress progress={journeyProgress} />
 
       <Card className="mt-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -500,6 +361,57 @@ export default async function DashboardPage() {
           </LinkButton>
         </div>
       </Card>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold text-primary">Your account</h2>
+            <Badge tone="success">Active</Badge>
+          </div>
+          <dl className="mt-5 space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
+                <UserRound aria-hidden="true" className="h-4 w-4" />
+              </span>
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Full name</dt>
+                <dd className="text-sm font-medium text-text">{profile?.fullName ?? "Not set"}</dd>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
+                <Mail aria-hidden="true" className="h-4 w-4" />
+              </span>
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Email</dt>
+                <dd className="text-sm font-medium text-text">{profile?.email ?? "Not set"}</dd>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
+                <Phone aria-hidden="true" className="h-4 w-4" />
+              </span>
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Phone</dt>
+                <dd className="text-sm font-medium text-text">{profile?.phone ?? "Not set"}</dd>
+              </div>
+            </div>
+          </dl>
+        </Card>
+
+        <Card>
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-light text-accent-dark">
+            <Map aria-hidden="true" className="h-5 w-5" />
+          </span>
+          <h2 className="mt-4 text-lg font-semibold text-primary">Your roadmap</h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted">
+            A sample, illustrative career-to-course roadmap based on the {BRAND_NAME} journey.
+          </p>
+          <LinkButton href="/roadmap" size="sm" variant="outline" className="mt-4 w-full justify-center">
+            View roadmap
+          </LinkButton>
+        </Card>
+      </div>
 
       <DemoNotice className="mt-8">
         Roadmap content and counselling activity shown here are illustrative demo data. Your account details (name,

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { CheckCircle2, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import { FormField } from "@/components/forms/FormField";
 import { Input } from "@/components/forms/Input";
 import { Button } from "@/components/ui/Button";
+import { FormSuccessNotice } from "@/components/ui/FormSuccessNotice";
 import { isRequired, isValidEmail } from "@/lib/validation";
 
 /**
@@ -32,16 +33,10 @@ export function WaitlistForm() {
 
   if (submitted) {
     return (
-      <div role="status" className="flex items-start gap-3 rounded-[var(--radius-card)] border border-success/25 bg-success-light p-5 text-success">
-        <CheckCircle2 aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0" />
-        <div>
-          <p className="font-semibold">Form preview completed</p>
-          <p className="mt-1 text-sm">
-            This is a demo — your details were not transmitted or stored anywhere. Online waitlist submission will be
-            enabled in a later milestone. In the meantime, you can book a free counselling call.
-          </p>
-        </div>
-      </div>
+      <FormSuccessNotice title="Form preview completed" size="sm">
+        This is a demo — your details were not transmitted or stored anywhere. Online waitlist submission will be
+        enabled in a later milestone. In the meantime, you can book a free counselling call.
+      </FormSuccessNotice>
     );
   }
 

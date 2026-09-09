@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { CheckCircle2, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import { FormField } from "@/components/forms/FormField";
 import { Input } from "@/components/forms/Input";
 import { Select } from "@/components/forms/Select";
@@ -9,6 +9,7 @@ import { Textarea } from "@/components/forms/Textarea";
 import { Checkbox } from "@/components/forms/Checkbox";
 import { Button } from "@/components/ui/Button";
 import { DemoNotice } from "@/components/ui/DemoNotice";
+import { FormSuccessNotice } from "@/components/ui/FormSuccessNotice";
 import { isRequired, isValidEmail, isValidIndianPhone, minLength } from "@/lib/validation";
 
 interface FormState {
@@ -67,19 +68,17 @@ export function ContactForm() {
 
   if (submitted) {
     return (
-      <div role="status" className="flex items-start gap-3 rounded-[var(--radius-card)] border border-success/25 bg-success-light p-6 text-success">
-        <CheckCircle2 aria-hidden="true" className="mt-0.5 h-6 w-6 shrink-0" />
-        <div>
-          <p className="text-base font-semibold">Form preview completed</p>
-          <p className="mt-1 text-sm leading-relaxed">
-            This is a Milestone 1 demo — your message was validated locally but was not transmitted or stored
-            anywhere. Online submission will be enabled in a later milestone.
-          </p>
-          <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => setSubmitted(false)}>
+      <FormSuccessNotice
+        title="Form preview completed"
+        action={
+          <Button type="button" variant="outline" size="sm" onClick={() => setSubmitted(false)}>
             Fill the form again
           </Button>
-        </div>
-      </div>
+        }
+      >
+        This is a Milestone 1 demo — your message was validated locally but was not transmitted or stored anywhere.
+        Online submission will be enabled in a later milestone.
+      </FormSuccessNotice>
     );
   }
 
