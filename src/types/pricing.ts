@@ -20,7 +20,10 @@ export const PRICING_CATEGORIES = [
 export type PricingCategory = (typeof PRICING_CATEGORIES)[number];
 
 export const PRICING_CATEGORY_LABELS: Record<PricingCategory, string> = {
-  school_counselling: "School Counselling",
+  // Milestone 12: the "school_counselling" enum value is reused (not renamed at the
+  // schema level) for the two India-focused Launch packages, and its public-facing
+  // label is updated accordingly. See supabase/seed/0007_m12_current_pricing_catalogue_seed.sql.
+  school_counselling: "India Guidance",
   class_11_counselling: "Class 11 Counselling",
   class_12_counselling: "Class 12 Counselling",
   bachelor_abroad: "Bachelor Abroad",

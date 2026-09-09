@@ -1,17 +1,30 @@
 /**
- * Milestone 11 — a plain-data fixture of the nine official NextWise plans,
- * sourced verbatim from the authoritative client specification (prices,
- * minor-unit values, session counts, and comparison-table limits). This is
- * NOT read by any runtime code path — supabase/seed/0004_pricing_offers_seed.sql
- * and 0005_pricing_inclusions_seed.sql are the actual source of truth that
- * gets written to the database. This module exists purely so
- * official-catalog.test.ts has one place to assert "all nine official
- * prices, minor units, and session allowances are exactly right" as a
- * regression fixture — same "fixture regression" convention referenced by
- * vitest.config.mts's own docblock for src/lib/pricing/. If a price or
+ * Milestone 12 — a plain-data fixture of the eight current official NextWise
+ * pricing packages, sourced verbatim from the M12 commercial specification
+ * (prices, minor-unit values, session counts, and comparison-table limits).
+ * This is NOT read by any runtime code path —
+ * supabase/seed/0007_m12_current_pricing_catalogue_seed.sql is the actual
+ * source of truth that gets written to the database. This module exists
+ * purely so official-catalog.test.ts has one place to assert "all eight
+ * official prices, minor units, and session allowances are exactly right"
+ * as a regression fixture — same "fixture regression" convention referenced
+ * by vitest.config.mts's own docblock for src/lib/pricing/. If a price or
  * session count ever needs to change, it must change in the spec, then
  * here, then in a new pricing_plan_versions row via a real admin-published
  * version — never the other way around.
+ *
+ * History: the previous nine-plan catalogue (School/Class 11/Class 12
+ * Counselling, Bachelor/Master Abroad Tier 1/2/3) was superseded by this
+ * eight-plan catalogue in Milestone 12. The old catalogue's seed rows
+ * (supabase/seed/0004_pricing_offers_seed.sql, 0005_pricing_inclusions_seed.sql)
+ * were never run against the live/staging database and are kept only as a
+ * historical record — see 0007_m12_current_pricing_catalogue_seed.sql's own
+ * header for the full reasoning.
+ *
+ * Launch Essential and Launch Pro are a genuinely new product concept with
+ * no prior authoritative session/limit data, so their presentation fields
+ * are honestly `null` rather than invented — the public pricing card falls
+ * back to NEUTRAL_SCOPE_FALLBACK text for these two plans.
  */
 
 export type OfficialPricingCategory = "school_counselling" | "class_11_counselling" | "class_12_counselling" | "bachelor_abroad" | "master_abroad";
@@ -22,7 +35,7 @@ export interface OfficialPlanFixture {
   publicTitle: string;
   amountMinorUnits: number;
   currency: "INR";
-  sessionCount: number;
+  sessionCount: number | null;
   audienceLabel: string | null;
   universityShortlistLimit: number | null;
   applicationSupportLimit: number | null;
@@ -33,13 +46,13 @@ export interface OfficialPlanFixture {
 
 export const OFFICIAL_PRICING_CATALOG: OfficialPlanFixture[] = [
   {
-    slug: "school-counselling",
+    slug: "launch-essential",
     category: "school_counselling",
-    publicTitle: "School Counselling",
+    publicTitle: "Launch Essential",
     amountMinorUnits: 500_000,
     currency: "INR",
-    sessionCount: 2,
-    audienceLabel: "Classes 8–10",
+    sessionCount: null,
+    audienceLabel: null,
     universityShortlistLimit: null,
     applicationSupportLimit: null,
     sopReviewRounds: null,
@@ -47,12 +60,12 @@ export const OFFICIAL_PRICING_CATALOG: OfficialPlanFixture[] = [
     counsellorTier: null,
   },
   {
-    slug: "class-11-counselling",
-    category: "class_11_counselling",
-    publicTitle: "Class 11 Counselling",
+    slug: "launch-pro",
+    category: "school_counselling",
+    publicTitle: "Launch Pro",
     amountMinorUnits: 1_000_000,
     currency: "INR",
-    sessionCount: 4,
+    sessionCount: null,
     audienceLabel: null,
     universityShortlistLimit: null,
     applicationSupportLimit: null,
@@ -61,24 +74,10 @@ export const OFFICIAL_PRICING_CATALOG: OfficialPlanFixture[] = [
     counsellorTier: null,
   },
   {
-    slug: "class-12-counselling",
-    category: "class_12_counselling",
-    publicTitle: "Class 12 Counselling",
-    amountMinorUnits: 1_500_000,
-    currency: "INR",
-    sessionCount: 6,
-    audienceLabel: null,
-    universityShortlistLimit: 12,
-    applicationSupportLimit: null,
-    sopReviewRounds: null,
-    mockInterviewCount: null,
-    counsellorTier: null,
-  },
-  {
-    slug: "bachelor-abroad-tier-1",
+    slug: "bachelor-abroad-essential",
     category: "bachelor_abroad",
     publicTitle: "Bachelor Abroad Essential",
-    amountMinorUnits: 2_500_000,
+    amountMinorUnits: 1_500_000,
     currency: "INR",
     sessionCount: 5,
     audienceLabel: null,
@@ -89,10 +88,10 @@ export const OFFICIAL_PRICING_CATALOG: OfficialPlanFixture[] = [
     counsellorTier: null,
   },
   {
-    slug: "bachelor-abroad-tier-2",
+    slug: "bachelor-abroad-plus",
     category: "bachelor_abroad",
     publicTitle: "Bachelor Abroad Plus",
-    amountMinorUnits: 6_000_000,
+    amountMinorUnits: 7_000_000,
     currency: "INR",
     sessionCount: 9,
     audienceLabel: null,
@@ -103,10 +102,10 @@ export const OFFICIAL_PRICING_CATALOG: OfficialPlanFixture[] = [
     counsellorTier: "Dedicated counsellor",
   },
   {
-    slug: "bachelor-abroad-tier-3",
+    slug: "bachelor-abroad-premium",
     category: "bachelor_abroad",
     publicTitle: "Bachelor Abroad Premium",
-    amountMinorUnits: 13_000_000,
+    amountMinorUnits: 12_000_000,
     currency: "INR",
     sessionCount: 15,
     audienceLabel: null,
@@ -117,10 +116,10 @@ export const OFFICIAL_PRICING_CATALOG: OfficialPlanFixture[] = [
     counsellorTier: "Senior dedicated counsellor",
   },
   {
-    slug: "master-abroad-tier-1",
+    slug: "master-abroad-essential",
     category: "master_abroad",
     publicTitle: "Master Abroad Essential",
-    amountMinorUnits: 2_700_000,
+    amountMinorUnits: 1_600_000,
     currency: "INR",
     sessionCount: 5,
     audienceLabel: null,
@@ -131,10 +130,10 @@ export const OFFICIAL_PRICING_CATALOG: OfficialPlanFixture[] = [
     counsellorTier: null,
   },
   {
-    slug: "master-abroad-tier-2",
+    slug: "master-abroad-plus",
     category: "master_abroad",
     publicTitle: "Master Abroad Plus",
-    amountMinorUnits: 6_500_000,
+    amountMinorUnits: 7_500_000,
     currency: "INR",
     sessionCount: 9,
     audienceLabel: null,
@@ -145,10 +144,10 @@ export const OFFICIAL_PRICING_CATALOG: OfficialPlanFixture[] = [
     counsellorTier: "Dedicated postgraduate counsellor",
   },
   {
-    slug: "master-abroad-tier-3",
+    slug: "master-abroad-premium",
     category: "master_abroad",
     publicTitle: "Master Abroad Premium",
-    amountMinorUnits: 14_000_000,
+    amountMinorUnits: 12_500_000,
     currency: "INR",
     sessionCount: 15,
     audienceLabel: null,

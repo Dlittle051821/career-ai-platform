@@ -1,5 +1,21 @@
 -- ============================================================================
--- Milestone 11 — Official NextWise pricing inclusions & presentation seed
+-- ⚠ SUPERSEDED (Milestone 12) — DO NOT RUN THIS FILE against a real deployment.
+--
+-- This file depends on supabase/seed/0004_pricing_offers_seed.sql (also
+-- superseded — see that file's own header) and the nine-plan catalogue it
+-- describes was never published to the live/staging database. It has been
+-- replaced by the current eight-plan commercial catalogue in
+-- supabase/seed/0007_m12_current_pricing_catalogue_seed.sql, which reuses
+-- this file's real, previously-approved Bachelor/Master Abroad inclusion
+-- content verbatim (only the price and plan slugs changed). This file is
+-- kept only as a historical record — no SQL statement below has been
+-- modified. See 0007's own header, docs/nextwise-pricing-offers-guide.md,
+-- and M12_COMPLETION_REPORT.md for the full reasoning. For a new install,
+-- run 0007_m12_current_pricing_catalogue_seed.sql instead of this file.
+-- ============================================================================
+
+-- ============================================================================
+-- Milestone 11 — Official NextWise pricing inclusions & presentation seed (historical — superseded, see above)
 --
 -- HOW TO RUN THIS:
 --   1. Run supabase/migrations/0008_pricing_inclusions_and_presentation.sql

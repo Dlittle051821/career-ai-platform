@@ -260,20 +260,23 @@ describe("computePriceBreakdown", () => {
 });
 
 describe("official NextWise plan prices (integer minor units, no float drift)", () => {
-  // Mirrors supabase/seed/0004_pricing_offers_seed.sql exactly — see also
-  // that file and docs/nextwise-pricing-offers-guide.md §1. Every amount
-  // here is an INTEGER, matching the "no fractional paise" invariant this
-  // whole module is built around.
+  // Mirrors supabase/seed/0007_m12_current_pricing_catalogue_seed.sql exactly
+  // — the current eight-plan commercial catalogue as of Milestone 12 (see
+  // also src/lib/pricing/official-catalog.ts, which carries the same data
+  // plus full presentation-field coverage). Every amount here is an
+  // INTEGER, matching the "no fractional paise" invariant this whole module
+  // is built around. The previous nine-plan catalogue this used to mirror
+  // (supabase/seed/0004_pricing_offers_seed.sql) was superseded in
+  // Milestone 12 and was never run against the live/staging database.
   const OFFICIAL_PLANS: Array<{ slug: string; amountMinorUnits: number }> = [
-    { slug: "school-counselling", amountMinorUnits: 500_000 },
-    { slug: "class-11-counselling", amountMinorUnits: 1_000_000 },
-    { slug: "class-12-counselling", amountMinorUnits: 1_500_000 },
-    { slug: "bachelor-abroad-tier-1", amountMinorUnits: 2_500_000 },
-    { slug: "bachelor-abroad-tier-2", amountMinorUnits: 6_000_000 },
-    { slug: "bachelor-abroad-tier-3", amountMinorUnits: 13_000_000 },
-    { slug: "master-abroad-tier-1", amountMinorUnits: 2_700_000 },
-    { slug: "master-abroad-tier-2", amountMinorUnits: 6_500_000 },
-    { slug: "master-abroad-tier-3", amountMinorUnits: 14_000_000 },
+    { slug: "launch-essential", amountMinorUnits: 500_000 },
+    { slug: "launch-pro", amountMinorUnits: 1_000_000 },
+    { slug: "bachelor-abroad-essential", amountMinorUnits: 1_500_000 },
+    { slug: "bachelor-abroad-plus", amountMinorUnits: 7_000_000 },
+    { slug: "bachelor-abroad-premium", amountMinorUnits: 12_000_000 },
+    { slug: "master-abroad-essential", amountMinorUnits: 1_600_000 },
+    { slug: "master-abroad-plus", amountMinorUnits: 7_500_000 },
+    { slug: "master-abroad-premium", amountMinorUnits: 12_500_000 },
   ];
 
   it("every official plan amount is a positive integer", () => {
@@ -285,23 +288,22 @@ describe("official NextWise plan prices (integer minor units, no float drift)", 
 
   it("every official plan amount converts to the exact expected rupee figure", () => {
     const expectedMajorUnits: Record<string, number> = {
-      "school-counselling": 5_000,
-      "class-11-counselling": 10_000,
-      "class-12-counselling": 15_000,
-      "bachelor-abroad-tier-1": 25_000,
-      "bachelor-abroad-tier-2": 60_000,
-      "bachelor-abroad-tier-3": 130_000,
-      "master-abroad-tier-1": 27_000,
-      "master-abroad-tier-2": 65_000,
-      "master-abroad-tier-3": 140_000,
+      "launch-essential": 5_000,
+      "launch-pro": 10_000,
+      "bachelor-abroad-essential": 15_000,
+      "bachelor-abroad-plus": 70_000,
+      "bachelor-abroad-premium": 120_000,
+      "master-abroad-essential": 16_000,
+      "master-abroad-plus": 75_000,
+      "master-abroad-premium": 125_000,
     };
     for (const plan of OFFICIAL_PLANS) {
       expect(plan.amountMinorUnits / 100).toBe(expectedMajorUnits[plan.slug]);
     }
   });
 
-  it("has exactly nine official plans, no more and no fewer", () => {
-    expect(OFFICIAL_PLANS).toHaveLength(9);
+  it("has exactly eight official plans, no more and no fewer", () => {
+    expect(OFFICIAL_PLANS).toHaveLength(8);
   });
 
   it("every slug is unique", () => {

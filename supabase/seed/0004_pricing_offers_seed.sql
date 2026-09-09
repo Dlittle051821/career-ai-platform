@@ -1,5 +1,18 @@
 -- ============================================================================
--- Milestone 10 — Official NextWise pricing seed
+-- ⚠ SUPERSEDED (Milestone 12) — DO NOT RUN THIS FILE against a real deployment.
+--
+-- The nine-plan catalogue this file seeds was never published to the
+-- live/staging database and has been replaced by the current eight-plan
+-- commercial catalogue in supabase/seed/0007_m12_current_pricing_catalogue_seed.sql.
+-- This file is kept only as a historical record of what was originally
+-- specified — no SQL statement below has been modified. See that file's own
+-- header, docs/nextwise-pricing-offers-guide.md, and M12_COMPLETION_REPORT.md
+-- for the full reasoning. For a new install, run 0007_m12_current_pricing_catalogue_seed.sql
+-- instead of this file.
+-- ============================================================================
+
+-- ============================================================================
+-- Milestone 10 — Official NextWise pricing seed (historical — superseded, see above)
 --
 -- HOW TO RUN THIS:
 --   1. Run supabase/migrations/0007_nextwise_pricing_offers.sql FIRST (this

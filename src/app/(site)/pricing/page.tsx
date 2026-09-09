@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 };
 
 const TAB_GROUPS: { id: string; label: string; categories: PricingCategory[] }[] = [
-  { id: "school-guidance", label: "School Guidance", categories: ["school_counselling", "class_11_counselling", "class_12_counselling"] },
+  { id: "india-guidance", label: "India Guidance", categories: ["school_counselling", "class_11_counselling", "class_12_counselling"] },
   { id: "bachelor-abroad", label: "Bachelor Abroad", categories: ["bachelor_abroad"] },
   { id: "master-abroad", label: "Master Abroad", categories: ["master_abroad"] },
 ];
@@ -74,7 +74,7 @@ export default async function PricingPage() {
             <div className={`grid gap-6 ${items.length > 1 ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:max-w-md"}`}>{items.map(planCard)}</div>
           )}
 
-          {comparisonItems.length > 1 ? (
+          {group.categories.length === 1 && comparisonItems.length > 1 ? (
             <div>
               <h3 className="mb-4 text-lg font-semibold text-primary">Compare Essential, Plus and Premium</h3>
               <PricingComparisonTable categoryLabel={group.label} items={comparisonItems.map((i) => ({ plan: i.plan, version: i.version }))} />
