@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { RazorpayGateway } from "./razorpay";
+import { RazorpayGateway, classifyRazorpayError } from "./razorpay";
+import { GatewayDefiniteRejectionError, GatewayUncertainOutcomeError } from "../gateway";
 
 /**
  * Tests RazorpayGateway's two LOCAL pre-check verification methods against
@@ -93,5 +94,58 @@ describe("RazorpayGateway.verifyWebhookSignature", () => {
   it("two identical (duplicate) deliveries of the same raw body produce the identical signature check result — the basis for the DB layer's fingerprint-based idempotency", () => {
     const signature = createHmac("sha256", WEBHOOK_SECRET).update(rawBody).digest("hex");
     expect(gateway.verifyWebhookSignature({ rawBody, signature })).toBe(gateway.verifyWebhookSignature({ rawBody, signature }));
+  });
+});
+
+/**
+ * Milestone 13 (spec §20) — the financial-safety-critical distinction this
+ * whole milestone exists to make: a definite provider rejection (safe to
+ * treat as failed) versus an uncertain/transport failure (must NEVER be
+ * treated as failed — the refund may have silently succeeded at Razorpay).
+ * These fixtures reproduce the EXACT shapes razorpay-node's own
+ * dist/api.js normalizeError() produces in each case — see this module's
+ * own docblock for the citation — rather than guessing at what a real
+ * error looks like.
+ */
+describe("classifyRazorpayError", () => {
+  it("classifies the normalized {statusCode, error} shape (a real HTTP response was received) as a definite rejection", () => {
+    const normalized = { statusCode: 400, error: { code: "BAD_REQUEST_ERROR", description: "The payment has already been fully refunded.", reason: "input_validation_failed" } };
+    const result = classifyRazorpayError(normalized);
+    expect(result).toBeInstanceOf(GatewayDefiniteRejectionError);
+    expect(result.message).toContain("already been fully refunded");
+  });
+
+  it("falls back to a generic HTTP-status message when the normalized error has no description", () => {
+    const normalized = { statusCode: 500, error: {} };
+    const result = classifyRazorpayError(normalized);
+    expect(result).toBeInstanceOf(GatewayDefiniteRejectionError);
+    expect(result.message).toContain("500");
+  });
+
+  it("classifies a bare TypeError (what normalizeError itself throws when err.response is undefined — a network/timeout error) as uncertain, never as a rejection", () => {
+    const networkError = new TypeError("Cannot read properties of undefined (reading 'status')");
+    const result = classifyRazorpayError(networkError);
+    expect(result).toBeInstanceOf(GatewayUncertainOutcomeError);
+    expect(result).not.toBeInstanceOf(GatewayDefiniteRejectionError);
+  });
+
+  it("classifies a generic thrown Error with no statusCode as uncertain", () => {
+    const result = classifyRazorpayError(new Error("socket hang up"));
+    expect(result).toBeInstanceOf(GatewayUncertainOutcomeError);
+  });
+
+  it("classifies a non-Error, non-normalized thrown value (e.g. a plain string) as uncertain rather than crashing", () => {
+    const result = classifyRazorpayError("ECONNRESET");
+    expect(result).toBeInstanceOf(GatewayUncertainOutcomeError);
+  });
+
+  it("does not mistake an object with a non-numeric statusCode for the normalized shape", () => {
+    const result = classifyRazorpayError({ statusCode: "400", error: {} });
+    expect(result).toBeInstanceOf(GatewayUncertainOutcomeError);
+  });
+
+  it("does not mistake an object missing the 'error' property for the normalized shape", () => {
+    const result = classifyRazorpayError({ statusCode: 400 });
+    expect(result).toBeInstanceOf(GatewayUncertainOutcomeError);
   });
 });

@@ -1,6 +1,6 @@
 import type { AgreementStatus, ApplicationStage, ContentStatus, LeadStage, PaymentStatus, SignatureStatus, StampStatus } from "@/types/admin";
 import type { DiscoverySessionStatus } from "@/types/discovery-session";
-import type { InvoiceStatus, PaymentAttemptStatus } from "@/types/payments";
+import type { InvoiceStatus, PaymentAttemptStatus, RefundStatus } from "@/types/payments";
 import type { PricingOfferStatus, PricingPlanVersionStatus } from "@/types/pricing";
 
 /**
@@ -165,6 +165,34 @@ export const PRICING_OFFER_STATUS_TRANSITIONS: Record<PricingOfferStatus, Pricin
   archived: ["draft"],
 };
 
+/**
+ * Milestone 13 — Refund Operations lifecycle. requested/under_review are
+ * grouped as the "pre-approval" pair an admin can move between freely
+ * (mirrors the amount-immutability trigger in
+ * supabase/migrations/0016_refund_operations.sql PART 2, which treats them
+ * identically — amount stays editable in either). approved -> processing
+ * is only ever actually performed by claim_refund_for_processing() (never
+ * picked directly by an admin — see src/lib/supabase/admin/refunds.ts
+ * processApprovedRefund()), and processing -> processed/failed is only
+ * ever actually performed by finalize_refund(), same "represented in the
+ * graph but driven by verified evidence, not a user's direct choice"
+ * posture as PAYMENT_ATTEMPT_STATUS_TRANSITIONS above. processed/failed/
+ * rejected/cancelled are all terminal — a refund that failed or was
+ * rejected/cancelled is never reopened; a new case is requested instead,
+ * same "no resurrecting a terminal case" posture as
+ * PAYMENT_ATTEMPT_STATUS_TRANSITIONS' failed/cancelled.
+ */
+export const REFUND_STATUS_TRANSITIONS: Record<RefundStatus, RefundStatus[]> = {
+  requested: ["under_review", "cancelled"],
+  under_review: ["requested", "approved", "rejected", "cancelled"],
+  approved: ["processing", "cancelled"],
+  processing: ["processed", "failed"],
+  processed: [],
+  failed: [],
+  rejected: [],
+  cancelled: [],
+};
+
 /** Generic, graph-agnostic transition check — every module's server action calls this with its own graph. Same status -> same status is always allowed (a no-op save shouldn't be rejected as an invalid transition). */
 export function isValidTransition<S extends string>(graph: Record<S, S[]>, from: S, to: S): boolean {
   if (from === to) return true;
@@ -174,4 +202,18 @@ export function isValidTransition<S extends string>(graph: Record<S, S[]>, from:
 /** Every status a graph can reach from a given starting point (direct neighbors only) — used to build a "next status" <select> without hardcoding options per page. */
 export function nextStatusOptions<S extends string>(graph: Record<S, S[]>, from: S): S[] {
   return graph[from] ?? [];
+}
+
+/**
+ * Milestone 13 FINAL FINANCIAL SAFETY PATCH — the inverse of
+ * nextStatusOptions(): every status that has a documented transition INTO
+ * `target`. Used to derive the exact set of source statuses a
+ * database-authoritative conditional UPDATE (`.eq("status", ...)` /
+ * `.in("status", ...)`) must require for a given lifecycle action, so that
+ * permitted-source-state set is always read directly from the one graph
+ * definition rather than hand-duplicated and risking drift — see
+ * src/lib/supabase/admin/refunds.ts's applyRefundTransition().
+ */
+export function sourceStatusOptions<S extends string>(graph: Record<S, S[]>, target: S): S[] {
+  return (Object.keys(graph) as S[]).filter((from) => graph[from].includes(target));
 }

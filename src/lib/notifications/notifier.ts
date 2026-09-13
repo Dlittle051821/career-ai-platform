@@ -26,6 +26,17 @@ export const NOTIFICATION_TEMPLATES = [
   "signature_completed",
   "signature_declined",
   "signature_expired",
+  // Milestone 13 — Refund Operations. refund_requested is sent to the
+  // reviewing admin team, not the student (a request has not yet been
+  // decided); the other four are student-facing, mirroring the moments a
+  // student actually cares about — approved (money is coming, once
+  // processed), rejected (with the reason), and the two terminal gateway
+  // outcomes.
+  "refund_requested",
+  "refund_approved",
+  "refund_rejected",
+  "refund_completed",
+  "refund_failed",
 ] as const;
 export type NotificationTemplate = (typeof NOTIFICATION_TEMPLATES)[number];
 

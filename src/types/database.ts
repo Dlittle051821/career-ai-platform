@@ -1196,6 +1196,18 @@ type RefundsRow = {
   status: string;
   reason: string | null;
   initiated_by: string | null;
+  // Milestone 13 — Refund Operations lifecycle columns, added by
+  // supabase/migrations/0016_refund_operations.sql PART 1.
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  rejected_by: string | null;
+  rejected_at: string | null;
+  rejection_reason: string | null;
+  cancelled_by: string | null;
+  cancelled_at: string | null;
+  finalized_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -1504,6 +1516,17 @@ export interface Database {
       };
       apply_webhook_event: {
         Args: { p_raw_body: string; p_signature: string };
+        Returns: Json;
+      };
+      // Milestone 13 — Refund Operations — see
+      // 0016_refund_operations.sql PART 4/5 for full documentation of each
+      // function's authorization/locking/exactly-once behavior.
+      claim_refund_for_processing: {
+        Args: { p_refund_id: string };
+        Returns: Json;
+      };
+      finalize_refund: {
+        Args: { p_refund_id: string; p_provider_refund_id: string | null; p_outcome: string };
         Returns: Json;
       };
       // Milestone 10 — see 0007_nextwise_pricing_offers.sql PART 7.
@@ -2080,7 +2103,28 @@ export interface Database {
 
       refunds: {
         Row: RefundsRow;
-        Insert: Omit<RefundsRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        // Milestone 13 lifecycle columns (reviewed_*/approved_*/rejected_*/
+        // cancelled_*/finalized_at) are all optional on insert — every
+        // insert call site creates a fresh `requested` case, which starts
+        // with all of them null (an implicit Postgres default), same
+        // pattern as invoices' pricing_plan_id/pricing_offer_id above.
+        Insert: Omit<
+          RefundsRow,
+          "id" | "created_at" | "updated_at" | "reviewed_by" | "reviewed_at" | "approved_by" | "approved_at" | "rejected_by" | "rejected_at" | "rejection_reason" | "cancelled_by" | "cancelled_at" | "finalized_at"
+        > &
+          TimestampedInsert & {
+            id?: string;
+            reviewed_by?: string | null;
+            reviewed_at?: string | null;
+            approved_by?: string | null;
+            approved_at?: string | null;
+            rejected_by?: string | null;
+            rejected_at?: string | null;
+            rejection_reason?: string | null;
+            cancelled_by?: string | null;
+            cancelled_at?: string | null;
+            finalized_at?: string | null;
+          };
         Update: Partial<Omit<RefundsRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
         Relationships: [];
       };

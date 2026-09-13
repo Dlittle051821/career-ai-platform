@@ -36,6 +36,7 @@ every gateway-dependent action fails closed with an honest "not configured" mess
 22. Troubleshooting
 23. Rollback
 24. Security correction: function execution privileges
+25. Milestone 13 — Refund Operations (financial-safety-first)
 
 ---
 
@@ -288,17 +289,14 @@ outside this system, same as recording it was.
 
 ## 12. Refunds
 
-Only super_admin/admin/finance can initiate a refund, from `/admin/refunds` or an invoice's detail page.
-`loadEligibleTransaction()` in `src/lib/supabase/admin/refunds.ts` rejects the attempt up front if the target
-transaction is `is_manual` (offline — see §11) or not in a refundable status (`captured`/`partially_refunded`),
-with a clear error message rather than silently doing nothing. A real, eligible refund calls
-`gateway.createRefund()` (Razorpay's refund API) and inserts a `refunds` row (`status: "requested"`); the actual
-`processed`/`failed` outcome is recorded later via a `refund.processed`/`refund.failed` webhook (or
-reconciliation), following the same "verified evidence, not an assumption" principle as payments. At most one
-in-flight refund per transaction is allowed at a time (`refunds_one_open_per_transaction`), which keeps webhook
-matching for refund events unambiguous. Refund amounts are entered as a major-unit decimal (matching every other
-money field in the admin UI) and parsed via `parseMoneyInput()` against the transaction's currency — never as raw
-minor units.
+**Superseded by Milestone 13 (§25) — kept here for the Milestone 8 historical record.** Only
+super_admin/admin/finance can initiate a refund, from `/admin/refunds` or an invoice's detail page. The original
+`initiateRefund()` in `src/lib/supabase/admin/refunds.ts` called `gateway.createRefund()` synchronously and, on
+ANY thrown error, immediately marked the refund `failed` — unsafe, because a network timeout could mean Razorpay
+had actually created the refund anyway. Milestone 13 (§25) replaces this with an admin review/approval lifecycle
+and a financial-safety-first processing flow; `initiateRefund()` now only opens a `requested` case and never calls
+the gateway. Refund amounts are still entered as a major-unit decimal and parsed via `parseMoneyInput()` against
+the transaction's currency — never as raw minor units.
 
 ## 13. Reconciliation
 
@@ -583,3 +581,109 @@ rather than returning data). `src/lib/payments/migration-security.test.ts` is a 
 that reads the migration file's text and asserts these same invariants (security mode, and every expected
 `revoke`/`grant` statement) so a future accidental revert of this fix fails `npm test` immediately, without
 needing a live database to catch it.
+
+## 25. Milestone 13 — Refund Operations (financial-safety-first)
+
+Migration: `supabase/migrations/0016_refund_operations.sql` (additive only — 0001–0015 are untouched). Baseline
+this milestone was built against: `release/m10` at commit `a3287e8`.
+
+**The problem this milestone fixes.** The Milestone 8 refund flow (§12 above) called `gateway.createRefund()`
+synchronously from `initiateRefund()` and, on ANY thrown error — a definite provider rejection OR a network
+timeout where Razorpay may have silently created the refund anyway — immediately marked the refund `failed`. That
+is unsafe: a timed-out request that actually succeeded at Razorpay would leave the system able to accept a second
+refund request for the same money, double-refunding the student. Milestone 13 fixes this with three changes:
+
+1. **A wider status lifecycle with admin review/approval before any gateway call**: `requested` → `under_review` →
+   `approved` → `processing` → `processed`/`failed`, plus `rejected` and `cancelled` as early exits. See
+   `REFUND_STATUS_TRANSITIONS` in `src/lib/admin/status.ts` for the exact allowed graph, and
+   `src/lib/payments/refund-eligibility.ts` for the deliberate separation between *technical refundability*
+   (DB-derived: is there gateway-backed captured money left to refund) and *commercial/policy eligibility* (an
+   admin's judgment call at the approve step — this codebase invents no refund percentages, windows, fees, or GST
+   rules for that decision).
+2. **A database-authoritative "claim" RPC**, `claim_refund_for_processing(p_refund_id)` (0016 PART 4): locks the
+   refund and its `payment_transactions` row `FOR UPDATE`, re-derives the remaining refundable balance from
+   *current* data (not whatever was true when the case was approved — another refund on the same transaction may
+   have completed asynchronously since), and only then flips status to `processing`. This runs immediately before
+   every gateway call and is the only thing standing between `approved` and Razorpay ever being contacted.
+3. **A single, idempotent "finalize" RPC**, `finalize_refund(p_refund_id, p_provider_refund_id, p_outcome)` (0016
+   PART 5): the ONLY place `amount_refunded_minor_units` is ever incremented, called identically by all three
+   finalization paths — the synchronous gateway response (`processApprovedRefund()`), the
+   `refund.processed`/`refund.failed` webhook (0016 PART 6's redefinition of `apply_webhook_event()`), and manual
+   reconciliation (`reconcileRefund()`). Idempotency is by the refund row's own state (already
+   `processed`/`failed` ⇒ safe no-op returning `already_finalized: true`), never by webhook payload byte
+   identity — so a logically-duplicate `refund.processed` event with a different raw body is exactly as safe as a
+   byte-identical redelivery.
+
+**The uncertain-outcome rule (the actual point of this milestone).** `src/lib/payments/providers/razorpay.ts`'s
+`classifyRazorpayError()` distinguishes a definite provider rejection from an uncertain/transport failure using
+the exact mechanism razorpay-node's own `dist/api.js` `normalizeError()` relies on: it only produces the
+`{statusCode, error}` shape when the underlying error had a real `.response` (Razorpay actually received the
+request and rejected it with an HTTP error). A network timeout or connection reset has no `.response`, so
+`normalizeError()` itself throws a *different*, unshaped error — that difference, not a guessed heuristic, is
+what `classifyRazorpayError()` keys off (see `src/lib/payments/providers/razorpay.test.ts` for hand-built fixtures
+of both shapes). `processApprovedRefund()` in `src/lib/supabase/admin/refunds.ts` then:
+
+- on success, or a `GatewayDefiniteRejectionError` → calls `finalize_refund()` with `processed`/`failed`.
+- on a `GatewayUncertainOutcomeError` → does **not** call `finalize_refund()` at all. The refund is deliberately
+  left in `processing` — an uncertain outcome must never be treated as "safely retryable" or "failed" — pending
+  the webhook or a manual `reconcileRefund()` call, which ask Razorpay directly what actually happened before
+  ever finalizing.
+
+**Amount immutability after approval.** A `BEFORE UPDATE` trigger (`prevent_refund_amount_change_after_approval`,
+0016 PART 2) raises if `amount_minor_units` changes once a case has left `requested`/`under_review` — the amount
+is only ever editable during review, never afterward, regardless of which code path attempts the change.
+
+**Rejection reason.** `rejectRefund()` requires a non-blank reason both client-side and at the database level
+(`refunds_rejection_reason_check`, using `btrim()` so whitespace-only input cannot slip through) — it is shown to
+the student verbatim on their payment detail page.
+
+**RLS.** No policy changes were needed. The Milestone 8 policies on `public.refunds` already matched M13's access
+model exactly: `super_admin`/`admin`/`finance` write, `analyst` read-only in addition, and students read-only on
+their own invoices' refunds — see 0016 PART 3's comment and
+`src/lib/payments/refund-operations-migration-security.test.ts` for the automated guard confirming those three
+policy names still exist unchanged in `0005_payments_billing.sql`.
+
+**Admin workspace.** `/admin/refunds` lists every case; `/admin/refunds/[id]` is the case detail page, showing
+only the actions valid for the case's current status (`src/components/admin/refunds/RefundActionForms.tsx`) —
+start review, approve (with a last-chance amount adjustment), reject (with reason), cancel, process (the one
+button that actually calls the gateway, gated by the two-click `ConfirmSubmitButton`), and reconcile (for a case
+stuck in `processing`).
+
+**Student visibility.** `getMyRefundsForInvoice()` (`src/lib/supabase/payments/student-invoices.ts`) surfaces every
+refund case on an invoice the signed-in student owns, on `/payments/[invoiceId]`, relying on the existing
+"Students can read refunds on their own invoices" RLS policy as the real boundary.
+
+**Known limitations.**
+
+- **Notifications** use the existing `LoggingNotifier` stand-in (§21 in the Milestone 8 section above already
+  documents this project has no real email system). `refund_approved`/`refund_rejected`/`refund_completed`/
+  `refund_failed` are sent to the student's real email (resolved via `profiles.email`) when one is on file.
+  `refund_requested` is defined in `NOTIFICATION_TEMPLATES` but is never fired — this codebase has no real
+  staff-notification recipient to resolve (every other notification in this project targets an external
+  counterparty's real address, never a fabricated "staff" address); a new request is already visible to admins via
+  the `/admin/refunds` queue itself.
+- **Reconciliation of a refund with no `provider_refund_id` yet recorded** (the deepest form of the
+  uncertain-outcome case — the create-refund response was itself lost before any id was captured) cannot be
+  resolved by `reconcileRefund()`, since there is no id to ask Razorpay to fetch by. That specific case is resolved
+  only by the `refund.processed`/`refund.failed` webhook's own fallback matching (0016 PART 6: "exactly one
+  `processing` refund on this transaction with no `provider_refund_id` yet") — `reconcileRefund()` reports
+  `awaiting_webhook` rather than guessing.
+- **Analytics** (`src/lib/analytics/events.ts`'s `PRODUCT_EVENTS`, backed by a database `CHECK` constraint) was
+  deliberately left unwired for refund lifecycle events in this milestone, to keep the change scoped to the
+  file list actually required — a follow-up migration can add `refund_requested`/`refund_approved`/etc. to that
+  constraint and wire `trackEvent()` calls the same way `src/lib/supabase/admin/signatures.ts` does.
+- **Concurrency/race-condition scenarios** (double-click approve, two admins claiming the same case, a stale
+  approval after a different refund on the same transaction already completed, a sync-response/webhook race, a
+  reconcile/webhook race) are guarded by real Postgres row locks (`FOR UPDATE`) and state-based idempotency in
+  `claim_refund_for_processing()`/`finalize_refund()`, but — like every other `SECURITY DEFINER`/lock-dependent
+  function in this project (§19 in the Milestone 8 section) — cannot be exercised by an automated test in this
+  repository's Vitest setup, which has no live Postgres connection. They are covered by the static text-level
+  assertions in `src/lib/payments/refund-operations-migration-security.test.ts` (confirming the locks, the
+  exactly-once state check, and the webhook's restricted match clause are present in the SQL) and must be manually
+  verified against a real Supabase project — see `M13_INSTALL_INSTRUCTIONS.md`'s manual QA checklist.
+
+**Automated tests** added for this milestone: `src/lib/payments/refund-eligibility.test.ts` (the pure
+technical-refundability calculator), `src/lib/payments/refund-operations-migration-security.test.ts` (static SQL
+invariants for 0016), new cases in `src/lib/admin/status.test.ts` (`REFUND_STATUS_TRANSITIONS`), and new cases in
+`src/lib/payments/providers/razorpay.test.ts` (`classifyRazorpayError`'s definite-vs-uncertain classification).
+See `M13_COMPLETION_REPORT.md` for exact before/after test totals.

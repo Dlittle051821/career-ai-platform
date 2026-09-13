@@ -37,8 +37,9 @@ export default async function AdminRefundsPage({ searchParams }: RefundsPageProp
         <p className="text-sm font-semibold uppercase tracking-wide text-secondary">Refunds</p>
         <h1 className="mt-2 text-2xl font-semibold text-primary sm:text-3xl">Refunds</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted">
-          Refunds are initiated from an invoice&apos;s payment activity. Final confirmation that a refund actually
-          completed comes from Razorpay&apos;s webhook, not from this system alone.
+          Refunds are requested from an invoice&apos;s payment activity, then reviewed and approved here before any
+          money moves. Final confirmation that a refund actually completed comes from Razorpay&apos;s webhook, not
+          from this system alone.
         </p>
       </div>
 
@@ -64,9 +65,14 @@ export default async function AdminRefundsPage({ searchParams }: RefundsPageProp
           <p className="mb-3 text-sm text-muted">
             {result.total} refund{result.total === 1 ? "" : "s"} found
           </p>
-          <AdminTable headers={["Invoice", "Amount", "Status", "Reason", "Requested"]}>
+          <AdminTable headers={["Case", "Invoice", "Amount", "Status", "Reason", "Requested"]}>
             {result.items.map((r) => (
               <tr key={r.id} className="hover:bg-surface-alt/50">
+                <Td className="font-medium text-text">
+                  <Link href={`/admin/refunds/${r.id}`} className="hover:text-primary hover:underline">
+                    View case
+                  </Link>
+                </Td>
                 <Td className="font-medium text-text">
                   <Link href={`/admin/invoices/${r.invoiceId}`} className="hover:text-primary hover:underline">
                     View invoice

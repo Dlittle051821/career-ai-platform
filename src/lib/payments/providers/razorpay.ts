@@ -8,10 +8,49 @@ import type {
   FetchedPayment,
   CreateRefundParams,
   GatewayRefund,
+  FetchedRefund,
+  GatewayRefundStatus,
   CheckoutSignatureParams,
   WebhookSignatureParams,
 } from "../gateway";
+import { GatewayDefiniteRejectionError, GatewayUncertainOutcomeError } from "../gateway";
 import { getRazorpayWebhookSecret } from "../env";
+
+/**
+ * Milestone 13 (spec §20) — the exact shape razorpay-node's own
+ * dist/api.js normalizeError() produces ONLY when the underlying axios
+ * error had a real `.response` (i.e. Razorpay actually received the
+ * request and sent back an HTTP error): `throw { statusCode:
+ * err.response.status, error: err.response.data.error }`. Verified by
+ * reading that file directly rather than guessed — see this module's own
+ * docblock above.
+ */
+function isNormalizedRazorpayError(err: unknown): err is { statusCode: number; error: { description?: string; code?: string; reason?: string } } {
+  return typeof err === "object" && err !== null && "statusCode" in err && typeof (err as { statusCode: unknown }).statusCode === "number" && "error" in err;
+}
+
+/**
+ * Distinguishes a definite provider rejection from an uncertain/transport
+ * failure using the exact mechanism razorpay-node's own api.js
+ * normalizeError() relies on: it can only produce the {statusCode, error}
+ * shape checked above when `err.response` exists — a genuine HTTP response,
+ * meaning Razorpay definitely received and rejected the request. A
+ * network/timeout error has no `.response`, so normalizeError()'s own
+ * `err.response.status` property access throws a DIFFERENT error (a bare
+ * TypeError, not shaped like {statusCode, error}) — that shape difference,
+ * not a guess about error messages, is what this function keys off. See
+ * node_modules/razorpay/dist/api.js.
+ */
+export function classifyRazorpayError(err: unknown): GatewayDefiniteRejectionError | GatewayUncertainOutcomeError {
+  if (isNormalizedRazorpayError(err)) {
+    const description = err.error && typeof err.error === "object" && typeof err.error.description === "string" ? err.error.description : "";
+    return new GatewayDefiniteRejectionError(description || `Razorpay rejected the request (HTTP ${err.statusCode}).`);
+  }
+  const message = err instanceof Error ? err.message : "Unknown error";
+  return new GatewayUncertainOutcomeError(
+    `Could not confirm the outcome of this request with Razorpay — a network/transport error occurred, so the refund may or may not have actually been created. This must be resolved by reconciliation, never assumed to have failed: ${message}`
+  );
+}
 
 /**
  * Razorpay implementation of PaymentGateway, built directly on the
@@ -76,16 +115,55 @@ export class RazorpayGateway implements PaymentGateway {
     };
   }
 
+  /**
+   * Milestone 13 (spec §20): on ANY thrown error, the caller must NOT
+   * assume the refund failed at Razorpay — a timed-out/reset request may
+   * have silently succeeded there. This method never decides that for the
+   * caller; it only classifies the error (see classifyRazorpayError above)
+   * and rethrows one of GatewayDefiniteRejectionError (safe to treat as a
+   * real rejection) or GatewayUncertainOutcomeError (must NOT be treated as
+   * failed — the caller must leave the refund blocking in `processing`
+   * pending reconciliation/webhook). The refund's own case id is passed as
+   * `receipt` purely for traceability in the Razorpay dashboard — it is
+   * never itself the idempotency mechanism (see CreateRefundParams'
+   * internalReferenceId docblock).
+   */
   async createRefund(params: CreateRefundParams): Promise<GatewayRefund> {
-    const refund = await this.client.payments.refund(params.providerPaymentId, {
-      amount: params.amountMinorUnits,
-      notes: params.notes,
-    });
-    return {
-      providerRefundId: refund.id,
-      status: refund.status,
-      amountMinorUnits: Number(refund.amount ?? params.amountMinorUnits ?? 0),
-    };
+    try {
+      const refund = await this.client.payments.refund(params.providerPaymentId, {
+        amount: params.amountMinorUnits,
+        notes: params.notes,
+        receipt: params.internalReferenceId,
+      });
+      return {
+        providerRefundId: refund.id,
+        status: refund.status,
+        amountMinorUnits: Number(refund.amount ?? params.amountMinorUnits ?? 0),
+      };
+    } catch (err) {
+      throw classifyRazorpayError(err);
+    }
+  }
+
+  /**
+   * Milestone 13 — used by manual reconciliation to resolve a refund left
+   * in `processing` after an uncertain createRefund() outcome. Same
+   * error-classification contract as createRefund() above: a thrown
+   * GatewayUncertainOutcomeError here means reconciliation itself could not
+   * get a definite answer this time and must be retried later, never
+   * treated as a failure.
+   */
+  async getRefundStatus(providerRefundId: string): Promise<FetchedRefund> {
+    try {
+      const refund = await this.client.refunds.fetch(providerRefundId);
+      return {
+        providerRefundId: refund.id,
+        status: refund.status as GatewayRefundStatus,
+        amountMinorUnits: Number(refund.amount ?? 0),
+      };
+    } catch (err) {
+      throw classifyRazorpayError(err);
+    }
   }
 
   verifyCheckoutSignature({ providerOrderId, providerPaymentId, signature }: CheckoutSignatureParams): boolean {

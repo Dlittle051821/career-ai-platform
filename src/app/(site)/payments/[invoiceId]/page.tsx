@@ -6,9 +6,9 @@ import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { PayButton } from "@/components/payments/PayButton";
-import { getMyInvoiceById } from "@/lib/supabase/payments/student-invoices";
+import { getMyInvoiceById, getMyRefundsForInvoice } from "@/lib/supabase/payments/student-invoices";
 import { formatMoney } from "@/lib/admin/money";
-import { INVOICE_STATUS_LABELS, PAYABLE_INVOICE_STATUSES } from "@/types/payments";
+import { INVOICE_STATUS_LABELS, PAYABLE_INVOICE_STATUSES, REFUND_STATUS_LABELS, ACTIVE_REFUND_STATUSES } from "@/types/payments";
 
 interface PaymentDetailPageProps {
   params: Promise<{ invoiceId: string }>;
@@ -28,7 +28,7 @@ const STATUS_TONE: Record<string, "neutral" | "success" | "warning" | "error" | 
 
 export default async function PaymentDetailPage({ params }: PaymentDetailPageProps) {
   const { invoiceId } = await params;
-  const invoice = await getMyInvoiceById(invoiceId);
+  const [invoice, refunds] = await Promise.all([getMyInvoiceById(invoiceId), getMyRefundsForInvoice(invoiceId)]);
   if (!invoice) notFound();
 
   const isPayable = PAYABLE_INVOICE_STATUSES.includes(invoice.status) && invoice.dueMinorUnits > 0;
@@ -90,6 +90,26 @@ export default async function PaymentDetailPage({ params }: PaymentDetailPagePro
               ))}
             </ul>
           </Card>
+
+          {refunds.length > 0 ? (
+            <Card>
+              <h2 className="mb-3 text-base font-semibold text-primary">Refunds</h2>
+              <ul className="divide-y divide-border">
+                {refunds.map((r) => (
+                  <li key={r.id} className="py-3 first:pt-0 last:pb-0">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-sm font-medium text-text">{formatMoney(r.amountMinorUnits, invoice.currency)}</span>
+                      <Badge tone={ACTIVE_REFUND_STATUSES.includes(r.status) ? "info" : r.status === "processed" ? "success" : r.status === "rejected" || r.status === "failed" ? "error" : "neutral"}>
+                        {REFUND_STATUS_LABELS[r.status]}
+                      </Badge>
+                    </div>
+                    {r.status === "rejected" && r.rejectionReason ? <p className="mt-1.5 text-xs text-muted">{r.rejectionReason}</p> : null}
+                    <p className="mt-1 text-xs text-muted">Requested {new Date(r.createdAt).toLocaleDateString("en-IN")}</p>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          ) : null}
 
           {isPayable ? (
             <Card>

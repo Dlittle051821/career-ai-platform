@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "../server";
 import { getCurrentUser } from "../profile";
-import type { Invoice, InvoiceLineItem, InvoiceStatus, PaymentTransaction, PaymentTransactionStatus } from "@/types/payments";
+import type { Invoice, InvoiceLineItem, InvoiceStatus, PaymentTransaction, PaymentTransactionStatus, Refund, RefundStatus } from "@/types/payments";
 
 /**
  * Student-facing invoice reads. Deliberately does NOT check any admin
@@ -223,4 +223,55 @@ export async function getMyPaymentTransaction(invoiceId: string, transactionId: 
     failureReason: txn.failure_reason,
     createdAt: txn.created_at,
   };
+}
+
+/**
+ * Milestone 13 — every refund case on an invoice the signed-in student
+ * owns, for the student-facing payment detail page. Relies on refunds' own
+ * RLS ("Students can read refunds on their own invoices",
+ * 0005_payments_billing.sql PART 7) as the real boundary; the invoice-
+ * ownership check here is defense in depth, same convention as every other
+ * function in this file. Internal-only fields (reviewed_by/approved_by/
+ * cancelled_by — who on the admin side acted) are intentionally mapped
+ * through the same Refund shape the admin side uses (RLS already hides raw
+ * rows a student shouldn't see a case for at all; nothing on the Refund
+ * type itself is admin-sensitive text — rejection_reason is deliberately
+ * student-facing, see src/types/payments.ts).
+ */
+export async function getMyRefundsForInvoice(invoiceId: string): Promise<Refund[]> {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  const supabase = await createClient();
+
+  const { data: invoice } = await supabase.from("invoices").select("id").eq("id", invoiceId).eq("student_user_id", user.id).maybeSingle();
+  if (!invoice) return [];
+
+  const { data, error } = await supabase.from("refunds").select("*").eq("invoice_id", invoiceId).order("created_at", { ascending: false });
+  if (error) {
+    logDbError("getMyRefundsForInvoice", error);
+    return [];
+  }
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    paymentTransactionId: row.payment_transaction_id,
+    invoiceId: row.invoice_id,
+    providerRefundId: row.provider_refund_id,
+    amountMinorUnits: row.amount_minor_units,
+    status: row.status as RefundStatus,
+    reason: row.reason,
+    initiatedBy: row.initiated_by,
+    reviewedBy: row.reviewed_by,
+    reviewedAt: row.reviewed_at,
+    approvedBy: row.approved_by,
+    approvedAt: row.approved_at,
+    rejectedBy: row.rejected_by,
+    rejectedAt: row.rejected_at,
+    rejectionReason: row.rejection_reason,
+    cancelledBy: row.cancelled_by,
+    cancelledAt: row.cancelled_at,
+    finalizedAt: row.finalized_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
 }

@@ -106,20 +106,28 @@ export function ReconcileAttemptForm({ action }: { action: BoundAction }) {
   );
 }
 
+/**
+ * Milestone 13 — this only opens a `requested` refund case; it does NOT
+ * call the payment gateway or move any money. An admin (possibly a
+ * different one) still has to review and approve the case from
+ * /admin/refunds before anything is sent to Razorpay — see
+ * src/lib/supabase/admin/refunds.ts's initiateRefund() docblock.
+ */
 export function InitiateRefundForm({ action, transactionId, remainingMinorUnits, currency }: { action: BoundAction; transactionId: string; remainingMinorUnits: number; currency: string }) {
   const [state, formAction] = useActionState(action, INITIAL_ACTION_STATE);
   return (
     <form action={formAction} className="space-y-2 rounded-[var(--radius-control)] border border-border-strong p-3">
       <FormError error={state.error} />
       <input type="hidden" name="paymentTransactionId" value={transactionId} />
-      <FormField id={`refundAmount-${transactionId}`} label={`Amount (${currency})`} hint={`Leave blank for a full refund of the remaining ${(remainingMinorUnits / 100).toFixed(2)}.`}>
+      <p className="text-xs text-muted">This only opens a refund case for review — it does not refund the student yet.</p>
+      <FormField id={`refundAmount-${transactionId}`} label={`Amount (${currency})`} hint={`Leave blank to request a full refund of the remaining ${(remainingMinorUnits / 100).toFixed(2)}.`}>
         <Input id={`refundAmount-${transactionId}`} name="amount" inputMode="decimal" placeholder={(remainingMinorUnits / 100).toFixed(2)} />
       </FormField>
       <FormField id={`refundReason-${transactionId}`} label="Reason">
         <Input id={`refundReason-${transactionId}`} name="reason" />
       </FormField>
-      <ConfirmSubmitButton confirmLabel="Click to confirm refund" className="text-sm">
-        Initiate refund
+      <ConfirmSubmitButton confirmLabel="Click to confirm request" className="text-sm">
+        Request refund
       </ConfirmSubmitButton>
     </form>
   );

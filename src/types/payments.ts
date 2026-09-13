@@ -184,15 +184,35 @@ export interface PaymentTransaction {
 // Refunds
 // ---------------------------------------------------------------------------
 
-export const REFUND_STATUSES = ["requested", "processing", "processed", "failed"] as const;
+/**
+ * Milestone 13 — Refund Operations superset lifecycle. The original
+ * Milestone 8 four values (requested/processing/processed/failed) are
+ * preserved verbatim; under_review/approved/rejected/cancelled are new.
+ * See supabase/migrations/0016_refund_operations.sql PART 1 for the
+ * database-side widening of refunds_status_check to match exactly, and
+ * src/lib/admin/status.ts's REFUND_STATUS_TRANSITIONS for the allowed graph.
+ */
+export const REFUND_STATUSES = ["requested", "under_review", "approved", "processing", "processed", "failed", "rejected", "cancelled"] as const;
 export type RefundStatus = (typeof REFUND_STATUSES)[number];
 
 export const REFUND_STATUS_LABELS: Record<RefundStatus, string> = {
   requested: "Requested",
+  under_review: "Under review",
+  approved: "Approved — awaiting processing",
   processing: "Processing",
   processed: "Completed",
   failed: "Failed",
+  rejected: "Rejected",
+  cancelled: "Cancelled",
 };
+
+/**
+ * Statuses that represent an open/non-terminal refund case — mirrors
+ * supabase/migrations/0016_refund_operations.sql's
+ * refunds_one_active_per_transaction partial unique index exactly (kept in
+ * sync manually; the migration-security test asserts the SQL side).
+ */
+export const ACTIVE_REFUND_STATUSES: RefundStatus[] = ["requested", "under_review", "approved", "processing"];
 
 export interface Refund {
   id: string;
@@ -203,6 +223,19 @@ export interface Refund {
   status: RefundStatus;
   reason: string | null;
   initiatedBy: string | null;
+  /** Milestone 13 — admin review/approval lifecycle. All null for a case still sitting at `requested`. */
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  rejectedBy: string | null;
+  rejectedAt: string | null;
+  /** Required, non-blank, when status = 'rejected' (enforced by refunds_rejection_reason_check) — shown to the student verbatim. */
+  rejectionReason: string | null;
+  cancelledBy: string | null;
+  cancelledAt: string | null;
+  /** Set exactly once by finalize_refund() when this case reaches processed or a definite failed. */
+  finalizedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

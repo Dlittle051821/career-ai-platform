@@ -180,6 +180,23 @@ export default defineConfig({
       // documented above for src/config/ (the branding rebrand pass).
       "src/lib/navigation/**/*.test.ts",
       "src/lib/dashboard/**/*.test.ts",
+      // Milestone 13 FINAL FINANCIAL SAFETY PATCH — a deliberate, narrow
+      // exception to this file's own "nothing in src/lib/supabase/ is
+      // tested here, because it all talks to Supabase" convention
+      // documented throughout the comment block above. refunds.ts is where
+      // every refund lifecycle transition (issue #2's atomic conditional
+      // updates), the gateway-before-claim ordering (issue #3), and the
+      // finalize-vs-await-confirmation branching on a successful gateway
+      // response (issue #1) actually live — that STATEFUL ORCHESTRATION
+      // logic is exactly what the financial-safety patch's spec demanded
+      // tests for, and it cannot be exercised as a pure function the way
+      // every other src/lib/supabase/ module is deliberately left
+      // untested. src/lib/supabase/admin/refunds.test.ts mocks every I/O
+      // boundary (createClient/requireAdminPermission/recordAuditLog/
+      // getPaymentGateway/getNotifier) behind a small hand-rolled in-memory
+      // Supabase fake — see that file's own docblock. This is the first
+      // (and, deliberately, only) use of vi.mock() in this codebase.
+      "src/lib/supabase/admin/refunds.test.ts",
     ],
   },
 });
