@@ -97,15 +97,16 @@ export async function createOrReuseCheckoutSession(invoiceId: string): Promise<C
   if (dueMinorUnits <= 0) throw new CheckoutError("This invoice has already been paid in full.");
 
   const idempotencyKey = `${invoiceId}-${randomBytes(12).toString("hex")}`;
+  const receipt = idempotencyKey.replace(/-/g, "").slice(0, 56);
 
   let order;
   try {
-    order = await gateway.createOrder({
-      amountMinorUnits: dueMinorUnits,
-      currency: invoice.currency,
-      receipt: idempotencyKey,
-      notes: { invoice_id: invoiceId, invoice_number: invoice.invoice_number ?? "" },
-    });
+   order = await gateway.createOrder({
+  amountMinorUnits: dueMinorUnits,
+  currency: invoice.currency,
+  receipt,
+  notes: { invoice_id: invoiceId, invoice_number: invoice.invoice_number ?? "" },
+});
   } catch (gatewayError) {
     logDbError("createOrReuseCheckoutSession:gateway", gatewayError);
     throw new CheckoutError("Could not start checkout with the payment gateway. Please try again in a moment.");
