@@ -86,21 +86,26 @@ export function AccountMenu() {
   }
 
   if (!user) {
+    // UX03-04: labels aligned to the spec's public-nav IA ("Sign In" /
+    // "Get Started" — same /login and /register routes, no auth change).
+    // "Get Started" is styled as the clear primary action, "Sign In" stays
+    // a quiet secondary link, matching the hero's own primary/secondary CTA
+    // hierarchy instead of presenting both with equal visual weight.
     return (
-      <div className="flex shrink-0 items-center gap-1">
+      <div className="flex shrink-0 items-center gap-1.5">
         <Link
           href="/login"
           className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-sm font-medium text-text-soft hover:text-primary"
         >
           <LogIn aria-hidden="true" className="h-4 w-4" />
-          <span className="hidden 2xl:inline">Log in</span>
+          <span className="hidden 2xl:inline">Sign In</span>
         </Link>
         <Link
           href="/register"
-          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-sm font-medium text-secondary-dark hover:bg-secondary-light"
+          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-control)] bg-primary px-3 py-1.5 text-sm font-medium text-on-primary shadow-soft hover:bg-primary-light"
         >
           <UserPlus aria-hidden="true" className="h-4 w-4" />
-          <span className="hidden 2xl:inline">Register</span>
+          <span className="hidden sm:inline">Get Started</span>
         </Link>
       </div>
     );

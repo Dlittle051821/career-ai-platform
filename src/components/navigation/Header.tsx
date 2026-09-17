@@ -2,17 +2,21 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { PRIMARY_NAV, UTILITY_NAV } from "@/config/site";
+import { usePathname } from "next/navigation";
+import { PRIMARY_NAV } from "@/config/site";
 import { Container } from "@/components/layout/Container";
-import { LinkButton } from "@/components/ui/Button";
 import { LanguageSelector } from "./LanguageSelector";
 import { AccountMenu } from "./AccountMenu";
+import { ExploreMenu } from "./ExploreMenu";
 import { MobileNav } from "./MobileNav";
 import { Logo } from "./Logo";
 import { cn } from "@/lib/utils";
 
+const NAV_LINK_CLASSES = "whitespace-nowrap rounded-md px-2.5 py-2 text-sm font-medium transition-colors";
+
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -33,38 +37,35 @@ export function Header() {
 
         <nav aria-label="Primary" className="hidden xl:block">
           <ul className="flex items-center">
-            {PRIMARY_NAV.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className="whitespace-nowrap rounded-md px-2.5 py-2 text-sm font-medium text-text-soft transition-colors hover:bg-surface-alt hover:text-primary"
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-            {UTILITY_NAV.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className="whitespace-nowrap rounded-md px-2.5 py-2 text-sm font-medium text-secondary-dark transition-colors hover:bg-secondary-light"
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
+            <li>
+              <ExploreMenu />
+            </li>
+            {PRIMARY_NAV.map((link) => {
+              const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
+              return (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    aria-current={isActive ? "page" : undefined}
+                    className={cn(
+                      NAV_LINK_CLASSES,
+                      isActive ? "bg-surface-alt text-primary" : "text-text-soft hover:bg-surface-alt hover:text-primary"
+                    )}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </nav>
 
         <div className="hidden shrink-0 items-center gap-2 xl:flex">
           <LanguageSelector />
           <AccountMenu />
-          <LinkButton href="/book-counselling" size="sm">
-            Book free counselling
-          </LinkButton>
         </div>
 
-        <MobileNav primaryLinks={PRIMARY_NAV} utilityLinks={UTILITY_NAV} />
+        <MobileNav />
       </Container>
     </header>
   );

@@ -71,50 +71,71 @@ export const BRAND_DARK_BG = "#000c24";
 
 export const CURRENT_YEAR = new Date().getFullYear();
 
-export const PRIMARY_NAV: NavLink[] = [
-  { label: "How It Works", href: "/how-it-works" },
-  { label: "Career Discovery", href: "/career-discovery" },
-  { label: "Career Explorer", href: "/careers" },
-  { label: "Compare Careers", href: "/compare" },
-  { label: "Universities", href: "/universities" },
-  { label: "Courses", href: "/courses" },
-  { label: "Study Options", href: "/study-options" },
-  { label: "For Parents", href: "/parents" },
-  { label: "Pricing", href: "/pricing" },
+/**
+ * UX03-04 — public header navigation IA.
+ *
+ * Restructured from a flat 9-item list into: an "Explore" dropdown (the
+ * four real exploration entry points, each with a one-line description)
+ * plus a short row of top-level destinations. This is a presentation-layer
+ * regrouping only — every href below already existed and was already
+ * reachable before this change; nothing was invented and nothing was
+ * removed from the site, only reorganized (see
+ * docs/ux/UX03-04_NAVIGATION_PUBLIC_WEBSITE.md for the full audit and the
+ * reasoning behind every inclusion/omission decision).
+ *
+ * Two previously top-level links intentionally do NOT get a slot in this
+ * lean header (per the spec's own "do not overcrowd it" instruction) but
+ * remain fully reachable elsewhere:
+ * - Career Discovery (/career-discovery) — already the site's primary
+ *   hero CTA ("Find My Direction") and listed under "Nextwise" in the
+ *   footer.
+ * - Compare Careers (/compare) — listed under "Explore" in the footer.
+ * - For Parents (/parents) and Trust Center (/trust) — listed under
+ *   "For Families" in the footer; not part of the spec's target IA for
+ *   the primary student-facing nav, but never removed from the site.
+ */
+export const EXPLORE_NAV: NavLink[] = [
+  { label: "Careers", href: "/careers", description: "Browse careers, what they involve, and how to get there." },
+  { label: "Courses", href: "/courses", description: "Find courses across universities that match a path you're considering." },
+  { label: "Universities", href: "/universities", description: "Explore universities and compare what each one offers." },
+  { label: "Study Options", href: "/study-options", description: "Compare studying in India against studying abroad." },
 ];
 
-export const UTILITY_NAV: NavLink[] = [
-  { label: "Trust Center", href: "/trust" },
+export const PRIMARY_NAV: NavLink[] = [
+  { label: "How It Works", href: "/how-it-works" },
+  { label: "Counselling", href: "/book-counselling" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "About", href: "/about" },
 ];
 
 export const FOOTER_NAV: Record<string, NavLink[]> = {
   Explore: [
-    { label: "How It Works", href: "/how-it-works" },
-    { label: "Career Discovery", href: "/career-discovery" },
-    { label: "Universities", href: "/universities" },
+    { label: "Careers", href: "/careers" },
     { label: "Courses", href: "/courses" },
+    { label: "Universities", href: "/universities" },
     { label: "Study Options", href: "/study-options" },
+    { label: "Compare Careers", href: "/compare" },
+  ],
+  Nextwise: [
+    { label: "How It Works", href: "/how-it-works" },
+    { label: "Counselling", href: "/book-counselling" },
     { label: "Pricing", href: "/pricing" },
-  ],
-  Students: [
+    { label: "About", href: "/about" },
     { label: "Career Discovery", href: "/career-discovery" },
-    { label: "Book Free Counselling", href: "/book-counselling" },
-    { label: "How Support Works", href: "/how-it-works" },
   ],
-  Parents: [
+  "For Families": [
     { label: "For Parents", href: "/parents" },
     { label: "Trust Center", href: "/trust" },
-    { label: "Refund Policy", href: "/refund-policy" },
-  ],
-  Company: [
-    { label: "About", href: "/about" },
     { label: "Contact", href: "/contact" },
-    { label: "Trust Center", href: "/trust" },
   ],
   Legal: [
     { label: "Privacy Policy", href: "/privacy" },
     { label: "Terms of Service", href: "/terms" },
     { label: "Refund Policy", href: "/refund-policy" },
+  ],
+  Account: [
+    { label: "Sign In", href: "/login" },
+    { label: "Get Started", href: "/register" },
   ],
 };
 

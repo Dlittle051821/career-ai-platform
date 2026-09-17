@@ -3,22 +3,31 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, LogIn, LogOut, Menu, UserPlus, X } from "lucide-react";
-import type { NavLink } from "@/types";
+import { ChevronDown, Compass, LayoutDashboard, LogIn, LogOut, Menu, UserPlus, X } from "lucide-react";
+import { EXPLORE_NAV, PRIMARY_NAV } from "@/config/site";
 import { LinkButton } from "@/components/ui/Button";
 import { logout } from "@/lib/supabase/actions";
 import { firstNameOf, useAuthUser } from "@/lib/supabase/use-auth-user";
 import { LanguageSelector } from "./LanguageSelector";
 import { Logo } from "./Logo";
+import { cn } from "@/lib/utils";
 
-interface MobileNavProps {
-  primaryLinks: NavLink[];
-  utilityLinks: NavLink[];
-}
-
-export function MobileNav({ primaryLinks, utilityLinks }: MobileNavProps) {
+/**
+ * UX03-04 — mobile public navigation.
+ *
+ * Rebuilt around an intentional hierarchy rather than the desktop nav
+ * simply compressed into a list: Explore (expandable, matching the
+ * desktop dropdown's four entries) → the same short top-level row shown
+ * on desktop (How It Works / Counselling / Pricing / About) → Account
+ * (Sign In / Get Started, or Dashboard / Log out when signed in) →
+ * Language. The drawer mechanics (native <dialog>, body-scroll lock,
+ * close on Escape/outside/route-change) are unchanged from the prior
+ * implementation — only the content structure inside it changed.
+ */
+export function MobileNav() {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
+  const [exploreOpen, setExploreOpen] = useState(false);
   const pathname = usePathname();
   const [lastPathname, setLastPathname] = useState(pathname);
   const { user, ready } = useAuthUser();
@@ -51,6 +60,15 @@ export function MobileNav({ primaryLinks, utilityLinks }: MobileNavProps) {
     dialog.addEventListener("close", handleClose);
     return () => dialog.removeEventListener("close", handleClose);
   }, []);
+
+  // Collapse the Explore section fresh each time the drawer opens (adjust
+  // state during render rather than in an effect, matching the pathname
+  // tracking above and https://react.dev/learn/you-might-not-need-an-effect).
+  const [lastOpen, setLastOpen] = useState(open);
+  if (open !== lastOpen) {
+    setLastOpen(open);
+    if (open) setExploreOpen(false);
+  }
 
   return (
     <div className="xl:hidden">
@@ -86,21 +104,43 @@ export function MobileNav({ primaryLinks, utilityLinks }: MobileNavProps) {
 
           <nav aria-label="Mobile" className="flex-1 overflow-y-auto px-5 py-6">
             <ul className="space-y-1">
-              {primaryLinks.map((link) => (
+              <li>
+                <button
+                  type="button"
+                  onClick={() => setExploreOpen((v) => !v)}
+                  aria-expanded={exploreOpen}
+                  aria-controls="mobile-explore-panel"
+                  className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-3 text-base font-medium text-text hover:bg-surface-alt"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <Compass aria-hidden="true" className="h-4 w-4 text-secondary" />
+                    Explore
+                  </span>
+                  <ChevronDown aria-hidden="true" className={cn("h-4 w-4 transition-transform", exploreOpen && "rotate-180")} />
+                </button>
+                {exploreOpen ? (
+                  <ul id="mobile-explore-panel" className="ml-3 mt-1 space-y-1 border-l border-border pl-4">
+                    {EXPLORE_NAV.map((link) => (
+                      <li key={link.href}>
+                        <Link
+                          href={link.href}
+                          className="block rounded-md px-3 py-2.5 text-sm font-medium text-text-soft hover:bg-surface-alt hover:text-primary"
+                        >
+                          {link.label}
+                          {link.description ? (
+                            <span className="mt-0.5 block text-xs font-normal text-muted">{link.description}</span>
+                          ) : null}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+              {PRIMARY_NAV.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
                     className="block rounded-md px-3 py-3 text-base font-medium text-text hover:bg-surface-alt"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-              {utilityLinks.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="block rounded-md px-3 py-3 text-base font-medium text-secondary-dark hover:bg-surface-alt"
                   >
                     {link.label}
                   </Link>
@@ -140,14 +180,7 @@ export function MobileNav({ primaryLinks, utilityLinks }: MobileNavProps) {
                       className="flex items-center gap-2.5 rounded-md px-3 py-3 text-base font-medium text-text hover:bg-surface-alt"
                     >
                       <LogIn aria-hidden="true" className="h-4 w-4" />
-                      Log in
-                    </Link>
-                    <Link
-                      href="/register"
-                      className="flex items-center gap-2.5 rounded-md px-3 py-3 text-base font-medium text-secondary-dark hover:bg-surface-alt"
-                    >
-                      <UserPlus aria-hidden="true" className="h-4 w-4" />
-                      Register
+                      Sign In
                     </Link>
                   </div>
                 )}
@@ -162,11 +195,13 @@ export function MobileNav({ primaryLinks, utilityLinks }: MobileNavProps) {
             </div>
           </nav>
 
-          <div className="border-t border-border p-5">
-            <LinkButton href="/book-counselling" className="w-full justify-center">
-              Book free counselling
-            </LinkButton>
-          </div>
+          {!user ? (
+            <div className="border-t border-border p-5">
+              <LinkButton href="/register" className="w-full justify-center" icon={<UserPlus aria-hidden="true" className="h-4 w-4" />}>
+                Get Started
+              </LinkButton>
+            </div>
+          ) : null}
         </div>
       </dialog>
     </div>
