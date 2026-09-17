@@ -201,6 +201,7 @@ export interface LeadStatusHistoryEntry {
 export type ApplicationStage =
   | "inquiry"
   | "preparing"
+  | "ready_to_submit"
   | "submitted"
   | "under_review"
   | "interview"
@@ -213,6 +214,7 @@ export type ApplicationStage =
 export const APPLICATION_STAGE_LABELS: Record<ApplicationStage, string> = {
   inquiry: "Inquiry",
   preparing: "Preparing",
+  ready_to_submit: "Ready to submit",
   submitted: "Submitted",
   under_review: "Under review",
   interview: "Interview",
@@ -238,6 +240,8 @@ export interface Application {
   universityName: string | null;
   courseId: string | null;
   courseName: string | null;
+  /** Milestone 16 — a real FK into `course_intakes` when one is linked; null when the application only has the free-text `intake` field below (today's default — no intake-picker UI exists yet). */
+  courseIntakeId: string | null;
   assignedCounsellorId: string | null;
   assignedCounsellorName: string | null;
   stage: ApplicationStage;
@@ -250,9 +254,20 @@ export interface Application {
   nextActionDate: string | null;
   lastContactDate: string | null;
   internalNotes: string | null;
+  /** Milestone 16 — the STUDENT's own note. Entirely separate from `internalNotes` above, which is never shown to the student. */
+  studentNote: string | null;
+  /** Milestone 16 — set atomically by whichever path (student action or admin update) actually performed the stage -> 'submitted' transition. Distinct from `submissionDate`, a plain hand-typed date. */
+  submittedAt: string | null;
+  /** Milestone 16 — set atomically when the stage moves to a terminal decision outcome ('offer_received' or 'rejected'). */
+  decisionAt: string | null;
+  /** Milestone 16 — set atomically when the stage moves to 'withdrawn'. */
+  withdrawnAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
+
+/** Milestone 16 — the fixed action vocabulary a student may invoke via student_advance_application(). Never a raw stage string. */
+export type StudentApplicationAction = "start_preparing" | "mark_ready_to_submit" | "submit" | "withdraw";
 
 export interface ApplicationStatusHistoryEntry {
   id: string;
@@ -260,7 +275,12 @@ export interface ApplicationStatusHistoryEntry {
   fromStatus: string | null;
   toStatus: string;
   changedBy: string | null;
+  /** Admin/counsellor-internal only — never shown to the student. See `studentVisibleMessage`. */
   note: string | null;
+  /** Milestone 16 — who/what made this change: 'student' | 'admin' | 'counsellor' | 'system'. */
+  actorType: "student" | "admin" | "counsellor" | "system";
+  /** Milestone 16 — the only free-text field on this history entry ever shown to the student. */
+  studentVisibleMessage: string | null;
   createdAt: string;
 }
 

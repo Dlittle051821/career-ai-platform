@@ -39,7 +39,8 @@ export type EventCategory =
   | "outcome"
   | "agreement"
   | "onboarding"
-  | "recommendation";
+  | "recommendation"
+  | "application";
 
 export interface EventDefinition {
   name: string;
@@ -408,6 +409,37 @@ export const PRODUCT_EVENTS = {
     category: "commercial",
     status: "reserved",
     reason: "Same gap as personal_strategy_cta_viewed above — no real 'Personal Strategy' selection flow exists in this codebase yet.",
+  },
+
+  // ---------------------------------------------------------------------
+  // Milestone 16 — Student Application Workflow. `application_started`
+  // (category "course", above) predates this milestone and is left exactly
+  // where it was. These three cover the rest of the lifecycle a student or
+  // admin can now genuinely drive. Deliberately does NOT touch the
+  // pre-existing `offer_received` name above — see that entry's own
+  // reasoning; a real terminal-decision signal for applications is exactly
+  // what `application_status_changed` (with `properties.toStage ===
+  // "offer_received"`) already carries, so a dedicated
+  // `application_offer_received` product_events name would just duplicate
+  // it.
+  // ---------------------------------------------------------------------
+  application_status_changed: {
+    name: "application_status_changed",
+    category: "application",
+    status: "implemented",
+    reason: "Fired from updateApplication() (src/lib/supabase/admin/applications.ts) whenever an admin-driven stage change actually commits.",
+  },
+  application_submitted: {
+    name: "application_submitted",
+    category: "application",
+    status: "implemented",
+    reason: "Fired from advanceMyApplication() (src/lib/supabase/education/applications.ts) when the student's own 'submit' action succeeds via student_advance_application().",
+  },
+  application_withdrawn: {
+    name: "application_withdrawn",
+    category: "application",
+    status: "implemented",
+    reason: "Fired from advanceMyApplication() (src/lib/supabase/education/applications.ts) when the student's own 'withdraw' action succeeds via student_advance_application().",
   },
 } as const satisfies Record<string, EventDefinition>;
 

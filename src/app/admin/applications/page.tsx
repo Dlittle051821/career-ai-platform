@@ -19,6 +19,7 @@ export const metadata: Metadata = { title: "Applications" };
 const STAGES: ApplicationStage[] = [
   "inquiry",
   "preparing",
+  "ready_to_submit",
   "submitted",
   "under_review",
   "interview",

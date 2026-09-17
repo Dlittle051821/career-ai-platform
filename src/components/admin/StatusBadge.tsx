@@ -28,6 +28,7 @@ const STATUS_TONE: Record<string, Tone> = {
   prospect: "neutral",
   inquiry: "info",
   preparing: "info",
+  ready_to_submit: "accent",
   submitted: "accent",
   under_review: "accent",
   interview: "accent",

@@ -29,9 +29,23 @@ export const LEAD_STAGE_TRANSITIONS: Record<LeadStage, LeadStage[]> = {
   lost: ["new", "contacted"],
 };
 
+/**
+ * Milestone 16 — 'ready_to_submit' inserted between 'preparing' and
+ * 'submitted' (the one genuine gap the M16 audit found in this
+ * already-established graph; every other edge is unchanged from Milestone
+ * 7). This is the SAME graph both the admin update path
+ * (src/lib/supabase/admin/applications.ts) and the student self-service RPC
+ * (student_advance_application() in 0017_student_application_workflow.sql)
+ * are written to be consistent with — the SQL function hardcodes its own
+ * narrow from-stage sets rather than reading this TS graph at runtime (it
+ * can't), but every edge it implements is a strict subset of what this
+ * graph already permits, and this graph's own regression test asserts that
+ * subset relationship stays true.
+ */
 export const APPLICATION_STAGE_TRANSITIONS: Record<ApplicationStage, ApplicationStage[]> = {
   inquiry: ["preparing", "withdrawn"],
-  preparing: ["submitted", "withdrawn"],
+  preparing: ["ready_to_submit", "withdrawn"],
+  ready_to_submit: ["submitted", "preparing", "withdrawn"],
   submitted: ["under_review", "withdrawn"],
   under_review: ["interview", "decision_pending", "withdrawn"],
   interview: ["decision_pending", "withdrawn"],

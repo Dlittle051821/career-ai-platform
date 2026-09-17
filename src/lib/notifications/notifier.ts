@@ -37,6 +37,18 @@ export const NOTIFICATION_TEMPLATES = [
   "refund_rejected",
   "refund_completed",
   "refund_failed",
+  // Milestone 16 — Student Application Workflow. All three are
+  // student-facing (an admin-driven decision the student needs to know
+  // about, or a confirmation of their own submit action) — mirrors the
+  // refund set's "notify on the moments the recipient actually cares
+  // about" discipline. There is no application_status_changed template:
+  // that event fires for every intermediate operational move (see
+  // src/lib/analytics/events.ts), most of which are not notification-worthy
+  // — offer/rejection are the two that are, and each already has its own
+  // named template below.
+  "application_submitted",
+  "application_offer_received",
+  "application_rejected",
 ] as const;
 export type NotificationTemplate = (typeof NOTIFICATION_TEMPLATES)[number];
 

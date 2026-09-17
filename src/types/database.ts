@@ -811,6 +811,8 @@ type ApplicationsRow = {
   student_user_id: string;
   university_id: string | null;
   course_id: string | null;
+  /** Milestone 16 — optional real FK to course_intakes. */
+  course_intake_id: string | null;
   assigned_counsellor_id: string | null;
   stage: string;
   intake: string | null;
@@ -822,6 +824,14 @@ type ApplicationsRow = {
   next_action_date: string | null;
   last_contact_date: string | null;
   internal_notes: string | null;
+  /** Milestone 16 — the student's own note; never the same thing as internal_notes above. */
+  student_note: string | null;
+  /** Milestone 16 — set atomically on the stage -> 'submitted' transition. */
+  submitted_at: string | null;
+  /** Milestone 16 — set atomically on a terminal decision ('offer_received'/'rejected'). */
+  decision_at: string | null;
+  /** Milestone 16 — set atomically on the stage -> 'withdrawn' transition. */
+  withdrawn_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -833,6 +843,10 @@ type ApplicationStatusHistoryRow = {
   to_status: string;
   changed_by: string | null;
   note: string | null;
+  /** Milestone 16 — defaults to 'system' at the database level for pre-existing rows. */
+  actor_type: string;
+  /** Milestone 16 — the only free-text field on this row ever shown to the student. */
+  student_visible_message: string | null;
   created_at: string;
 };
 
@@ -1580,6 +1594,107 @@ export interface Database {
         Args: { p_provider: string; p_provider_request_id: string; p_storage_path: string };
         Returns: Json;
       };
+      // Milestone 16 — Student Application Workflow — see
+      // 0017_student_application_workflow.sql PART 3 for full documentation
+      // of each function's ownership/locking/validation behavior.
+      //
+      // SECURITY PATCH (v3 — database-boundary hardening): both Returns
+      // types below are narrowed from ApplicationsRow (the full row,
+      // including internal_notes/assigned_counsellor_id/last_contact_date)
+      // to the exact narrow RETURNS TABLE shape the SQL function now
+      // actually returns — see 0017's own comments on each function.
+      student_advance_application: {
+        Args: { p_application_id: string; p_action: string };
+        Returns: {
+          id: string;
+          stage: string;
+          submitted_at: string | null;
+          withdrawn_at: string | null;
+          updated_at: string;
+        }[];
+      };
+      student_update_application_note: {
+        Args: { p_application_id: string; p_note: string | null };
+        Returns: {
+          id: string;
+          student_note: string | null;
+          updated_at: string;
+        }[];
+      };
+      // Milestone 16 (post-review security patch) — 0017's PART 4.1. The
+      // ONLY way a student reads their own application_status_history rows;
+      // its Returns type here is intentionally NOT ApplicationStatusHistoryRow
+      // — it structurally excludes `note`/`changed_by`, matching the SQL
+      // function's own RETURNS TABLE column list exactly.
+      get_my_application_status_history: {
+        Args: { p_application_id: string };
+        Returns: {
+          id: string;
+          from_status: string | null;
+          to_status: string;
+          actor_type: string;
+          student_visible_message: string | null;
+          created_at: string;
+        }[];
+      };
+      // Milestone 16 (v3 patch) — 0017's PART 8. The ONLY way a student
+      // reads their own application row(s) directly. Returns type is
+      // intentionally NOT ApplicationsRow — it structurally excludes
+      // internal_notes/assigned_counsellor_id/last_contact_date, matching
+      // the SQL function's own RETURNS TABLE column list exactly.
+      get_my_applications: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string;
+          university_id: string | null;
+          course_id: string | null;
+          course_intake_id: string | null;
+          stage: string;
+          intake: string | null;
+          submission_date: string | null;
+          decision_status: string;
+          offer_type: string | null;
+          deadlines: Json;
+          next_action: string | null;
+          next_action_date: string | null;
+          student_note: string | null;
+          submitted_at: string | null;
+          decision_at: string | null;
+          withdrawn_at: string | null;
+          created_at: string;
+          updated_at: string;
+        }[];
+      };
+      get_my_application: {
+        Args: { p_application_id: string };
+        Returns: {
+          id: string;
+          university_id: string | null;
+          course_id: string | null;
+          course_intake_id: string | null;
+          stage: string;
+          intake: string | null;
+          submission_date: string | null;
+          decision_status: string;
+          offer_type: string | null;
+          deadlines: Json;
+          next_action: string | null;
+          next_action_date: string | null;
+          student_note: string | null;
+          submitted_at: string | null;
+          decision_at: string | null;
+          withdrawn_at: string | null;
+          created_at: string;
+          updated_at: string;
+        }[];
+      };
+      // Milestone 16 (v3 patch) — 0017's PART 9. The ONLY way a student
+      // creates their OWN application — returns only the new/existing
+      // application id, never the full row.
+      student_start_application: {
+        Args: { p_course_id: string; p_university_id: string };
+        Returns: string;
+      };
     };
     Tables: {
       profiles: {
@@ -1939,14 +2054,38 @@ export interface Database {
 
       applications: {
         Row: ApplicationsRow;
-        Insert: Omit<ApplicationsRow, "id" | "created_at" | "updated_at"> & TimestampedInsert & { id?: string };
+        // Milestone 16 — the five new nullable columns (course_intake_id,
+        // student_note, submitted_at, decision_at, withdrawn_at) have no
+        // explicit default but are simply NULL when omitted, matching
+        // every pre-M16 insert call site (startApplicationFromCourse(),
+        // createApplication()) that never sets any of them — kept optional
+        // here so those call sites keep compiling unchanged.
+        Insert: Omit<ApplicationsRow, "id" | "created_at" | "updated_at" | "course_intake_id" | "student_note" | "submitted_at" | "decision_at" | "withdrawn_at"> &
+          TimestampedInsert & {
+            id?: string;
+            course_intake_id?: string | null;
+            student_note?: string | null;
+            submitted_at?: string | null;
+            decision_at?: string | null;
+            withdrawn_at?: string | null;
+          };
         Update: Partial<Omit<ApplicationsRow, "id" | "created_at" | "updated_at">> & TimestampedInsert;
         Relationships: [];
       };
 
       application_status_history: {
         Row: ApplicationStatusHistoryRow;
-        Insert: Omit<ApplicationStatusHistoryRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        // Milestone 16 — actor_type defaults to 'system' at the database
+        // level (see 0017_student_application_workflow.sql PART 2.2), so it
+        // (and the nullable student_visible_message) stay optional on
+        // insert — every pre-M16 call site that never set either keeps
+        // compiling unchanged.
+        Insert: Omit<ApplicationStatusHistoryRow, "id" | "created_at" | "actor_type" | "student_visible_message"> & {
+          id?: string;
+          created_at?: string;
+          actor_type?: string;
+          student_visible_message?: string | null;
+        };
         Update: Partial<Omit<ApplicationStatusHistoryRow, "id" | "created_at">> & { created_at?: string };
         Relationships: [];
       };

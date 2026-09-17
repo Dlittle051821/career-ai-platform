@@ -5,7 +5,9 @@ import { recordAuditLog } from "./audit";
 import { AdminValidationError } from "@/lib/admin/form-state";
 import { APPLICATION_STAGE_TRANSITIONS, isValidTransition } from "@/lib/admin/status";
 import { cleanFilterParam, clampPageSize, pageToRange, parsePageParam } from "@/lib/admin/pagination";
-import type { AdminListResult, Application, ApplicationStage, ApplicationStatusHistoryEntry, DecisionStatus } from "@/types/admin";
+import { trackEvent } from "../analytics/track";
+import { getNotifier } from "@/lib/notifications/get-notifier";
+import { APPLICATION_STAGE_LABELS, type AdminListResult, type Application, type ApplicationStage, type ApplicationStatusHistoryEntry, type DecisionStatus } from "@/types/admin";
 
 function logDbError(context: string, error: unknown) {
   console.error(`[admin/applications] ${context}:`, error);
@@ -62,6 +64,7 @@ interface AppRow {
   student_user_id: string;
   university_id: string | null;
   course_id: string | null;
+  course_intake_id: string | null;
   assigned_counsellor_id: string | null;
   stage: string;
   intake: string | null;
@@ -73,6 +76,10 @@ interface AppRow {
   next_action_date: string | null;
   last_contact_date: string | null;
   internal_notes: string | null;
+  student_note: string | null;
+  submitted_at: string | null;
+  decision_at: string | null;
+  withdrawn_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -92,6 +99,7 @@ function toApplication(
     universityName: row.university_id ? (universityNameById.get(row.university_id) ?? null) : null,
     courseId: row.course_id,
     courseName: row.course_id ? (courseNameById.get(row.course_id) ?? null) : null,
+    courseIntakeId: row.course_intake_id,
     assignedCounsellorId: row.assigned_counsellor_id,
     assignedCounsellorName: row.assigned_counsellor_id ? (counsellorNameById.get(row.assigned_counsellor_id) ?? null) : null,
     stage: row.stage as ApplicationStage,
@@ -104,6 +112,10 @@ function toApplication(
     nextActionDate: row.next_action_date,
     lastContactDate: row.last_contact_date,
     internalNotes: row.internal_notes,
+    studentNote: row.student_note,
+    submittedAt: row.submitted_at,
+    decisionAt: row.decision_at,
+    withdrawnAt: row.withdrawn_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -195,6 +207,8 @@ export async function getApplicationById(id: string): Promise<ApplicationDetail 
       toStatus: h.to_status,
       changedBy: h.changed_by,
       note: h.note,
+      actorType: (h.actor_type ?? "system") as ApplicationStatusHistoryEntry["actorType"],
+      studentVisibleMessage: h.student_visible_message ?? null,
       createdAt: h.created_at,
     })),
   };
@@ -238,6 +252,27 @@ function parseApplicationForm(formData: FormData): ApplicationInput {
     lastContactDate: String(formData.get("lastContactDate") ?? "").trim() || null,
     internalNotes: String(formData.get("internalNotes") ?? "").trim() || null,
   };
+}
+
+/**
+ * Milestone 16 — best-effort student notification for an admin-driven stage
+ * change. Only fires for the two moments a student genuinely cares about
+ * from this direction (an offer, or a rejection) — matches M13's refunds.ts
+ * precedent of notifying only on the outcomes that matter, never on every
+ * intermediate operational move. Never blocks or fails the state change
+ * itself: getNotifier().notify() is documented to never throw/reject (see
+ * notifier.ts), and this is additionally fired with `void` for defense in
+ * depth.
+ */
+async function notifyStudentOfStageChange(supabase: Supabase, studentUserId: string, applicationId: string, stage: ApplicationStage): Promise<void> {
+  if (stage !== "offer_received" && stage !== "rejected") return;
+  const { data: profile } = await supabase.from("profiles").select("email").eq("id", studentUserId).maybeSingle();
+  if (!profile?.email) return;
+  void getNotifier().notify({
+    to: profile.email,
+    template: stage === "offer_received" ? "application_offer_received" : "application_rejected",
+    data: { applicationId },
+  });
 }
 
 /** Confirms studentUserId actually refers to a registered student — never trust an id typed/selected client-side without a server-side existence check. */
@@ -295,6 +330,76 @@ export async function createApplication(formData: FormData): Promise<string> {
   return data.id;
 }
 
+/**
+ * Milestone 16 — a stage that has genuinely reached its own terminal
+ * decision/withdrawal point gets its own timestamp column set atomically in
+ * the SAME conditional UPDATE that performs the transition, mirroring how
+ * student_advance_application() (0017_student_application_workflow.sql)
+ * sets submitted_at/withdrawn_at server-side rather than trusting a
+ * caller-supplied timestamp.
+ */
+interface ApplicationUpdatePatch {
+  university_id: string | null;
+  course_id: string | null;
+  assigned_counsellor_id: string | null;
+  stage: string;
+  intake: string | null;
+  submission_date: string | null;
+  decision_status: string;
+  offer_type: string | null;
+  next_action: string | null;
+  next_action_date: string | null;
+  last_contact_date: string | null;
+  internal_notes: string | null;
+  submitted_at?: string;
+  decision_at?: string;
+  withdrawn_at?: string;
+}
+
+function timestampPatchForStage(stage: ApplicationStage): Pick<ApplicationUpdatePatch, "submitted_at" | "decision_at" | "withdrawn_at"> {
+  const now = new Date().toISOString();
+  if (stage === "submitted") return { submitted_at: now };
+  if (stage === "offer_received" || stage === "rejected") return { decision_at: now };
+  if (stage === "withdrawn") return { withdrawn_at: now };
+  return {};
+}
+
+/**
+ * Milestone 16 — closes the same class of stale-write race the M13 FINAL
+ * FINANCIAL SAFETY PATCH closed for refunds (see applyRefundTransition() in
+ * src/lib/supabase/admin/refunds.ts): the previous implementation read the
+ * row, validated the transition in JS, then performed `UPDATE ... WHERE id
+ * = :id` with no guard on the row's status actually still being what was
+ * just read. Two admins (or a retried form submit) racing on the same
+ * application could silently overwrite a stage some other actor (another
+ * admin, or the student's own student_advance_application() RPC) had
+ * already moved on to.
+ *
+ * This performs `UPDATE applications SET <patch> WHERE id = :id AND stage =
+ * :expectedCurrentStage RETURNING *` — the exact "expected_current_status"
+ * conditional update the spec calls for. Zero rows back means the stage
+ * changed since `before` was read; that is surfaced as a plain, safe
+ * "refresh and try again" validation error, never silently ignored and
+ * never retried automatically (an automatic retry would just re-run the
+ * same stale decision against whatever the row has become).
+ */
+async function applyApplicationUpdate(supabase: Supabase, id: string, expectedCurrentStage: ApplicationStage, patch: ApplicationUpdatePatch): Promise<AppRow> {
+  const { data, error } = await supabase.from("applications").update(patch).eq("id", id).eq("stage", expectedCurrentStage).select("*").maybeSingle();
+  if (error) {
+    logDbError("applyApplicationUpdate", error);
+    if (error.message.includes("applications_one_active_per_student_course")) {
+      throw new AdminValidationError("This student already has an active application for that course (and intake, if set) — resolve or close the existing one first.");
+    }
+    throw new Error(error.message);
+  }
+  if (!data) {
+    const { data: current } = await supabase.from("applications").select("stage").eq("id", id).maybeSingle();
+    if (!current) throw new AdminValidationError("Application not found.");
+    throw new AdminValidationError(`This application was updated by someone else — it is now "${current.stage}". Refresh and try again.`);
+  }
+  return data as AppRow;
+}
+
 export async function updateApplication(id: string, formData: FormData): Promise<void> {
   const admin = await requireAdminPermission("applications:write");
   const input = parseApplicationForm(formData);
@@ -309,33 +414,43 @@ export async function updateApplication(id: string, formData: FormData): Promise
     throw new AdminValidationError(`Cannot move an application from "${before.stage}" directly to "${requestedStage}".`);
   }
 
-  const { error } = await supabase
-    .from("applications")
-    .update({
-      university_id: input.universityId,
-      course_id: input.courseId,
-      assigned_counsellor_id: input.assignedCounsellorId,
-      stage: requestedStage,
-      intake: input.intake,
-      submission_date: input.submissionDate,
-      decision_status: input.decisionStatus,
-      offer_type: input.offerType,
-      next_action: input.nextAction,
-      next_action_date: input.nextActionDate,
-      last_contact_date: input.lastContactDate,
-      internal_notes: input.internalNotes,
-    })
-    .eq("id", id);
+  const patch: ApplicationUpdatePatch = {
+    university_id: input.universityId,
+    course_id: input.courseId,
+    assigned_counsellor_id: input.assignedCounsellorId,
+    stage: requestedStage,
+    intake: input.intake,
+    submission_date: input.submissionDate,
+    decision_status: input.decisionStatus,
+    offer_type: input.offerType,
+    next_action: input.nextAction,
+    next_action_date: input.nextActionDate,
+    last_contact_date: input.lastContactDate,
+    internal_notes: input.internalNotes,
+    ...(requestedStage !== before.stage ? timestampPatchForStage(requestedStage) : {}),
+  };
 
-  if (error) {
-    logDbError("updateApplication", error);
-    throw new Error(error.message);
-  }
+  const updated = await applyApplicationUpdate(supabase, id, before.stage, patch);
 
   if (requestedStage !== before.stage) {
-    await supabase
-      .from("application_status_history")
-      .insert({ application_id: id, from_status: before.stage, to_status: requestedStage, changed_by: admin.userId, note: null });
+    await supabase.from("application_status_history").insert({
+      application_id: id,
+      from_status: before.stage,
+      to_status: requestedStage,
+      changed_by: admin.userId,
+      actor_type: "admin",
+      note: null,
+      student_visible_message: `Your application status changed to "${APPLICATION_STAGE_LABELS[requestedStage]}".`,
+    });
+    void trackEvent({
+      eventName: "application_status_changed",
+      source: "admin_applications",
+      feature: "applications",
+      entityType: "application",
+      entityId: id,
+      properties: { fromStage: before.stage, toStage: requestedStage },
+    });
+    await notifyStudentOfStageChange(supabase, before.studentUserId, id, requestedStage);
   }
 
   const fieldChangeSummaries: string[] = [];
@@ -349,6 +464,6 @@ export async function updateApplication(id: string, formData: FormData): Promise
     entityLabel: `application for student ${before.studentUserId}`,
     fieldChangeSummaries,
     before: { stage: before.stage, decisionStatus: before.decisionStatus },
-    after: { stage: requestedStage, decisionStatus: input.decisionStatus },
+    after: { stage: updated.stage, decisionStatus: input.decisionStatus },
   });
 }

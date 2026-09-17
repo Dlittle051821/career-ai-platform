@@ -1,124 +1,140 @@
-# UX03-04 File Manifest
+# MANIFEST — Milestone 16: Student Application Workflow (v3 — final student database-boundary hardening)
 
-Every file created or modified for UX03 (Design System Consistency) and UX04 (Student Journey Experience),
-organized by category. Paths are repo-relative. See `UX03-04_COMPLETION_REPORT.md` for the full
-audit/design writeup, `UX03-04_INSTALL_INSTRUCTIONS.md` for the install steps, and
-`docs/ux/UX03-04_DESIGN_SYSTEM_JOURNEY.md` for the complete per-component audit and per-stage journey data
-source table.
+Every file created or modified for Milestone 16 and both of its security patches (v2 "post-review security
+patch", v3 "final student database-boundary hardening"), organized by category. Paths are repo-relative.
+See `M16_COMPLETION_REPORT.md` for the full audit/design writeup and each patch's own reasoning,
+`M16_INSTALL_INSTRUCTIONS.md` for install steps, and `docs/applications-guide.md` for the complete
+domain/security/UX writeup.
 
-This manifest describes UX03-04 only. It supersedes the previous "Milestone 13 File Manifest" that lived at
-this path — see `git log -- MANIFEST.md` (or `M13_COMPLETION_REPORT.md`) for that history.
+This manifest describes Milestone 16 (original delivery + v2 + v3) as a single unit. It supersedes the
+previous "UX03-04 File Manifest" that lived at this path — see `git log -- MANIFEST.md` for that history.
+(Milestone 16's original delivery never updated this file in the repository tree — only its own ZIP's copy
+— so v2 was the first time this path reflected Milestone 16 at all; v3 continues describing everything as
+one unit, since a patch to an unapplied migration is best understood that way.)
 
 ## Baseline
 
 - Repository: `Dlittle051821/career-ai-platform`, branch `release/m10`
-- Real remote `origin/release/m10` SHA at audit time: `6ac3fe147c9e8cb489cd118a900d2e2c20b89015` (M12)
-- This environment's working HEAD at audit time: `09fb6b416bb3e325fa324f7de1eb545e6475cd7c` (M13, committed
-  locally, not yet pushed to the real remote — see `UX03-04_COMPLETION_REPORT.md` for why)
+- Exact baseline commit: `c4bf5a605aaa54c68d1fa4f27e18a6a845fc9f59` ("Fix Razorpay receipt length for checkout")
+- This v3 patch is applied on top of the already-committed Milestone 16 original delivery (`17e94de`), UX03-04
+  navigation (`7c2f8a4`), and the v2 post-review security patch (`bb461fe`) commits on this same branch — see
+  `git log --oneline -5`.
 
-## UX03 audit summary
+## AUDIT FINDINGS (original delivery)
 
-- **Card system**: 110 existing call sites of `src/components/ui/Card.tsx`, plus 18 hand-rolled bordered
-  divs surveyed. One genuine consolidation made (`AuthLayout.tsx`, below); the rest documented as either
-  structurally not a card (dialogs, menus, sticky trays, accordions) or a deliberately-deferred table-scroll
-  wrapper pattern (5 files, left alone — see design doc §2.1).
-- **Badge/status system**: audited all four tone-map components (`StatusBadge`, `TrustBadge`,
-  `ReadinessBadge`, `MatchBandBadge`). Finding: all four already render through the shared `Badge`
-  component's six-tone palette — the "shared appearance layer" this milestone asks for already exists.
-  Deliberately left unchanged (see design doc §2.2).
-- **Typography/spacing**: `PageHero`/`SectionHeading`/`Container`/`Section` already consistent across every
-  page type audited. No new abstraction introduced.
-- **Loading/empty/error states**: one genuine duplication found and consolidated (three form
-  success-notice blocks, below). Route-level loading/error boundaries beyond `/pricing` audited and
-  recorded as a deferred UX05+ item (not touched this pass).
-- **Accessibility**: spot-checked (focus-visible, heading hierarchy, touch targets, reduced motion, colour
-  independence) — no regressions found; new components built to the same bar.
+**Existing infrastructure found and reused (not duplicated):**
 
-## UX04 journey model summary
+- `public.applications` and `public.application_status_history` already existed (Milestone 7, `0004_admin_system.sql`), with a 10-value `stage` CHECK constraint, `application_status_history` audit trail, and `is_admin_role()`/`current_counsellor_id()` RLS helpers.
+- Student read/insert access to `applications` already existed (Milestone 9), via `startApplicationFromCourse()`/`listMyApplications()` in `src/lib/supabase/education/applications.ts`.
+- A mature admin CRUD surface already existed: `/admin/applications`, `/admin/applications/[id]`.
+- `course_intakes` (Milestone 9) already had real deadline fields — no invention needed.
+- `APPLICATION_STAGE_TRANSITIONS` (`src/lib/admin/status.ts`) already modeled the admin-facing lifecycle graph and needed only one new edge.
+- `applications:read`/`applications:write` permissions already existed and were reused unchanged.
 
-Six stages — Explore, Build Profile, Recommendations, Saved Options, Decide, Apply — computed by
-`computeJourneyProgress()` from data the dashboard already fetches. Full per-stage data source, completion
-logic, and known limitations: `docs/ux/UX03-04_DESIGN_SYSTEM_JOURNEY.md` §3.1. Summary:
+**Genuine gaps found and closed by the original delivery:** no `ready_to_submit` stage; no student-mutable columns; no student self-service write path; `application_status_history`'s RLS checked only "does the application exist", never ownership; no duplicate-active-application protection at the database level; the admin `updateApplication()` path had a stale-write race; no real per-application deadline resolution.
 
-| Stage | Data source | Limitation |
-|---|---|---|
-| Explore | Derived from downstream activity (no direct source) | Cannot use real page-view tracking without a new RLS policy (database change) — avoided per spec |
-| Build Profile | `calculateCompletion()` | None — direct, already-shown status |
-| Recommendations | `getMyRecommendationReadiness()` | "Complete" means ready to view, not reviewed (no "reviewed" signal exists) |
-| Saved Options | `listSavedItems()` | Labelled "Saved Options", not "Shortlist" — the underlying model is a flat saved boolean |
-| Decide | None exists | Permanently informational; never completes; never blocks Apply |
-| Apply | `listMyApplications()` | "Complete" means a record exists, not that it was submitted |
+**Further gaps found by the v2 post-review (see `M16_COMPLETION_REPORT.md`'s "Post-review security
+patch" section for full reasoning on each):**
 
-## New files
+1. The IDOR-gap fix above still let a student directly INSERT a history row for their own application —
+   bypassing `student_advance_application()` entirely.
+2. The same fix still let a student directly SELECT the internal `note`/`changed_by` columns off their own
+   application's history rows — RLS restricts rows, not columns.
+3. `startApplicationFromCourse()`'s pre-check ignored application stage, so a rejected/withdrawn
+   application blocked a legitimate reapplication forever.
+4. `validate_application_course_intake()`'s guard skipped validation entirely whenever `course_id` was
+   null, even with a non-null `course_intake_id`.
+5. `student_advance_application()`'s final `UPDATE` relied solely on a preceding `SELECT ... FOR UPDATE`
+   for its ownership/stage scoping, rather than re-asserting it in the `UPDATE`'s own `WHERE` clause.
 
-**Lib**
-- `src/lib/dashboard/journey-progress.ts` — `computeJourneyProgress()`, the UX04 journey model.
-- `src/lib/dashboard/journey-progress.test.ts` — coverage: new/incomplete-profile/recommendation-ready/
-  saved-item/existing-application journeys, no false completion, Decide never completes or blocks Apply,
-  stage ordering.
-- `src/lib/dashboard/next-best-action.ts` — `getNextBestAction()`, extracted verbatim from
-  `src/app/(site)/dashboard/page.tsx` (same logic, same copy — purely relocated so it can be tested).
-- `src/lib/dashboard/next-best-action.test.ts` — coverage of its full priority chain.
+**Further gaps found by the v3 review (see `M16_COMPLETION_REPORT.md`'s "v3 patch" section for full
+reasoning on each) — this time on `applications` itself, not `application_status_history`:**
 
-**UI**
-- `src/components/sections/dashboard/JourneyProgress.tsx` — the dashboard "Your journey" component
-  (horizontal stepper ≥640px, vertical list below that).
-- `src/components/ui/FormSuccessNotice.tsx` — shared "form preview completed" success notice, replacing
-  three hand-rolled duplicates.
+1. `student_advance_application()`/`student_update_application_note()` both `returned public.applications`
+   — the full row, including `internal_notes`/`assigned_counsellor_id`/`last_contact_date` — even though
+   neither TypeScript caller consumed the result.
+2. An ordinary student still had direct SELECT access to `applications` via the Milestone 9 RLS policy —
+   RLS restricts rows, not columns, so a student's own session could request staff-only columns directly.
+3. An ordinary student still had direct INSERT access to `applications` via the Milestone 9 RLS policy,
+   whose `WITH CHECK` placed no restriction on any column besides `student_user_id`.
+4. Application creation (`startApplicationFromCourse()`) was not database-authoritative — a direct INSERT
+   guarded only by row ownership, with the TypeScript layer as the only thing stopping a caller-chosen
+   `stage`/`internal_notes`/`assigned_counsellor_id`.
+5. Course/university pairing was never verified server-side — a manipulated caller could pair a real course
+   with the wrong real university, and the pre-existing admin create/update path had no equivalent
+   protection either.
 
-**Documentation**
-- `docs/ux/UX03-04_DESIGN_SYSTEM_JOURNEY.md` — full UX03 audit + UX04 journey model design doc.
-- `UX03-04_COMPLETION_REPORT.md` — this milestone's completion report.
-- `UX03-04_INSTALL_INSTRUCTIONS.md` — step-by-step install/QA guide (includes the manual QA checklist).
-- `MANIFEST.md` — this file.
+## NEW FILES (original delivery + v2; none new in v3 — see MODIFIED FILES below for v3's own delta)
 
-## Modified files
+| Path | Purpose |
+| --- | --- |
+| `supabase/migrations/0017_student_application_workflow.sql` | The only new migration (patched in place by v2 and again by v3 — see below; no `0018` was ever created). |
+| `src/lib/applications/application-lifecycle.ts` | Pure, framework-free business logic: student action vocabulary, next-action helper, 5-stage progress model, dashboard bucket grouping, deadline resolution. |
+| `src/lib/applications/application-lifecycle.test.ts` | Unit tests for the above. |
+| `src/lib/applications/application-workflow-migration-security.test.ts` | Static SQL-text assertions against the migration — **96 tests** (34 original + 17 v2 + 45 v3). |
+| `src/lib/supabase/admin/applications.test.ts` | Orchestration tests for the admin update path. |
+| `src/lib/supabase/education/applications.test.ts` | Orchestration tests for the student-facing ownership boundary and RPC-delegating mutation functions — **31 tests** (16 original + 7 v2 + 8 v3). |
+| `src/components/applications/*.tsx` | `ApplicationStatusBadge`, `ApplicationCard`, `ApplicationTimeline`, `ApplicationActions`, `ApplicationNoteEditor`. |
+| `src/app/(site)/applications/[id]/page.tsx`, `src/app/(site)/applications/actions.ts` | The new student application detail page and its Server Actions. |
+| `docs/applications-guide.md` | Full domain/security/UX/limitations writeup, extended by v2's and now v3's own subsections. |
+| `M16_COMPLETION_REPORT.md`, `M16_INSTALL_INSTRUCTIONS.md`, `MANIFEST.md` (this file) | Added to the repository tree for the first time by v2 — the original delivery shipped these only inside its own ZIP. |
 
-- `src/app/(site)/dashboard/page.tsx` — removed the inline `getNextBestAction()` definition (now imported
-  from `src/lib/dashboard/next-best-action.ts`); added `computeJourneyProgress()` call and the new
-  `<JourneyProgress>` card directly below "Your next step"; reordered "Your account" and "Your roadmap"
-  further down the page (content of both cards is unchanged — only their position moved). No data-fetching
-  logic changed; the same queries that already ran are simply also passed into the new journey computation.
-- `src/components/sections/auth/AuthLayout.tsx` — migrated its hand-rolled bordered surface onto the shared
-  `Card` component (`padded={false}` plus an explicit className reproduces the original classes exactly).
-- `src/components/sections/book-counselling/BookingForm.tsx` — its "form preview completed" success block
-  now renders via `FormSuccessNotice`; wording unchanged.
-- `src/components/sections/career-discovery/WaitlistForm.tsx` — same consolidation, `size="sm"` to match
-  its original (smaller) padding/icon size; wording unchanged.
-- `src/components/sections/contact/ContactForm.tsx` — same consolidation as BookingForm; wording unchanged.
-- `vitest.config.mts` — added `src/lib/dashboard/**/*.test.ts` to the test-include list (a new pure-logic
-  directory needs an explicit entry, same as every prior milestone's own lib directory) plus a matching doc
-  comment. No existing include entry changed or removed.
+## MODIFIED FILES — v3 patch (this update, on top of the original delivery + v2)
 
-## Database
+| Path | Exact changes |
+| --- | --- |
+| `supabase/migrations/0017_student_application_workflow.sql` | PART 3.1/3.2: `student_advance_application()`/`student_update_application_note()` narrowed from `returns public.applications` to a `RETURNS TABLE` of 5/3 columns respectively. New PART 7: drops the two Milestone-9 student policies on `applications` (no recreate). New PART 8: `get_my_applications()`/`get_my_application(uuid)`. New PART 9: `student_start_application(uuid, uuid)`. New PART 10: `validate_application_course_university()` and its trigger. |
+| `src/lib/supabase/education/applications.ts` | `startApplicationFromCourse()` rewritten to call `student_start_application()` via `.rpc(...)` (with a `get_my_applications()` pre-check retained only for analytics accuracy), replacing its direct `.insert()`. `listMyApplications()`/`getMyApplicationById()` rewritten to call `get_my_applications()`/`get_my_application()` via `.rpc(...)`, replacing their direct `.from("applications").select(...)`. `MY_APPLICATION_COLUMNS` constant removed (no longer needed — the RPCs' own return shape is now the authoritative column list). |
+| `src/types/database.ts` | `student_advance_application`/`student_update_application_note`'s `Returns` narrowed to match the new `RETURNS TABLE` shapes. New `Functions` entries: `get_my_applications`, `get_my_application`, `student_start_application`. |
+| `src/lib/applications/application-workflow-migration-security.test.ts` | +45 tests covering all five v3 fixes; one pre-existing test ("only 'rejected' and 'withdrawn' are excluded...") re-scoped to PART 5 specifically since v3 legitimately adds two more occurrences of that phrase inside `student_start_application()`. |
+| `src/lib/supabase/education/applications.test.ts` | `getMyApplicationById`/`listMyApplications`'s describe blocks rewritten around `fake.rpc` instead of `fake._tables.applications` (ownership now enforced inside the RPC, observed as "zero rows returned"), plus a new structural-exclusion regression test. `startApplicationFromCourse`'s entire describe block rewritten around `student_start_application()`/`get_my_applications()` RPC mocking via a new `mockRpc()` test helper; a `fullRow()` helper added for building RPC row fixtures. |
+| `docs/applications-guide.md` | New "v3 patch — final student database-boundary hardening" subsection under §4; §5, §7, and §11 updated to describe the now-complete database-authoritative boundary on `applications` itself (not just `application_status_history`). |
+| `M16_COMPLETION_REPORT.md` | New "v3 patch" section, §4/§6/§7/§11/§12 updated, §17 test counts updated, new §20 acceptance checklist, new v3-specific Manual QA + SQL verification steps. |
+| `M16_INSTALL_INSTRUCTIONS.md` | Rewritten for the v3 delta-package format (see below). |
+| `MANIFEST.md` (this file) | Rewritten to describe v3 as the current state. |
 
-**None.** No migration added. No table, column, policy, or function changed.
+## DATABASE
 
-## Environment
+- **Migration**: `0017_student_application_workflow.sql` — patched in place again by this v3 update. Still
+  no `0018` (migration `0017` had still not yet been applied to any database at the time of this patch).
+- **No table, column, or index shape changed** by v3. The two partial unique duplicate-protection indexes
+  are byte-for-byte unchanged from v1/v2.
+- **RLS**: the two Milestone 9 student policies on `applications` ("Students can read their own
+  applications", "Students can start their own application from a course") are dropped with no
+  replacement. The three original admin/counsellor policies on `applications` (Milestone 7) are completely
+  unaffected. `application_status_history`'s policies (narrowed by v2) are unchanged by v3.
+- **New functions**: `get_my_applications()`, `get_my_application(uuid)`, `student_start_application(uuid,
+  uuid)`, `validate_application_course_university()` (trigger function) — all `SECURITY DEFINER`, `set
+  search_path = public`; the three RPCs are additionally `revoke all from public; grant execute to
+  authenticated`.
+- **Narrowed return shapes**: `student_advance_application(uuid, text)` and
+  `student_update_application_note(uuid, text)` — both `RETURNS TABLE` now, no longer `returns
+  public.applications`.
+- **New trigger**: `validate_applications_course_university` — `before insert or update of course_id,
+  university_id on public.applications`, shared by the student RPC and the admin create/update path.
+- **Confirmed**: no migration 0001–0016 touched; no file under `src/lib/payments/`, `src/app/(site)/payments/`, `src/app/admin/invoices/`, `src/app/admin/refunds/`, or any Razorpay/pricing/billing/tax path was read or modified by this patch.
 
-**None.** No new environment variable required.
+## TEST RESULTS
 
-## M13 isolation
+- **`npx tsc --noEmit`**: clean, 0 errors.
+- **`npm run lint`**: clean, 0 errors/warnings.
+- **`npm test` (`vitest run`)**: **1165 / 1165 passing**, 66 test files, 0 failures. Baseline before this v3
+  patch: 1112/1112 (v2's own baseline: 1088/1088). This v3 patch adds **53 new tests** across the same 2
+  existing files v2 already touched, 0 removed:
+  - `src/lib/applications/application-workflow-migration-security.test.ts`: 96/96 (34 + 17 v2 + 45 v3 new)
+  - `src/lib/supabase/education/applications.test.ts`: 31/31 (16 + 7 v2 + 8 v3 new)
+  - Every other pre-existing suite (application lifecycle, admin applications, status transitions, M10–M13, UX03-04 navigation) still passes unchanged.
+- **`npm run build`**: succeeds — production build compiles, typechecks, and generates the same 77 routes as before this patch.
 
-Confirmed via `git diff --stat` against this milestone's starting commit (`09fb6b4`): no file under
-`supabase/`, `src/lib/payments/`, `src/lib/supabase/admin/refunds.ts`, `src/app/admin/refunds/`,
-`src/components/admin/refunds/`, or `src/app/(site)/payments/` appears in this milestone's changed-file
-list. `docs/payments-billing-guide.md` was not touched. No refund, payment, invoice, or gateway logic was
-read, referenced, or modified by any file in this manifest.
+## PAYMENT ISOLATION
 
-## Test results
+**Confirmed** (this v3 patch, same as v1/v2): no file under `src/lib/payments/`,
+`src/app/(site)/payments/`, `src/app/admin/invoices/`, `src/app/admin/refunds/`, `src/app/api/webhooks/razorpay/`,
+or any Razorpay/invoice/refund/pricing/billing/tax-related path was created, modified, or read for context
+by this patch. `git diff --stat` for this patch's changes touches only the files listed under MODIFIED FILES
+above.
 
-- `npm run typecheck` — clean, no errors.
-- `npm run lint` — clean, no errors or warnings.
-- `npm test` — **946/946 passing** across 60 test files (up from 926/58 before this milestone; +20 new
-  tests across the 2 new `src/lib/dashboard/` test files, zero pre-existing tests changed or removed).
-  Milestone 11-A/B/C, Milestone 12 pricing, and Milestone 13 refund test suites all remain green.
-- `npm run build` — succeeded; all 77 routes compiled/generated without error.
+## KNOWN LIMITATIONS
 
-## Everything else in the repository
-
-Not modified. In particular: no changes to `.env.local`/`.env.example`, no changes to any file under
-`supabase/migrations/` or `supabase/seed/`, no changes to any M8–M13 payments/refunds/pricing/signature/
-stamping/onboarding/readiness business logic, no changes to `src/components/ui/Card.tsx` or
-`src/components/ui/Badge.tsx` themselves (both were audited and found already correct — see
-`docs/ux/UX03-04_DESIGN_SYSTEM_JOURNEY.md` §2.1–2.2), and no new npm dependency.
+Unchanged by this patch — see `docs/applications-guide.md` §12 and `M16_COMPLETION_REPORT.md` §18 for the
+full list.

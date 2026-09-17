@@ -194,9 +194,27 @@ export default defineConfig({
       // untested. src/lib/supabase/admin/refunds.test.ts mocks every I/O
       // boundary (createClient/requireAdminPermission/recordAuditLog/
       // getPaymentGateway/getNotifier) behind a small hand-rolled in-memory
-      // Supabase fake — see that file's own docblock. This is the first
-      // (and, deliberately, only) use of vi.mock() in this codebase.
+      // Supabase fake — see that file's own docblock. This was the first
+      // use of vi.mock() in this codebase; Milestone 16 below is the second
+      // deliberate, equally narrow exception to the same convention.
       "src/lib/supabase/admin/refunds.test.ts",
+      // Milestone 16 — Student Application Workflow. Pure business logic
+      // (next action, progress/timeline, dashboard grouping, deadline
+      // resolution) lives in src/lib/applications/, same "pure,
+      // framework-free" convention as src/lib/payments/ etc.
+      "src/lib/applications/**/*.test.ts",
+      // Milestone 16 — a second, equally narrow exception to the
+      // "src/lib/supabase/ is untested here" convention, for exactly the
+      // same reason as refunds.test.ts above: the atomic
+      // conditional-update transitions (student_advance_application's
+      // JS-layer mirror + the admin update path's own optimistic-stage
+      // guard), duplicate-active-application handling, and student
+      // ownership/IDOR boundaries are STATEFUL ORCHESTRATION logic that
+      // cannot be exercised as a pure function. Both files mock the same
+      // I/O boundaries (createClient/requireAdminPermission/recordAuditLog)
+      // behind the same kind of hand-rolled in-memory Supabase fake.
+      "src/lib/supabase/admin/applications.test.ts",
+      "src/lib/supabase/education/applications.test.ts",
     ],
   },
 });

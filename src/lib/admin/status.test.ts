@@ -37,6 +37,9 @@ describe("isValidTransition", () => {
     const happyPath: (keyof typeof APPLICATION_STAGE_TRANSITIONS)[] = [
       "inquiry",
       "preparing",
+      // Milestone 16 — 'ready_to_submit' inserted between preparing and
+      // submitted (the one new stage this milestone added).
+      "ready_to_submit",
       "submitted",
       "under_review",
       "decision_pending",
@@ -46,6 +49,17 @@ describe("isValidTransition", () => {
     for (let i = 0; i < happyPath.length - 1; i++) {
       expect(isValidTransition(APPLICATION_STAGE_TRANSITIONS, happyPath[i], happyPath[i + 1])).toBe(true);
     }
+  });
+
+  it("Milestone 16 — application stage graph forbids skipping straight from preparing to submitted (must pass through ready_to_submit)", () => {
+    expect(isValidTransition(APPLICATION_STAGE_TRANSITIONS, "preparing", "submitted")).toBe(false);
+  });
+
+  it("Milestone 16 — ready_to_submit can move forward to submitted, back to preparing for corrections, or withdraw — never straight to a post-submission stage", () => {
+    expect(isValidTransition(APPLICATION_STAGE_TRANSITIONS, "ready_to_submit", "submitted")).toBe(true);
+    expect(isValidTransition(APPLICATION_STAGE_TRANSITIONS, "ready_to_submit", "preparing")).toBe(true);
+    expect(isValidTransition(APPLICATION_STAGE_TRANSITIONS, "ready_to_submit", "withdrawn")).toBe(true);
+    expect(isValidTransition(APPLICATION_STAGE_TRANSITIONS, "ready_to_submit", "under_review")).toBe(false);
   });
 
   it("payment graph disallows moving a cancelled payment back to pending", () => {
