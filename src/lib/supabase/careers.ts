@@ -155,7 +155,7 @@ export async function searchCareers(filters: CareerSearchFilters = {}): Promise<
       .maybeSingle();
     if (error) {
       logCareerDbError("searchCareers (family lookup)", error);
-      return empty;
+      return { ...empty, error: true };
     }
     if (!family) return empty;
 
@@ -165,7 +165,7 @@ export async function searchCareers(filters: CareerSearchFilters = {}): Promise<
       .eq("family_id", family.id);
     if (careersErr) {
       logCareerDbError("searchCareers (family careers)", careersErr);
-      return empty;
+      return { ...empty, error: true };
     }
     restrictToCareerIds = intersectIds(restrictToCareerIds, (careersInFamily ?? []).map((r) => r.id));
   }
@@ -178,7 +178,7 @@ export async function searchCareers(filters: CareerSearchFilters = {}): Promise<
       .maybeSingle();
     if (error) {
       logCareerDbError("searchCareers (industry lookup)", error);
-      return empty;
+      return { ...empty, error: true };
     }
     if (!industry) return empty;
 
@@ -188,7 +188,7 @@ export async function searchCareers(filters: CareerSearchFilters = {}): Promise<
       .eq("industry_id", industry.id);
     if (linksErr) {
       logCareerDbError("searchCareers (industry links)", linksErr);
-      return empty;
+      return { ...empty, error: true };
     }
     restrictToCareerIds = intersectIds(restrictToCareerIds, (links ?? []).map((r) => r.career_id));
   }
@@ -197,14 +197,14 @@ export async function searchCareers(filters: CareerSearchFilters = {}): Promise<
     const { data: tag, error } = await supabase.from("career_tags").select("id").eq("tag_key", filters.tagKey).maybeSingle();
     if (error) {
       logCareerDbError("searchCareers (tag lookup)", error);
-      return empty;
+      return { ...empty, error: true };
     }
     if (!tag) return empty;
 
     const { data: links, error: linksErr } = await supabase.from("career_tag_map").select("career_id").eq("tag_id", tag.id);
     if (linksErr) {
       logCareerDbError("searchCareers (tag links)", linksErr);
-      return empty;
+      return { ...empty, error: true };
     }
     restrictToCareerIds = intersectIds(restrictToCareerIds, (links ?? []).map((r) => r.career_id));
   }
@@ -235,7 +235,7 @@ export async function searchCareers(filters: CareerSearchFilters = {}): Promise<
       .or(`title.ilike.%${searchTerm}%,short_title.ilike.%${searchTerm}%`);
     if (titleErr) {
       logCareerDbError("searchCareers (title match)", titleErr);
-      return empty;
+      return { ...empty, error: true };
     }
 
     const textMatchIds = new Set<string>([...(titleMatches ?? []).map((r) => r.id), ...aliasCareerIds]);
@@ -264,7 +264,11 @@ export async function searchCareers(filters: CareerSearchFilters = {}): Promise<
 
   if (error) {
     logCareerDbError("searchCareers (main query)", error);
-    return empty;
+    // UX06G — genuine query failure; every `return empty;` above this
+    // point (family/industry/tag not found, or a filter matched zero
+    // careers) is a legitimate zero-result short-circuit and deliberately
+    // does NOT set `error`. See src/lib/ui/list-state.ts.
+    return { ...empty, error: true };
   }
   if (!data || data.length === 0) {
     return { careers: [], total: count ?? 0, page, pageSize };

@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SearchX } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
 import { UniversityCard } from "@/components/sections/education/UniversityCard";
 import { UniversityFilterBar } from "@/components/sections/education/UniversityFilterBar";
 import { Pagination } from "@/components/sections/education/Pagination";
 import { searchUniversities } from "@/lib/supabase/education/universities";
 import { listActiveCountries } from "@/lib/supabase/education/countries";
+import { resolveListEmptyState } from "@/lib/ui/list-state";
 
 export const metadata: Metadata = {
   title: "Universities",
@@ -73,22 +74,41 @@ export default async function UniversitiesPage({ searchParams }: UniversitiesPag
         <UniversityFilterBar query={query} countryIds={countryIds} city={city} studyModes={studyModes} countries={countries} />
       </Card>
 
-      {results.items.length === 0 ? (
-        <Card className="flex flex-col items-center gap-3 py-14 text-center">
-          <SearchX aria-hidden="true" className="h-10 w-10 text-muted" />
-          <h2 className="text-lg font-semibold text-primary">No universities match your filters</h2>
-          <p className="max-w-sm text-sm text-muted">
-            {hasActiveFilters
-              ? "Try a broader search term, or clear a filter — this dataset covers a growing but limited set of institutions, not every university worldwide."
-              : "The university dataset couldn't be loaded right now. Please try again in a moment."}
-          </p>
-          {hasActiveFilters ? (
-            <Link href="/universities" className="text-sm font-semibold text-secondary-dark hover:text-primary">
-              Clear all filters
-            </Link>
-          ) : null}
-        </Card>
-      ) : (
+      {(() => {
+        const state = resolveListEmptyState({ itemCount: results.items.length, hasActiveFilters: Boolean(hasActiveFilters), error: results.error });
+        if (state === "has_results") return null;
+        if (state === "error") {
+          return (
+            <EmptyState
+              tone="error"
+              title="We couldn't load universities just now"
+              description="Something went wrong on our end fetching the university dataset. Please try again in a moment."
+            />
+          );
+        }
+        if (state === "dataset_empty") {
+          return (
+            <EmptyState
+              tone="empty"
+              title="No universities here yet"
+              description="We're still building out this part of the dataset. Check back soon, or browse careers and courses in the meantime."
+            />
+          );
+        }
+        return (
+          <EmptyState
+            tone="filtered"
+            title="No universities match your filters"
+            description="Try a broader search term, or clear a filter — this dataset covers a growing but limited set of institutions, not every university worldwide."
+            action={
+              <Link href="/universities" className="text-sm font-semibold text-secondary-dark hover:text-primary">
+                Clear all filters
+              </Link>
+            }
+          />
+        );
+      })()}
+      {results.items.length > 0 && (
         <>
           <p className="mb-4 text-sm text-muted">
             {results.total} universit{results.total === 1 ? "y" : "ies"} found

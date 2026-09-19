@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SearchX } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
+import { resolveListEmptyState } from "@/lib/ui/list-state";
 import { CourseCard } from "@/components/sections/education/CourseCard";
 import { CourseFilterBar } from "@/components/sections/education/CourseFilterBar";
 import { TrustedExternalSearchCard } from "@/components/sections/education/TrustedExternalSearchCard";
@@ -240,21 +241,41 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
       ) : null}
 
       <h2 className="mb-3 text-lg font-semibold text-primary">NextWise verified results</h2>
-      {results.items.length === 0 ? (
-        <Card className="flex flex-col items-center gap-3 py-14 text-center">
-          <SearchX aria-hidden="true" className="h-10 w-10 text-muted" />
-          <p className="max-w-sm text-sm text-muted">
-            {hasActiveFilters
-              ? "We do not currently hold verified programme records for this search. Continue on the trusted official portal below."
-              : "The course dataset couldn't be loaded right now. Please try again in a moment."}
-          </p>
-          {hasActiveFilters ? (
-            <Link href="/courses" className="text-sm font-semibold text-secondary-dark hover:text-primary">
-              Clear all filters
-            </Link>
-          ) : null}
-        </Card>
-      ) : (
+      {(() => {
+        const state = resolveListEmptyState({ itemCount: results.items.length, hasActiveFilters: Boolean(hasActiveFilters), error: results.error });
+        if (state === "has_results") return null;
+        if (state === "error") {
+          return (
+            <EmptyState
+              tone="error"
+              title="We couldn't load courses just now"
+              description="Something went wrong on our end fetching the course dataset. Please try again in a moment — the trusted official portal below still works either way."
+            />
+          );
+        }
+        if (state === "dataset_empty") {
+          return (
+            <EmptyState
+              tone="empty"
+              title="No verified courses here yet"
+              description="We're still building out this part of the course dataset. Try the trusted official portal below, or check back soon."
+            />
+          );
+        }
+        return (
+          <EmptyState
+            tone="filtered"
+            title="No verified courses match this search"
+            description="We do not currently hold verified programme records for this search. Continue on the trusted official portal below."
+            action={
+              <Link href="/courses" className="text-sm font-semibold text-secondary-dark hover:text-primary">
+                Clear all filters
+              </Link>
+            }
+          />
+        );
+      })()}
+      {results.items.length > 0 && (
         <CompareProvider>
           <p className="mb-4 text-sm text-muted">
             {results.total} course{results.total === 1 ? "" : "s"} found

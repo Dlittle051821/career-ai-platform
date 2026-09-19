@@ -151,6 +151,12 @@ export interface CareerSearchResult {
   total: number;
   page: number;
   pageSize: number;
+  /**
+   * UX06G — set to `true` only when the underlying query genuinely failed,
+   * never for a legitimate zero-result filter (e.g. a family/industry/tag
+   * that matches nothing). See src/lib/ui/list-state.ts.
+   */
+  error?: boolean;
 }
 
 /**

@@ -58,6 +58,11 @@ export function Hero() {
             <span className="font-medium text-text-soft">Explore Options</span> lets you browse careers, courses,
             and universities freely — no account needed.
           </p>
+          <p className="mt-2 text-sm text-muted">
+            Undecided about a career, a course, India versus abroad, or what any of this costs? That&apos;s the
+            normal starting point here — you don&apos;t need to know everything yet, and there&apos;s no pressure
+            to commit to anything today.
+          </p>
 
           <ul className="mt-9 flex flex-wrap gap-x-6 gap-y-3">
             {REASSURANCE.map(({ icon: Icon, label }) => (

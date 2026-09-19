@@ -368,7 +368,13 @@ export async function searchCourses(filters: CourseSearchFilters = {}): Promise<
 
   if (error) {
     logDbError("searchCourses", error);
-    return empty;
+    // UX06G — this is a genuine query failure, not a legitimate zero-row
+    // result; flag it so the page can tell the two apart instead of
+    // showing the same "no results" shape for both. Every other early
+    // `return empty;` in this function above is a real, honest zero
+    // (e.g. no published university matches the requested country
+    // filter) and deliberately does NOT set `error`.
+    return { ...empty, error: true };
   }
 
   const rows = (data ?? []) as unknown as PublicCourseRow[];

@@ -215,6 +215,19 @@ export default defineConfig({
       // behind the same kind of hand-rolled in-memory Supabase fake.
       "src/lib/supabase/admin/applications.test.ts",
       "src/lib/supabase/education/applications.test.ts",
+      // UX05/06 — Guided Discovery, Conversion & Student Journey
+      // Experience. src/lib/ui/ holds small, pure, framework-free UI-state
+      // resolvers shared across pages (currently: the empty/error/filtered
+      // list-state resolver behind the /courses, /universities, and
+      // /careers empty-state fix — see src/lib/ui/list-state.ts). Same
+      // "pure, framework-free" convention as every directory above.
+      "src/lib/ui/**/*.test.ts",
+      // UX05B — the guided discovery mini-flow's pure orientation-summary
+      // logic (src/lib/career-discovery/orientation.ts). The flow's own
+      // React component is untested here for the same "no React Testing
+      // Library/jsdom in this project" reason documented throughout this
+      // file; only the framework-free logic it calls is covered.
+      "src/lib/career-discovery/**/*.test.ts",
     ],
   },
 });

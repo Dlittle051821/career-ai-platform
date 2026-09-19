@@ -24,6 +24,8 @@ import { ReadinessBadge } from "@/components/sections/recommendations/ReadinessB
 import { BRAND_NAME } from "@/config/site";
 import { getNextBestAction } from "@/lib/dashboard/next-best-action";
 import { computeJourneyProgress } from "@/lib/dashboard/journey-progress";
+import { getReadinessCopy, isReadinessStillBuilding } from "@/lib/dashboard/readiness-copy";
+import { shouldShowSavedAndOngoingSection } from "@/lib/dashboard/dashboard-sections";
 
 const STUDENT_PROFILE_STATUS_LABEL: Record<string, string> = {
   not_started: "Not started",
@@ -115,7 +117,11 @@ export default async function DashboardPage() {
 
       <JourneyProgress progress={journeyProgress} />
 
-      <Card className="mt-6">
+      {/* UX06A group 3 — "Where you stand": profile completion and a
+          friendly (never-raw-enum) readiness explanation. Both cards read
+          data already fetched above; neither introduces a new query. */}
+      <p className="mt-8 text-xs font-semibold uppercase tracking-wide text-muted">Where you stand</p>
+      <Card className="mt-3">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-4">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
@@ -150,7 +156,32 @@ export default async function DashboardPage() {
         <ProfileProgressBar percent={studentCompletion.percent} className="mt-4" />
       </Card>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+      {careerReadiness ? (
+        <Card className="mt-3">
+          <div className="flex items-start gap-4">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
+              <Compass aria-hidden="true" className="h-5 w-5" />
+            </span>
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-lg font-semibold text-primary">{getReadinessCopy(careerReadiness.level).headline}</h2>
+                <ReadinessBadge level={careerReadiness.level} />
+              </div>
+              <p className="mt-1 text-sm leading-relaxed text-muted">{getReadinessCopy(careerReadiness.level).description}</p>
+              {isReadinessStillBuilding(careerReadiness.level) && careerReadiness.nextActions.length > 0 ? (
+                <p className="mt-2 text-sm leading-relaxed text-muted">
+                  What&apos;s missing: {careerReadiness.nextActions.slice(0, 2).join(" ")}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </Card>
+      ) : null}
+
+      {/* UX06A group 4 — "Active decisions": the two surfaces where a
+          student is actively deciding something right now. */}
+      <p className="mt-8 text-xs font-semibold uppercase tracking-wide text-muted">Active decisions</p>
+      <div className="mt-3 grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <div className="flex items-start gap-4">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary">
@@ -160,12 +191,10 @@ export default async function DashboardPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-lg font-semibold text-primary">Career recommendations</h2>
                 <Badge tone="success">Real</Badge>
-                {careerReadiness && <ReadinessBadge level={careerReadiness.level} />}
               </div>
               <p className="mt-1 text-sm leading-relaxed text-muted">
-                {careerReadiness && (careerReadiness.level === "NOT_READY" || careerReadiness.level === "PRELIMINARY") && careerReadiness.nextActions.length > 0
-                  ? `A bit more first: ${careerReadiness.nextActions.slice(0, 2).join(" ")}`
-                  : "Careers ranked against your Student Digital Profile, with plain-language reasons for each one — a structured decision-support tool, not a scientific or AI-generated assessment."}
+                Careers ranked against your Student Digital Profile, with plain-language reasons for each one — a
+                structured decision-support tool, not a scientific or AI-generated assessment.
               </p>
               <LinkButton href="/recommendations" size="sm" className="mt-4">
                 View my recommendations
@@ -193,135 +222,148 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      <Card className="mt-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-4">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
-              <Receipt aria-hidden="true" className="h-5 w-5" />
-            </span>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-lg font-semibold text-primary">Payments</h2>
-                {payableInvoices.length > 0 ? <Badge tone="warning">{payableInvoices.length} due</Badge> : null}
+      {/* UX06A/E group 5 — "Saved & ongoing": hidden entirely for a
+          brand-new student with none of these yet, per
+          shouldShowSavedAndOngoingSection (src/lib/dashboard/dashboard-sections.ts) —
+          no empty-state clutter above the always-visible Applications and
+          Explore-freely sections below. */}
+      {shouldShowSavedAndOngoingSection({
+        purchaseCount: purchases.length,
+        agreementCount: agreements.length,
+        savedItemCount: savedItems.length,
+        invoiceCount: invoices.length,
+      }) ? (
+        <>
+          <p className="mt-8 text-xs font-semibold uppercase tracking-wide text-muted">Saved &amp; ongoing</p>
+
+          {invoices.length > 0 ? (
+            <Card className="mt-3">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-4">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
+                    <Receipt aria-hidden="true" className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-lg font-semibold text-primary">Payments</h2>
+                      {payableInvoices.length > 0 ? <Badge tone="warning">{payableInvoices.length} due</Badge> : null}
+                    </div>
+                    <p className="mt-1 text-sm text-muted">
+                      {payableInvoices.length > 0
+                        ? `${formatMoney(totalDueMinorUnits, payableInvoices[0].currency)} due across ${payableInvoices.length} invoice${payableInvoices.length === 1 ? "" : "s"}.`
+                        : "No outstanding invoices right now."}
+                    </p>
+                  </div>
+                </div>
+                <LinkButton href="/payments" size="sm" variant="outline" className="shrink-0">
+                  View payments
+                </LinkButton>
               </div>
-              <p className="mt-1 text-sm text-muted">
-                {payableInvoices.length > 0
-                  ? `${formatMoney(totalDueMinorUnits, payableInvoices[0].currency)} due across ${payableInvoices.length} invoice${payableInvoices.length === 1 ? "" : "s"}.`
-                  : invoices.length > 0
-                    ? "No outstanding invoices right now."
-                    : "No invoices yet — they will appear here once one is issued to you."}
-              </p>
-            </div>
-          </div>
-          <LinkButton href="/payments" size="sm" variant="outline" className="shrink-0">
-            View payments
-          </LinkButton>
-        </div>
-      </Card>
+            </Card>
+          ) : null}
 
-      <Card className="mt-6">
-        <div className="flex items-start gap-4">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
-            <Tag aria-hidden="true" className="h-5 w-5" />
-          </span>
-          <div className="flex-1">
-            <h2 className="text-lg font-semibold text-primary">My plans</h2>
-            <p className="mt-1 text-sm text-muted">
-              {purchases.length === 0 ? "No plan purchased yet — see our pricing to get started." : `${purchases.length} plan${purchases.length === 1 ? "" : "s"} purchased.`}
-            </p>
-            {purchases.length === 0 ? (
-              <LinkButton href="/pricing" size="sm" variant="outline" className="mt-4">
-                View pricing
-              </LinkButton>
-            ) : (
-              <ul className="mt-4 divide-y divide-border">
-                {purchases.map((purchase) => {
-                  const invoiceStatus = invoices.find((inv) => inv.id === purchase.invoiceId)?.status;
-                  return (
-                    <li key={purchase.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-text">{purchase.planNameAtPurchase}</p>
-                        <p className="mt-0.5 text-xs text-muted">
-                          {new Date(purchase.purchasedAt).toLocaleDateString("en-IN")} ·{" "}
-                          {formatMoney(purchase.finalAmountMinorUnits, purchase.currency)}
-                          {purchase.discountMinorUnits > 0 ? ` (${formatMoney(purchase.discountMinorUnits, purchase.currency)} off)` : ""}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        {invoiceStatus ? <Badge tone={invoiceStatus === "paid" ? "success" : "warning"}>{INVOICE_STATUS_LABELS[invoiceStatus]}</Badge> : null}
-                        {purchase.invoiceId ? (
-                          <LinkButton href={`/payments/${purchase.invoiceId}`} size="sm" variant="outline">
-                            View invoice
+          {purchases.length > 0 ? (
+            <Card className="mt-3">
+              <div className="flex items-start gap-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
+                  <Tag aria-hidden="true" className="h-5 w-5" />
+                </span>
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold text-primary">My plans</h2>
+                  <p className="mt-1 text-sm text-muted">
+                    {purchases.length} plan{purchases.length === 1 ? "" : "s"} purchased.
+                  </p>
+                  <ul className="mt-4 divide-y divide-border">
+                    {purchases.map((purchase) => {
+                      const invoiceStatus = invoices.find((inv) => inv.id === purchase.invoiceId)?.status;
+                      return (
+                        <li key={purchase.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-text">{purchase.planNameAtPurchase}</p>
+                            <p className="mt-0.5 text-xs text-muted">
+                              {new Date(purchase.purchasedAt).toLocaleDateString("en-IN")} ·{" "}
+                              {formatMoney(purchase.finalAmountMinorUnits, purchase.currency)}
+                              {purchase.discountMinorUnits > 0 ? ` (${formatMoney(purchase.discountMinorUnits, purchase.currency)} off)` : ""}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {invoiceStatus ? <Badge tone={invoiceStatus === "paid" ? "success" : "warning"}>{INVOICE_STATUS_LABELS[invoiceStatus]}</Badge> : null}
+                            {purchase.invoiceId ? (
+                              <LinkButton href={`/payments/${purchase.invoiceId}`} size="sm" variant="outline">
+                                View invoice
+                              </LinkButton>
+                            ) : null}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </div>
+            </Card>
+          ) : null}
+
+          {agreements.length > 0 ? (
+            <Card className="mt-3">
+              <div className="flex items-start gap-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
+                  <FileSignature aria-hidden="true" className="h-5 w-5" />
+                </span>
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold text-primary">My agreements</h2>
+                  <p className="mt-1 text-sm text-muted">
+                    {agreements.length} agreement{agreements.length === 1 ? "" : "s"}.
+                  </p>
+                  <ul className="mt-4 divide-y divide-border">
+                    {agreements.map((a) => (
+                      <li key={a.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-text">{a.agreementType}</p>
+                          <p className="mt-0.5 text-xs text-muted">Updated {new Date(a.updatedAt).toLocaleDateString("en-IN")}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Badge tone={a.signatureStatus === "signed" ? "success" : a.signatureStatus === "pending_signature" ? "warning" : "neutral"}>
+                            {a.signatureStatus === "signed" ? "Signed" : a.signatureStatus === "pending_signature" ? "Awaiting signature" : "Not started"}
+                          </Badge>
+                          <LinkButton href={`/agreements/${a.id}`} size="sm" variant="outline">
+                            View
                           </LinkButton>
-                        ) : null}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        </div>
-      </Card>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </Card>
+          ) : null}
 
-      <Card className="mt-6">
-        <div className="flex items-start gap-4">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
-            <FileSignature aria-hidden="true" className="h-5 w-5" />
-          </span>
-          <div className="flex-1">
-            <h2 className="text-lg font-semibold text-primary">My agreements</h2>
-            <p className="mt-1 text-sm text-muted">
-              {agreements.length === 0
-                ? "No agreements yet — these appear here once one is prepared for you."
-                : `${agreements.length} agreement${agreements.length === 1 ? "" : "s"}.`}
-            </p>
-            {agreements.length > 0 ? (
-              <ul className="mt-4 divide-y divide-border">
-                {agreements.map((a) => (
-                  <li key={a.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-text">{a.agreementType}</p>
-                      <p className="mt-0.5 text-xs text-muted">Updated {new Date(a.updatedAt).toLocaleDateString("en-IN")}</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Badge tone={a.signatureStatus === "signed" ? "success" : a.signatureStatus === "pending_signature" ? "warning" : "neutral"}>
-                        {a.signatureStatus === "signed" ? "Signed" : a.signatureStatus === "pending_signature" ? "Awaiting signature" : "Not started"}
-                      </Badge>
-                      <LinkButton href={`/agreements/${a.id}`} size="sm" variant="outline">
-                        View
-                      </LinkButton>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-        </div>
-      </Card>
+          {savedItems.length > 0 ? (
+            <Card className="mt-3">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-4">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
+                    <Bookmark aria-hidden="true" className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h2 className="text-lg font-semibold text-primary">Saved universities &amp; courses</h2>
+                    <p className="mt-1 text-sm text-muted">
+                      {savedUniversityCount} universit{savedUniversityCount === 1 ? "y" : "ies"}, {savedCourseCount} course{savedCourseCount === 1 ? "" : "s"} saved.
+                    </p>
+                  </div>
+                </div>
+                <LinkButton href="/saved" size="sm" variant="outline" className="shrink-0">
+                  View saved
+                </LinkButton>
+              </div>
+            </Card>
+          ) : null}
+        </>
+      ) : null}
 
-      <Card className="mt-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-4">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
-              <Bookmark aria-hidden="true" className="h-5 w-5" />
-            </span>
-            <div>
-              <h2 className="text-lg font-semibold text-primary">Saved universities &amp; courses</h2>
-              <p className="mt-1 text-sm text-muted">
-                {savedUniversityCount === 0 && savedCourseCount === 0
-                  ? "Nothing saved yet — browse universities and courses to save some for later."
-                  : `${savedUniversityCount} universit${savedUniversityCount === 1 ? "y" : "ies"}, ${savedCourseCount} course${savedCourseCount === 1 ? "" : "s"} saved.`}
-              </p>
-            </div>
-          </div>
-          <LinkButton href="/saved" size="sm" variant="outline" className="shrink-0">
-            View saved
-          </LinkButton>
-        </div>
-      </Card>
-
-      <Card className="mt-6">
+      {/* UX06A group 6 — Applications: always visible, per spec, regardless
+          of whether the student has started one yet. */}
+      <p className="mt-8 text-xs font-semibold uppercase tracking-wide text-muted">Applications</p>
+      <Card className="mt-3">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-4">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
@@ -342,61 +384,23 @@ export default async function DashboardPage() {
         </div>
       </Card>
 
-      <Card className="mt-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-4">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
-              <LibraryBig aria-hidden="true" className="h-5 w-5" />
-            </span>
-            <div>
-              <h2 className="text-lg font-semibold text-primary">Career Explorer</h2>
-              <p className="mt-1 text-sm text-muted">
-                Browse a structured library of careers — what each one involves, relevant subjects and skills, and
-                common education routes. Not a personalised match yet.
-              </p>
-            </div>
-          </div>
-          <LinkButton href="/careers" size="sm" variant="outline" className="shrink-0">
+      {/* UX06A/F group 7 — "Explore freely": always visible, never gated
+          on profile completeness — general browsing stays open regardless
+          of how complete a student's profile or recommendations are. */}
+      <p className="mt-8 text-xs font-semibold uppercase tracking-wide text-muted">Explore freely</p>
+      <div className="mt-3 grid gap-6 lg:grid-cols-2">
+        <Card>
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
+            <LibraryBig aria-hidden="true" className="h-5 w-5" />
+          </span>
+          <h2 className="mt-4 text-lg font-semibold text-primary">Career Explorer</h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted">
+            Browse a structured library of careers — what each one involves, relevant subjects and skills, and
+            common education routes. No account or complete profile needed.
+          </p>
+          <LinkButton href="/careers" size="sm" variant="outline" className="mt-4 w-full justify-center">
             Explore careers
           </LinkButton>
-        </div>
-      </Card>
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-primary">Your account</h2>
-            <Badge tone="success">Active</Badge>
-          </div>
-          <dl className="mt-5 space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
-                <UserRound aria-hidden="true" className="h-4 w-4" />
-              </span>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Full name</dt>
-                <dd className="text-sm font-medium text-text">{profile?.fullName ?? "Not set"}</dd>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
-                <Mail aria-hidden="true" className="h-4 w-4" />
-              </span>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Email</dt>
-                <dd className="text-sm font-medium text-text">{profile?.email ?? "Not set"}</dd>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
-                <Phone aria-hidden="true" className="h-4 w-4" />
-              </span>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Phone</dt>
-                <dd className="text-sm font-medium text-text">{profile?.phone ?? "Not set"}</dd>
-              </div>
-            </div>
-          </dl>
         </Card>
 
         <Card>
@@ -413,9 +417,47 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
+      {/* Account info — a low-priority utility card, moved to the very
+          bottom of the page per the spec's priority order. */}
+      <Card className="mt-8">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-primary">Your account</h2>
+          <Badge tone="success">Active</Badge>
+        </div>
+        <dl className="mt-5 grid gap-4 sm:grid-cols-3">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
+              <UserRound aria-hidden="true" className="h-4 w-4" />
+            </span>
+            <div>
+              <dt className="text-xs font-medium uppercase tracking-wide text-muted">Full name</dt>
+              <dd className="text-sm font-medium text-text">{profile?.fullName ?? "Not set"}</dd>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
+              <Mail aria-hidden="true" className="h-4 w-4" />
+            </span>
+            <div>
+              <dt className="text-xs font-medium uppercase tracking-wide text-muted">Email</dt>
+              <dd className="text-sm font-medium text-text">{profile?.email ?? "Not set"}</dd>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
+              <Phone aria-hidden="true" className="h-4 w-4" />
+            </span>
+            <div>
+              <dt className="text-xs font-medium uppercase tracking-wide text-muted">Phone</dt>
+              <dd className="text-sm font-medium text-text">{profile?.phone ?? "Not set"}</dd>
+            </div>
+          </div>
+        </dl>
+      </Card>
+
       <DemoNotice className="mt-8">
-        Roadmap content and counselling activity shown here are illustrative demo data. Your account details (name,
-        email, phone), Student Digital Profile, and Career Recommendations are all real and stored securely.
+        Roadmap content shown here is illustrative demo data. Your account details (name, email, phone), Student
+        Digital Profile, and Career Recommendations are all real and stored securely.
       </DemoNotice>
     </Section>
   );

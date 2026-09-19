@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SearchX } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
 import { CareerCard } from "@/components/sections/careers/CareerCard";
 import { CareerFilterBar } from "@/components/sections/careers/CareerFilterBar";
 import { Pagination } from "@/components/sections/careers/Pagination";
 import { searchCareers, getCareerFamilies, getIndustries, getCareerTags } from "@/lib/supabase/careers";
 import { BRAND_NAME } from "@/config/site";
+import { resolveListEmptyState } from "@/lib/ui/list-state";
 
 export const metadata: Metadata = {
   title: "Career Explorer",
@@ -71,22 +72,41 @@ export default async function CareersPage({ searchParams }: CareersPageProps) {
         <CareerFilterBar query={query} familyKey={familyKey} industryKey={industryKey} tagKey={tagKey} families={families} industries={industries} tags={tags} />
       </Card>
 
-      {results.careers.length === 0 ? (
-        <Card className="flex flex-col items-center gap-3 py-14 text-center">
-          <SearchX aria-hidden="true" className="h-10 w-10 text-muted" />
-          <h2 className="text-lg font-semibold text-primary">No careers match your filters</h2>
-          <p className="max-w-sm text-sm text-muted">
-            {hasActiveFilters
-              ? "Try a broader search term, or clear a filter — the library covers around a hundred careers across engineering, technology, business, healthcare, and more."
-              : "The career library couldn't be loaded right now. Please try again in a moment."}
-          </p>
-          {hasActiveFilters ? (
-            <Link href="/careers" className="text-sm font-semibold text-secondary-dark hover:text-primary">
-              Clear all filters
-            </Link>
-          ) : null}
-        </Card>
-      ) : (
+      {(() => {
+        const state = resolveListEmptyState({ itemCount: results.careers.length, hasActiveFilters: Boolean(hasActiveFilters), error: results.error });
+        if (state === "has_results") return null;
+        if (state === "error") {
+          return (
+            <EmptyState
+              tone="error"
+              title="We couldn't load the career library just now"
+              description="Something went wrong on our end fetching careers. Please try again in a moment."
+            />
+          );
+        }
+        if (state === "dataset_empty") {
+          return (
+            <EmptyState
+              tone="empty"
+              title="No careers here yet"
+              description="We're still building out the career library. Check back soon."
+            />
+          );
+        }
+        return (
+          <EmptyState
+            tone="filtered"
+            title="No careers match your filters"
+            description="Try a broader search term, or clear a filter — the library covers around a hundred careers across engineering, technology, business, healthcare, and more."
+            action={
+              <Link href="/careers" className="text-sm font-semibold text-secondary-dark hover:text-primary">
+                Clear all filters
+              </Link>
+            }
+          />
+        );
+      })()}
+      {results.careers.length > 0 && (
         <>
           <p className="mb-4 text-sm text-muted">
             {results.total} career{results.total === 1 ? "" : "s"} found

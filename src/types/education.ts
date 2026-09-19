@@ -536,6 +536,17 @@ export interface EducationListResult<T> {
   total: number;
   page: number;
   pageSize: number;
+  /**
+   * UX06G — set to `true` only when the underlying query genuinely failed
+   * (a real Supabase/Postgres error), never for a legitimate zero-row
+   * result. Optional and omitted on every successful call, including a
+   * successful call that happens to return zero rows, so existing callers
+   * that only read `items`/`total` are unaffected. See
+   * src/lib/ui/list-state.ts for the shared resolver that turns this,
+   * plus a page's own "are filters active" flag, into one of three
+   * distinct student-facing states.
+   */
+  error?: boolean;
 }
 
 // ---------------------------------------------------------------------------

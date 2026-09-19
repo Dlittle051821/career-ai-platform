@@ -127,7 +127,9 @@ export async function searchUniversities(filters: UniversitySearchFilters = {}):
 
   if (error) {
     logDbError("searchUniversities", error);
-    return empty;
+    // UX06G — genuine query failure; see the matching comment in
+    // src/lib/supabase/education/courses.ts's searchCourses().
+    return { ...empty, error: true };
   }
 
   return { items: (data ?? []).map((r) => toSummary(r as unknown as PublicUniversityRow)), total: count ?? 0, page, pageSize };
