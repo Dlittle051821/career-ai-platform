@@ -271,7 +271,7 @@ export default async function DashboardPage() {
         </div>
       </Card>
 
-      <Card className="mt-6">
+      <Card className={agreements.length > 0 ? "mt-6" : "hidden"}>
         <div className="flex items-start gap-4">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
             <FileSignature aria-hidden="true" className="h-5 w-5" />
@@ -307,7 +307,7 @@ export default async function DashboardPage() {
         </div>
       </Card>
 
-      <Card className="mt-6">
+      <Card className={savedUniversityCount > 0 || savedCourseCount > 0 ? "mt-6" : "hidden"}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-4">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
@@ -427,3 +427,5 @@ export default async function DashboardPage() {
     </Section>
   );
 }
+
+
