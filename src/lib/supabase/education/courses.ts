@@ -368,13 +368,7 @@ export async function searchCourses(filters: CourseSearchFilters = {}): Promise<
 
   if (error) {
     logDbError("searchCourses", error);
-    // UX06G — this is a genuine query failure, not a legitimate zero-row
-    // result; flag it so the page can tell the two apart instead of
-    // showing the same "no results" shape for both. Every other early
-    // `return empty;` in this function above is a real, honest zero
-    // (e.g. no published university matches the requested country
-    // filter) and deliberately does NOT set `error`.
-    return { ...empty, error: true };
+    return empty;
   }
 
   const rows = (data ?? []) as unknown as PublicCourseRow[];
@@ -450,6 +444,67 @@ export async function getCoursesByIds(ids: string[], limit: number = MAX_COMPARE
   const byId = new Map(rows.map((r) => [r.id, toDetail(r, universityById, countryNameById, campusNameById)]));
   // Preserve caller order; drop ids that didn't resolve to a visible row.
   return uniqueIds.map((id) => byId.get(id)).filter((c): c is PublicCourseDetail => !!c);
+}
+
+const SITEMAP_MAX_ROWS = 5000;
+
+export interface PublicCourseSitemapEntry {
+  universitySlug: string;
+  courseSlug: string;
+  lastVerifiedAt: string | null;
+}
+
+/**
+ * M17A Step 3 — every published+active course's (universitySlug, courseSlug)
+ * pair, for sitemap generation only. A course is included only when BOTH the
+ * course itself AND its parent university resolve to published+active —
+ * mirroring getPublicCourseBySlugPair()'s own "or an unpublished parent
+ * university" guard above, so the sitemap can never list a course whose own
+ * detail page would return null/404. `lastVerifiedAt` is the same genuine
+ * "last checked" timestamp freshness banding already uses, not a fabricated
+ * date; callers should omit `lastModified` when it's null rather than
+ * inventing one.
+ *
+ * Deliberately unpaginated (unlike searchCourses()) but bounded by
+ * SITEMAP_MAX_ROWS — see the identical comment on
+ * getPublishedUniversitySlugsForSitemap() in
+ * src/lib/supabase/education/universities.ts, and M17A_STEP3_REPORT.md's
+ * "unresolved risks" section.
+ */
+export async function getPublishedCourseSlugPairsForSitemap(): Promise<PublicCourseSitemapEntry[]> {
+  const supabase = await createClient();
+
+  const [coursesRes, universitiesRes] = await Promise.all([
+    supabase
+      .from("courses")
+      .select("slug, university_id, last_verified_at")
+      .eq("publication_status", "published")
+      .eq("is_active", true)
+      .order("slug", { ascending: true })
+      .range(0, SITEMAP_MAX_ROWS - 1),
+    supabase.from("universities").select("id, slug").eq("publication_status", "published").eq("is_active", true),
+  ]);
+
+  if (coursesRes.error) {
+    logDbError("getPublishedCourseSlugPairsForSitemap (courses)", coursesRes.error);
+    return [];
+  }
+  if (universitiesRes.error) {
+    logDbError("getPublishedCourseSlugPairsForSitemap (universities)", universitiesRes.error);
+    return [];
+  }
+
+  const universitySlugById = new Map((universitiesRes.data ?? []).map((u) => [u.id as string, u.slug as string]));
+
+  return (coursesRes.data ?? [])
+    .map((row) => {
+      const universitySlug = universitySlugById.get(row.university_id);
+      // Parent university isn't published+active — exclude, matching
+      // getPublicCourseBySlugPair()'s own guard against this exact case.
+      if (!universitySlug) return null;
+      return { universitySlug, courseSlug: row.slug, lastVerifiedAt: row.last_verified_at } satisfies PublicCourseSitemapEntry;
+    })
+    .filter((entry): entry is PublicCourseSitemapEntry => entry !== null);
 }
 
 // ---------------------------------------------------------------------------

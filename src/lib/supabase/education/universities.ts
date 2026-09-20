@@ -127,9 +127,7 @@ export async function searchUniversities(filters: UniversitySearchFilters = {}):
 
   if (error) {
     logDbError("searchUniversities", error);
-    // UX06G — genuine query failure; see the matching comment in
-    // src/lib/supabase/education/courses.ts's searchCourses().
-    return { ...empty, error: true };
+    return empty;
   }
 
   return { items: (data ?? []).map((r) => toSummary(r as unknown as PublicUniversityRow)), total: count ?? 0, page, pageSize };
@@ -219,6 +217,48 @@ export async function getUniversitiesByIds(ids: string[]): Promise<PublicUnivers
     return [];
   }
   return (data ?? []).map((r) => toSummary(r as unknown as PublicUniversityRow));
+}
+
+const SITEMAP_MAX_ROWS = 5000;
+
+export interface PublicUniversitySitemapEntry {
+  slug: string;
+  lastVerifiedAt: string | null;
+}
+
+/**
+ * M17A Step 3 — every published+active university's slug, for sitemap
+ * generation only. Mirrors searchUniversities()'s exact
+ * publication_status/is_active filter so "public" never depends on more
+ * than one place to define it (see this module's docblock). `lastVerifiedAt`
+ * is a genuine, already-tracked "last checked" timestamp (the same one
+ * freshness banding uses) — an honest lastModified source, not a fabricated
+ * date; it is `null` for a university that has never been verified, and
+ * callers should omit `lastModified` entirely in that case rather than
+ * inventing one.
+ *
+ * Deliberately NOT paginated like searchUniversities() — a sitemap needs
+ * every row, not one page — but bounded by SITEMAP_MAX_ROWS as a safety cap
+ * against an unbounded query. See M17A_STEP3_REPORT.md's "unresolved risks"
+ * section: if the published catalogue ever approaches this cap, it needs
+ * revisiting (e.g. a paginated sitemap index) rather than silently
+ * truncating unnoticed.
+ */
+export async function getPublishedUniversitySlugsForSitemap(): Promise<PublicUniversitySitemapEntry[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("universities")
+    .select("slug, last_verified_at")
+    .eq("publication_status", "published")
+    .eq("is_active", true)
+    .order("slug", { ascending: true })
+    .range(0, SITEMAP_MAX_ROWS - 1);
+
+  if (error) {
+    logDbError("getPublishedUniversitySlugsForSitemap", error);
+    return [];
+  }
+  return (data ?? []).map((row) => ({ slug: row.slug, lastVerifiedAt: row.last_verified_at }));
 }
 
 export interface PublicCampusSummary {
