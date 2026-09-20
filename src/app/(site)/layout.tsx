@@ -55,10 +55,23 @@ export const metadata: Metadata = {
     description: BRAND_SHORT_DESCRIPTION,
     images: [BRAND_LOGO.socialShare],
   },
-  robots: {
-    index: false,
-    follow: false,
-  },
+  // M17A Step 6 — the temporary site-wide `robots: { index: false, follow:
+  // false }` that lived here throughout M17A Steps 1-5 has been removed.
+  // This is the controlled indexability release: every private/internal/
+  // authenticated route was re-confirmed (M17A_STEP6_REPORT.md §2) to carry
+  // its OWN independent, permanent `robots: { index: false, follow: false }`
+  // — on its own page, or on a dedicated route-group `layout.tsx` — added in
+  // Step 2 (or, for /admin and /pay/[token], predating M17A entirely) and
+  // unaffected by this deletion. No page in the tree relied solely on this
+  // field for its protection (confirmed by grepping every `robots:`
+  // declaration under src/app/(site) and src/app/admin before this change).
+  // Removing it is therefore the only change needed for legitimate public
+  // pages to become indexable: none of them declares its own `robots` field,
+  // so once this one is gone they simply have no `robots` metadata at
+  // all — which is exactly Next.js/Google's implicit `index: true, follow:
+  // true` default. Do not reinstate this field without first re-running the
+  // same independent-protection audit for every route category in
+  // M17A_STEP6_REPORT.md §2.
 };
 
 /**
