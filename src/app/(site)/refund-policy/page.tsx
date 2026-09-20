@@ -4,6 +4,7 @@ import { LegalPlaceholder } from "@/components/sections/legal/LegalPlaceholder";
 export const metadata: Metadata = {
   title: "Refund Policy",
   description: "What our future Refund Policy will cover — pending professional legal review before launch.",
+  alternates: { canonical: "/refund-policy" },
 };
 
 const CATEGORIES = [

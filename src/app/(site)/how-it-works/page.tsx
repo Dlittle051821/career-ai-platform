@@ -16,6 +16,7 @@ export const metadata: Metadata = {
   title: "How It Works",
   description:
     "See the full career-first journey — from understanding yourself to job readiness — and what's available free versus with paid support.",
+  alternates: { canonical: "/how-it-works" },
 };
 
 const TECH_VS_HUMAN = [

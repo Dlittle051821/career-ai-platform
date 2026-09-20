@@ -8,8 +8,26 @@ import "../globals.css";
 
 const DEFAULT_TITLE = `${BRAND_NAME} — ${BRAND_TAGLINE}`;
 
+/**
+ * M17A Step 5 — production fallback for `metadataBase`. `SITE_URL` (from
+ * src/config/site.ts) reads `NEXT_PUBLIC_APP_URL`, which is unset in this
+ * repo's own env files and, per the audit, cannot be assumed to be reliably
+ * configured to the production origin in every environment this builds in
+ * — exactly why every build this milestone has produced logs Next.js's own
+ * "metadataBase ... using http://localhost:3000" warning. Every canonical
+ * URL added in this step (via `alternates.canonical`) is a *relative* path
+ * resolved against this value, so an unset/misconfigured env var would
+ * silently turn every canonical tag into a `localhost:3000` URL in
+ * production — a real regression, not a cosmetic warning. This mirrors the
+ * same reliability reasoning already applied to `src/app/sitemap.ts` and
+ * `src/app/robots.ts` (Steps 3-4): prefer `SITE_URL` when it is genuinely
+ * set to something, but never fall through to `undefined`/localhost for
+ * the one deployment that matters.
+ */
+const PRODUCTION_ORIGIN = "https://nextwise.world";
+
 export const metadata: Metadata = {
-  metadataBase: SITE_URL ? new URL(SITE_URL) : undefined,
+  metadataBase: new URL(SITE_URL || PRODUCTION_ORIGIN),
   applicationName: BRAND_NAME,
   title: {
     default: DEFAULT_TITLE,

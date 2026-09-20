@@ -4,6 +4,7 @@ import { LegalPlaceholder } from "@/components/sections/legal/LegalPlaceholder";
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description: "What our future Privacy Policy will cover — pending professional legal review before launch.",
+  alternates: { canonical: "/privacy" },
 };
 
 const CATEGORIES = [

@@ -20,6 +20,7 @@ export const metadata: Metadata = {
   title: "India and Abroad Study Options",
   description:
     "Compare India, Europe, and other international study pathways on career fit, cost, and realistic outcomes — not marketing claims.",
+  alternates: { canonical: "/study-options" },
 };
 
 export default function StudyOptionsPage() {

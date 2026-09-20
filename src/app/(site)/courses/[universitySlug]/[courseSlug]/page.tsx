@@ -35,11 +35,20 @@ interface CourseDetailPageProps {
   searchParams: Promise<{ applyError?: string }>;
 }
 
+// M17A Step 5 — self-referencing canonical for real published+active
+// courses (whose parent university is also published+active — see
+// getPublicCourseBySlugPair's own guard), using the actual slug pair
+// already fetched (never fabricated). A missing/unpublished slug pair
+// gets a permanent noindex instead.
 export async function generateMetadata({ params }: CourseDetailPageProps): Promise<Metadata> {
   const { universitySlug, courseSlug } = await params;
   const course = await getPublicCourseBySlugPair(universitySlug, courseSlug);
-  if (!course) return { title: "Course not found" };
-  return { title: `${course.name} — ${course.universityName}`, description: course.entryRequirementsSummary ?? undefined };
+  if (!course) return { title: "Course not found", robots: { index: false, follow: false } };
+  return {
+    title: `${course.name} — ${course.universityName}`,
+    description: course.entryRequirementsSummary ?? undefined,
+    alternates: { canonical: `/courses/${universitySlug}/${courseSlug}` },
+  };
 }
 
 function formatDate(value: string | null): string | null {

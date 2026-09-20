@@ -9,6 +9,7 @@ import { BookingForm } from "@/components/sections/book-counselling/BookingForm"
 export const metadata: Metadata = {
   title: "Book Free Counselling",
   description: "Request a free, no-obligation counselling conversation about your career and education goals.",
+  alternates: { canonical: "/book-counselling" },
 };
 
 export default function BookCounsellingPage() {

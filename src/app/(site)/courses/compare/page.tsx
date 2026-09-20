@@ -9,9 +9,30 @@ import { MAX_COMPARE_COURSES } from "@/components/sections/education/CompareTray
 import { getCoursesByIds } from "@/lib/supabase/education/courses";
 import { trackEvent } from "@/lib/supabase/analytics/track";
 
+/**
+ * M17A Step 5 — permanent noindex + clean self-referencing canonical.
+ *
+ * This page is selected via `?ids=uuid1,uuid2,...` (up to
+ * MAX_COMPARE_COURSES raw database ids) — an even less bounded crawl-trap
+ * shape than `/compare`'s slug-based selection, since it is keyed directly
+ * off course row ids rather than a fixed, human-authored slug set. The
+ * audit (M17A_SEO_AUDIT.md, Group B) flagged this page for the same
+ * reason as `/compare`. No individual id combination has standalone search
+ * value over the underlying course detail pages themselves, so this page
+ * is now permanently excluded from indexing and canonicalizes to the bare
+ * picker URL, following this step's own instruction to prefer noindex over
+ * letting unlimited id combinations into the index.
+ *
+ * `src/app/robots.ts` (Step 4) still allows crawling `/courses/compare` —
+ * unchanged and correct, since robots.txt controls crawling and this
+ * `robots` field controls indexing; blocking crawl would also hide this
+ * noindex tag from Googlebot. See M17A_STEP5_REPORT.md.
+ */
 export const metadata: Metadata = {
   title: "Compare Courses",
   description: "Compare two to four university courses side by side — tuition, duration, entry requirements, and more.",
+  alternates: { canonical: "/courses/compare" },
+  robots: { index: false, follow: false },
 };
 
 const MIN_COMPARE_COURSES = 2;

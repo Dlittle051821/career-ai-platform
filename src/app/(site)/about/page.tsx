@@ -13,6 +13,7 @@ import { BRAND_NAME } from "@/config/site";
 export const metadata: Metadata = {
   title: "About",
   description: `Why career-first guidance matters, ${BRAND_NAME}'s Odisha focus, our operating principles, and an honest look at what's built so far.`,
+  alternates: { canonical: "/about" },
 };
 
 const PRINCIPLES = [

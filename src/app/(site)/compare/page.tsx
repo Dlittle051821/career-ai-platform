@@ -12,9 +12,32 @@ import { getRecommendations, hasMinimumProfileDataForRecommendations } from "@/l
 import type { RecommendationResult } from "@/lib/recommendations";
 import { trackEvent } from "@/lib/supabase/analytics/track";
 
+/**
+ * M17A Step 5 — permanent noindex + clean self-referencing canonical.
+ *
+ * This page is selected via `?a=&b=&c=` (up to MAX_COMPARE_CAREERS slugs),
+ * so the number of distinct URLs it can be requested at grows
+ * combinatorially with the size of the career library — the audit
+ * (M17A_SEO_AUDIT.md, Group B) flagged this as a crawl-trap-shaped public
+ * page precisely because there is no natural upper bound on that count.
+ * No individual combination has meaningful standalone search value over
+ * the picker itself, so per this step's own instruction ("prefer noindex
+ * ... rather than allowing unlimited combinations into Google's index"),
+ * every request to this page — regardless of which slugs are selected —
+ * is now permanently excluded from indexing, and canonicalizes to the
+ * bare picker URL.
+ *
+ * This does NOT change crawlability: `src/app/robots.ts` (Step 4)
+ * deliberately still allows crawling `/compare`, and that stays correct —
+ * robots.txt controls crawling, this `robots` metadata field controls
+ * indexing, and blocking crawl here would also hide this same noindex tag
+ * from Googlebot. See M17A_STEP5_REPORT.md for the full reasoning.
+ */
 export const metadata: Metadata = {
   title: "Compare Careers",
   description: "Compare two or three careers side by side — subjects, skills, education routes, and characteristics.",
+  alternates: { canonical: "/compare" },
+  robots: { index: false, follow: false },
 };
 
 interface ComparePageProps {

@@ -9,7 +9,8 @@ import { PageHero } from "@/components/sections/PageHero";
 import { CTASection } from "@/components/sections/CTASection";
 import { FaqAccordion } from "@/components/sections/FaqAccordion";
 import { DemoNotice } from "@/components/ui/DemoNotice";
-import { GuidedDiscoveryFlow } from "@/components/sections/career-discovery/GuidedDiscoveryFlow";
+import { AssessmentPreview } from "@/components/sections/career-discovery/AssessmentPreview";
+import { ResultCardPreview } from "@/components/sections/career-discovery/ResultCardPreview";
 import { WaitlistForm } from "@/components/sections/career-discovery/WaitlistForm";
 import { DISCOVERY_FACTORS } from "@/data/career-discovery";
 import { CAREER_DISCOVERY_FAQS } from "@/data/faqs";
@@ -17,7 +18,8 @@ import { CAREER_DISCOVERY_FAQS } from "@/data/faqs";
 export const metadata: Metadata = {
   title: "Career Discovery",
   description:
-    "A short, interactive orientation to help you get your bearings before choosing a career and course — plus a preview of the fuller assessment engine we're building.",
+    "A preview of our career-first discovery approach — the signals it will consider, sample questions, and an illustrative result.",
+  alternates: { canonical: "/career-discovery" },
 };
 
 export default function CareerDiscoveryPage() {
@@ -30,23 +32,11 @@ export default function CareerDiscoveryPage() {
         breadcrumbs={[{ label: "Home", href: "/" }, { label: "Career Discovery" }]}
       >
         <DemoNotice>
-          The full scored assessment engine is still in development. The quick orientation below is real and
-          interactive, but it only reflects your answers back to you — it does not score or store anything.
+          The assessment engine is in development. Nothing on this page scores or stores real answers yet.
         </DemoNotice>
       </PageHero>
 
       <Section tone="surface">
-        <SectionHeading
-          eyebrow="Start here"
-          title="Get oriented in a couple of minutes"
-          description="Six short, skippable questions — no login, nothing saved. You'll get an honest reflection of what you told us, not a score."
-        />
-        <div className="mt-8 mx-auto max-w-2xl">
-          <GuidedDiscoveryFlow />
-        </div>
-      </Section>
-
-      <Section tone="muted">
         <SectionHeading eyebrow="What we consider" title="Multiple signals, not one label" description="Future recommendations are designed to weigh several factors together rather than reducing you to a single personality type." />
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {DISCOVERY_FACTORS.map((factor) => (
@@ -62,6 +52,26 @@ export default function CareerDiscoveryPage() {
         <p className="mt-4 text-xs text-muted">
           Weights shown are the intended design for future scoring and may be refined as the model is built.
         </p>
+      </Section>
+
+      <Section tone="muted">
+        <div className="grid gap-10 lg:grid-cols-2">
+          <div>
+            <SectionHeading eyebrow="Try the format" title="Sample assessment preview" className="max-w-none" />
+            <div className="mt-6">
+              <AssessmentPreview />
+            </div>
+          </div>
+          <div>
+            <SectionHeading eyebrow="Illustrative output" title="What a result could look like" className="max-w-none" />
+            <div className="mt-6">
+              <ResultCardPreview />
+            </div>
+            <p className="mt-4 text-xs text-muted">
+              Sample content only — not generated from real answers and not a genuine recommendation.
+            </p>
+          </div>
+        </div>
       </Section>
 
       <Section tone="surface">

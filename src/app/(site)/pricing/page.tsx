@@ -19,6 +19,7 @@ import { BRAND_NAME } from "@/config/site";
 export const metadata: Metadata = {
   title: "Pricing",
   description: `Official ${BRAND_NAME} pricing for school and college counselling, and Bachelor's/Master's abroad guidance — one-time payment, no subscriptions.`,
+  alternates: { canonical: "/pricing" },
 };
 
 const TAB_GROUPS: { id: string; label: string; categories: PricingCategory[] }[] = [

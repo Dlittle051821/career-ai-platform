@@ -11,6 +11,7 @@ import { BRAND_NAME, CONTACT } from "@/config/site";
 export const metadata: Metadata = {
   title: "Contact",
   description: `Reach ${BRAND_NAME} for student guidance, parent questions, partnership enquiries, or complaints.`,
+  alternates: { canonical: "/contact" },
 };
 
 const ICONS = {

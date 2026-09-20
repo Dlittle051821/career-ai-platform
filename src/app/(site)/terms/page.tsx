@@ -5,6 +5,7 @@ import { BRAND_NAME } from "@/config/site";
 export const metadata: Metadata = {
   title: "Terms of Service",
   description: "What our future Terms of Service will cover — pending professional legal review before launch.",
+  alternates: { canonical: "/terms" },
 };
 
 const CATEGORIES = [

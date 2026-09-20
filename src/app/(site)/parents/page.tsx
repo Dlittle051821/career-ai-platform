@@ -17,6 +17,7 @@ import { BRAND_NAME } from "@/config/site";
 export const metadata: Metadata = {
   title: "For Parents",
   description: `Cost planning, questions to ask, fraud warning signs, and how ${BRAND_NAME} intends to document scope, payments, and refunds for families.`,
+  alternates: { canonical: "/parents" },
 };
 
 export default function ParentsPage() {

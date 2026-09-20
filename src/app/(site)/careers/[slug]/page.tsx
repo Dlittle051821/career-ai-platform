@@ -17,11 +17,18 @@ interface CareerDetailPageProps {
   params: Promise<{ slug: string }>;
 }
 
+// M17A Step 5 — self-referencing canonical for real published careers,
+// using the actual slug already fetched (never a fabricated one). A
+// missing/unpublished slug gets a permanent noindex instead of a canonical
+// — there is no legitimate page at that URL to point search engines at,
+// and the route renders a 200 "not found" notice (see below) rather than
+// a real 404, so this is the only signal telling crawlers it isn't real
+// content.
 export async function generateMetadata({ params }: CareerDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
   const career = await getCareerBySlug(slug);
-  if (!career) return { title: "Career not found" };
-  return { title: career.title, description: career.summary };
+  if (!career) return { title: "Career not found", robots: { index: false, follow: false } };
+  return { title: career.title, description: career.summary, alternates: { canonical: `/careers/${slug}` } };
 }
 
 /**

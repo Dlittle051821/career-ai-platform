@@ -26,11 +26,18 @@ interface UniversityDetailPageProps {
   params: Promise<{ slug: string }>;
 }
 
+// M17A Step 5 — self-referencing canonical for real published+active
+// universities, using the actual slug already fetched (never fabricated).
+// A missing/unpublished/inactive slug gets a permanent noindex instead.
 export async function generateMetadata({ params }: UniversityDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
   const university = await getPublicUniversityBySlug(slug);
-  if (!university) return { title: "University not found" };
-  return { title: university.name, description: university.summary ?? undefined };
+  if (!university) return { title: "University not found", robots: { index: false, follow: false } };
+  return {
+    title: university.name,
+    description: university.summary ?? undefined,
+    alternates: { canonical: `/universities/${slug}` },
+  };
 }
 
 function formatDate(value: string | null): string | null {

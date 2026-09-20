@@ -28,6 +28,7 @@ export const metadata: Metadata = {
   title: "Trust Center",
   description:
     "Verification status, payment protection, refund and escalation processes, and our no-guarantees policy — trust made visible, not just claimed.",
+  alternates: { canonical: "/trust" },
 };
 
 export default function TrustCenterPage() {
