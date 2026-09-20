@@ -17,6 +17,10 @@ import type { RecommendationReadiness } from "@/types/recommendation-readiness";
 export const metadata: Metadata = {
   title: "Career Recommendations",
   description: "Careers ranked against your Student Digital Profile, with plain-language reasons for each match.",
+  // M17A Step 2 — permanent, page-level noindex protection; see
+  // src/app/(site)/dashboard/page.tsx's metadata comment for why this is
+  // needed independent of the temporary site-wide noindex.
+  robots: { index: false, follow: false },
 };
 
 /**

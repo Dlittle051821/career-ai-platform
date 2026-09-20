@@ -4,6 +4,9 @@ import { ForgotPasswordForm } from "@/components/sections/auth/ForgotPasswordFor
 
 export const metadata: Metadata = {
   title: "Reset your password",
+  // M17A Step 2 — permanent, page-level noindex protection; see
+  // src/app/(site)/login/page.tsx's metadata comment.
+  robots: { index: false, follow: false },
 };
 
 export default function ForgotPasswordPage() {

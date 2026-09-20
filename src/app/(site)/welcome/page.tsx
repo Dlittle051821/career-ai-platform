@@ -10,7 +10,13 @@ import { getStudentProfileSnapshot, getOnboardingPath } from "@/lib/supabase/stu
 import { trackEvent } from "@/lib/supabase/analytics/track";
 import { chooseDiscoverySessionAction, chooseSelfServeAction } from "./actions";
 
-export const metadata: Metadata = { title: "Welcome" };
+export const metadata: Metadata = {
+  title: "Welcome",
+  // M17A Step 2 — permanent, page-level noindex protection; see
+  // src/app/(site)/dashboard/page.tsx's metadata comment for why this is
+  // needed independent of the temporary site-wide noindex.
+  robots: { index: false, follow: false },
+};
 
 /**
  * Milestone 11-B1 — the Assisted Onboarding Revision's post-registration
