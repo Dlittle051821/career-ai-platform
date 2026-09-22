@@ -228,6 +228,25 @@ export default defineConfig({
       // Library/jsdom in this project" reason documented throughout this
       // file; only the framework-free logic it calls is covered.
       "src/lib/career-discovery/**/*.test.ts",
+      // Milestone 17 (v2) — Application Documents Foundation. Pure taxonomy/
+      // completeness logic (src/lib/applications/application-documents.ts)
+      // and the static-SQL-text migration-security regression guard for
+      // 0018_application_documents_foundation.sql, same "pure,
+      // framework-free" convention as every directory above.
+      "src/lib/applications/application-documents.test.ts",
+      "src/lib/applications/application-documents-migration-security.test.ts",
+      // Milestone 17 (v2) — a third, equally narrow exception to the
+      // "src/lib/supabase/ is untested here" convention, for exactly the
+      // same reason as refunds.test.ts/applications.test.ts above: the
+      // upload/replace/remove orchestration (Storage upload + RPC call +
+      // best-effort cleanup ordering, and the explicit error-sanitization
+      // allow-list that is this milestone's own Issue-5 fix) is STATEFUL
+      // ORCHESTRATION logic that cannot be exercised as a pure function.
+      // Both files mock the same I/O boundaries (createClient/
+      // requireAdminPermission) behind the same kind of hand-rolled
+      // in-memory Supabase fake.
+      "src/lib/supabase/education/application-documents.test.ts",
+      "src/lib/supabase/admin/application-documents.test.ts",
     ],
   },
 });

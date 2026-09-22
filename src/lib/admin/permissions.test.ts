@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ADMIN_ROLES } from "@/types/admin";
-import { hasAnyPermission, hasPermission, isKnownAdminRole, ROLE_PERMISSIONS } from "./permissions";
+import { ADMIN_PERMISSIONS, hasAnyPermission, hasPermission, isKnownAdminRole, ROLE_PERMISSIONS } from "./permissions";
 
 describe("ROLE_PERMISSIONS", () => {
   it("gives super_admin every permission, including roles:manage", () => {
@@ -74,6 +74,19 @@ describe("ROLE_PERMISSIONS", () => {
     for (const permission of ["invoices:read", "invoices:write", "refunds:read", "refunds:write", "payment-events:read", "billing-settings:read", "billing-settings:write"] as const) {
       expect(ROLE_PERMISSIONS.super_admin).toContain(permission);
     }
+  });
+
+  it("Milestone 17 (v3) — scopes application-documents:read to super_admin/admin/counsellor only, never finance or analyst", () => {
+    expect(ROLE_PERMISSIONS.super_admin).toContain("application-documents:read");
+    expect(ROLE_PERMISSIONS.admin).toContain("application-documents:read");
+    expect(ROLE_PERMISSIONS.counsellor).toContain("application-documents:read");
+    expect(ROLE_PERMISSIONS.finance).not.toContain("application-documents:read");
+    expect(ROLE_PERMISSIONS.analyst).not.toContain("application-documents:read");
+    expect(ROLE_PERMISSIONS.content_editor).not.toContain("application-documents:read");
+  });
+
+  it("Milestone 17 (v3) — application-documents:read has no :write counterpart at all — admin/counsellor document visibility is read-only, full stop", () => {
+    expect(ADMIN_PERMISSIONS).not.toContain("application-documents:write");
   });
 });
 

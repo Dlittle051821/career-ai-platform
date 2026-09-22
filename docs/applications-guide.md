@@ -604,7 +604,10 @@ milestones, not implemented here even partially):
   admin sets it directly (there is no admin UI for that either yet).
 - **No "start application from a saved/recommended item" wiring.** Starting
   an application is still only possible from a course detail page.
-- **No document upload, SOP, or LOR workflow** — those are Milestone 17/23/24.
+- **No document upload, SOP, or LOR workflow** was in scope for THIS
+  milestone. Document upload/view/replace/remove now exists as of Milestone
+  17 (v2) — see `docs/application-documents-guide.md`. SOP/LOR generation
+  remains Milestone 23/24, undelivered.
 - **No counsellor case-management workspace** — Milestone 18.
 - **No structured shortlisting** — Milestone 19.
 - **No offer comparison/acceptance beyond a status** — `offer_received` is

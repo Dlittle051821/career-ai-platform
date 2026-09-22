@@ -6,10 +6,12 @@ import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
 import { getCurrentUser } from "@/lib/supabase/profile";
 import { getMyApplicationById, getMyApplicationHistory } from "@/lib/supabase/education/applications";
+import { listMyApplicationDocuments } from "@/lib/supabase/education/application-documents";
 import { ApplicationStatusBadge } from "@/components/applications/ApplicationStatusBadge";
 import { ApplicationTimeline } from "@/components/applications/ApplicationTimeline";
 import { ApplicationActions } from "@/components/applications/ApplicationActions";
 import { ApplicationNoteEditor } from "@/components/applications/ApplicationNoteEditor";
+import { ApplicationDocuments } from "@/components/applications/ApplicationDocuments";
 import { getApplicationNextAction } from "@/lib/applications/application-lifecycle";
 import { APPLICATION_STAGE_LABELS, type ApplicationStage } from "@/types/admin";
 
@@ -49,6 +51,7 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
   if (!application) notFound();
 
   const history = await getMyApplicationHistory(id);
+  const documents = await listMyApplicationDocuments(id);
   const next = getApplicationNextAction(application.stage);
   const title =
     application.courseName && application.universityName
@@ -114,6 +117,13 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
                 </div>
               ) : null}
             </dl>
+          </Card>
+
+          <Card>
+            <h2 className="text-base font-semibold text-primary">Documents</h2>
+            <div className="mt-4">
+              <ApplicationDocuments applicationId={application.id} initialDocuments={documents} />
+            </div>
           </Card>
 
           <Card>

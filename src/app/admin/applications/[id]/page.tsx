@@ -9,6 +9,11 @@ import { getApplicationById } from "@/lib/supabase/admin/applications";
 import { listUniversityOptions } from "@/lib/supabase/admin/universities";
 import { listCourseOptions } from "@/lib/supabase/admin/courses";
 import { listCounsellorOptions } from "@/lib/supabase/admin/counsellors";
+import { listApplicationDocumentsForAdmin } from "@/lib/supabase/admin/application-documents";
+import { APPLICATION_DOCUMENT_TYPE_LABELS, type ApplicationDocumentType } from "@/lib/applications/application-documents";
+import { AdminDocumentDownloadButton } from "@/components/admin/applications/AdminDocumentDownloadButton";
+import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
+import { hasPermission } from "@/lib/admin/permissions";
 import { APPLICATION_STAGE_LABELS } from "@/types/admin";
 import { updateApplicationAction } from "../actions";
 
@@ -20,13 +25,30 @@ export const metadata: Metadata = { title: "Edit Application" };
 
 export default async function ApplicationDetailPage({ params }: ApplicationDetailPageProps) {
   const { id } = await params;
-  const [application, universityOptions, courseOptions, counsellorOptions] = await Promise.all([
+  const [application, universityOptions, courseOptions, counsellorOptions, admin] = await Promise.all([
     getApplicationById(id),
     listUniversityOptions(),
     listCourseOptions(),
     listCounsellorOptions(),
+    getCurrentAdmin(),
   ]);
   if (!application) notFound();
+
+  // Milestone 17 (v3) — read-only. `applications:read` (required just to
+  // reach this page at all, via getApplicationById above) is deliberately
+  // NOT what gates the Documents card below: this table's own access model
+  // is narrower (super_admin/admin/assigned counsellor only — see
+  // 0018_application_documents_foundation.sql PART 2/5 and
+  // docs/application-documents-guide.md's "Least-privilege document access
+  // (M17-v3)" section for the full reasoning), so a finance/analyst caller
+  // — who DOES hold applications:read and can reach this page — must not
+  // trip an AdminAuthorizationError just by loading it. Checked explicitly
+  // here (rather than assumed) so the card simply disappears instead of
+  // crashing the page if the two ever drift, same pattern this codebase
+  // already uses for "profile-verification:read"/"recommendation-readiness:
+  // read" on src/app/admin/students/[id]/page.tsx.
+  const canReadDocuments = hasPermission(admin?.role, "application-documents:read");
+  const documents = canReadDocuments ? await listApplicationDocumentsForAdmin(id) : [];
 
   const boundAction = updateApplicationAction.bind(null, id, application.studentUserId);
 
@@ -81,6 +103,36 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
           </div>
         </div>
       </Card>
+
+      {/* Milestone 17 — read-only. No upload/replace/remove control anywhere
+          on this page — every document mutation is student-only
+          (src/lib/supabase/education/application-documents.ts), matching
+          this milestone's "keep admin changes minimal, no M18 review
+          workflow" scope. Shows CURRENT documents only
+          (listApplicationDocumentsForAdmin() filters is_current — this
+          milestone has no version-history UI). Omitted entirely (not shown
+          as an empty state) for a caller without application-documents:read
+          — see canReadDocuments above. */}
+      {canReadDocuments && (
+        <Card className="mt-6 space-y-3">
+          <h2 className="text-base font-semibold text-primary">Documents</h2>
+          {documents.length === 0 ? (
+            <p className="mt-1 text-sm text-muted">No documents uploaded yet.</p>
+          ) : (
+            <ul className="mt-1 space-y-2">
+              {documents.map((doc) => (
+                <li key={doc.id} className="flex items-center justify-between gap-3 border-t border-border pt-2 text-sm first:border-0 first:pt-0">
+                  <div>
+                    <p className="text-text">{APPLICATION_DOCUMENT_TYPE_LABELS[doc.documentType as ApplicationDocumentType] ?? doc.documentType}</p>
+                    <p className="mt-0.5 text-xs text-muted">{doc.originalFilename}</p>
+                  </div>
+                  <AdminDocumentDownloadButton storagePath={doc.storagePath} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      )}
 
       <Card className="mt-6">
         <h2 className="text-base font-semibold text-primary">Stage history</h2>

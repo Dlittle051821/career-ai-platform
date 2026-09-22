@@ -851,6 +851,26 @@ type ApplicationStatusHistoryRow = {
 };
 
 // ---------------------------------------------------------------------------
+// application_documents (Milestone 17 v2 — see
+// 0018_application_documents_foundation.sql)
+// ---------------------------------------------------------------------------
+type ApplicationDocumentsRow = {
+  id: string;
+  application_id: string;
+  document_type: string;
+  original_filename: string;
+  storage_path: string;
+  mime_type: string;
+  file_size_bytes: number;
+  display_label: string | null;
+  is_current: boolean;
+  /** Milestone 17 (v2) — non-load-bearing audit distinction only; null = retired by replacement, non-null = explicit removal. Never used for authorization. */
+  removed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
 // payments (Milestone 7 — operational tracking only, see 0004 migration)
 // ---------------------------------------------------------------------------
 type PaymentsRow = {
@@ -1695,6 +1715,54 @@ export interface Database {
         Args: { p_course_id: string; p_university_id: string };
         Returns: string;
       };
+      // Milestone 17 (v2) — Application Documents Foundation — see
+      // 0018_application_documents_foundation.sql PART 3/6/7 for full
+      // documentation of each function's authorization/locking/validation
+      // behavior and the specific security fixes each one carries.
+      get_my_application_documents: {
+        Args: { p_application_id: string };
+        Returns: {
+          id: string;
+          document_type: string;
+          original_filename: string;
+          storage_path: string;
+          mime_type: string;
+          file_size_bytes: number;
+          display_label: string | null;
+          created_at: string;
+          updated_at: string;
+        }[];
+      };
+      student_upload_application_document: {
+        Args: {
+          p_application_id: string;
+          p_document_type: string;
+          p_original_filename: string;
+          p_storage_path: string;
+          p_mime_type: string;
+          p_file_size_bytes: number;
+          p_display_label?: string | null;
+        };
+        Returns: {
+          id: string;
+          document_type: string;
+          original_filename: string;
+          storage_path: string;
+          mime_type: string;
+          file_size_bytes: number;
+          display_label: string | null;
+          created_at: string;
+          updated_at: string;
+          previous_storage_path: string | null;
+        }[];
+      };
+      student_remove_application_document: {
+        Args: { p_document_id: string };
+        Returns: {
+          id: string;
+          storage_path: string;
+        }[];
+      };
     };
     Tables: {
       profiles: {
@@ -2087,6 +2155,24 @@ export interface Database {
           student_visible_message?: string | null;
         };
         Update: Partial<Omit<ApplicationStatusHistoryRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      // Milestone 17 (v2) — see 0018_application_documents_foundation.sql.
+      // is_current defaults to true and removed_at defaults to null at the
+      // database level, so both stay optional on insert — matching every
+      // other table's own "the database's own defaults, restated here,
+      // decide what's optional" convention throughout this file.
+      application_documents: {
+        Row: ApplicationDocumentsRow;
+        Insert: Omit<ApplicationDocumentsRow, "id" | "created_at" | "updated_at" | "is_current" | "removed_at" | "display_label"> &
+          TimestampedInsert & {
+            id?: string;
+            is_current?: boolean;
+            removed_at?: string | null;
+            display_label?: string | null;
+          };
+        Update: Partial<Omit<ApplicationDocumentsRow, "id" | "created_at">> & { created_at?: string };
         Relationships: [];
       };
 

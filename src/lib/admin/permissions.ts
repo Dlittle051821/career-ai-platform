@@ -108,6 +108,23 @@ export const ADMIN_PERMISSIONS = [
   // provenance where a plain admin can record COUNSELLOR_ENTERED.
   "recommendation-readiness:read",
   "recommendation-readiness:write",
+  // Milestone 17 (v3) — Application Documents least-privilege access. Its
+  // own single read-only permission rather than reusing "applications:read"
+  // (too broad — it is also held by finance and analyst, and this table can
+  // hold identity documents, transcripts, financial documents, and test
+  // certificates, which nothing in the existing spec establishes a concrete
+  // need for finance/analyst to see) and rather than inventing a new RBAC
+  // architecture — this follows the exact same narrow-permission-pair
+  // pattern already used above for "profile-verification:*" and
+  // "recommendation-readiness:*". No ":write" counterpart exists: admin/
+  // counsellor visibility in this milestone is read-only, full stop — every
+  // document mutation is student-only (see 0018_application_documents_
+  // foundation.sql PART 6/7). Granted only to admin and counsellor below
+  // (super_admin gets it via the blanket ADMIN_PERMISSIONS assignment) —
+  // deliberately NOT finance or analyst. See
+  // docs/application-documents-guide.md's "Least-privilege document access
+  // (M17-v3)" section for the full decision and reasoning.
+  "application-documents:read",
 ] as const;
 
 export type AdminPermission = (typeof ADMIN_PERMISSIONS)[number];
@@ -178,6 +195,8 @@ export const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
     // Milestone 11-C2 — admin gets full recommendation-readiness management.
     "recommendation-readiness:read",
     "recommendation-readiness:write",
+    // Milestone 17 (v3) — admin gets read-only application-document access.
+    "application-documents:read",
   ],
   counsellor: [
     "dashboard:read",
@@ -212,6 +231,11 @@ export const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
     // which students they can verify.
     "recommendation-readiness:read",
     "recommendation-readiness:write",
+    // Milestone 17 (v3) — counsellors see documents only for their own
+    // assigned applications (this table's own RLS — 0018 PART 2 — further
+    // scopes that regardless of this permission map, same "app permission is
+    // UX, RLS is the boundary" split as every other module here).
+    "application-documents:read",
   ],
   finance: [
     "dashboard:read",
