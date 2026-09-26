@@ -5,7 +5,9 @@ import type { EducationActionResult } from "./saved-items";
 import {
   APPLICATION_DOCUMENT_ALLOWED_MIME_TYPES,
   APPLICATION_DOCUMENT_MAX_FILE_SIZE_BYTES,
+  isApplicationDocumentReviewStatus,
   isApplicationDocumentType,
+  type ApplicationDocumentReviewStatus,
   type ApplicationDocumentType,
 } from "@/lib/applications/application-documents";
 
@@ -135,6 +137,10 @@ export interface MyApplicationDocument {
   displayLabel: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Milestone 18 — staff review state. Never review_note/reviewed_by — get_my_application_documents() (0020 PART 3) structurally excludes both; this type has no field for either, so a future accidental select can't leak them through here even if the RPC itself were ever widened by mistake. */
+  reviewStatus: ApplicationDocumentReviewStatus;
+  /** Milestone 18 — the STUDENT-FACING message, present only while reviewStatus is 'needs_correction'. */
+  correctionMessage: string | null;
 }
 
 interface MyApplicationDocumentRow {
@@ -147,6 +153,8 @@ interface MyApplicationDocumentRow {
   display_label: string | null;
   created_at: string;
   updated_at: string;
+  review_status: string;
+  correction_message: string | null;
 }
 
 /**
@@ -189,6 +197,11 @@ export async function listMyApplicationDocuments(applicationId: string): Promise
       displayLabel: row.display_label,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      reviewStatus: isApplicationDocumentReviewStatus(row.review_status) ? row.review_status : "pending_review",
+      // Only ever shown while genuinely in needs_correction — the RPC
+      // itself already clears this column server-side otherwise (0020 PART
+      // 2), this is defense in depth against a future regression.
+      correctionMessage: row.review_status === "needs_correction" ? row.correction_message : null,
     }));
 }
 
@@ -324,6 +337,13 @@ export async function uploadApplicationDocument(input: UploadApplicationDocument
       displayLabel: row.display_label,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      // Milestone 18 — a brand-new upload/replacement always starts at
+      // 'pending_review' at the database level (the column DEFAULT — see
+      // 0020 PART 1; student_upload_application_document() itself was not
+      // changed to know about review at all, so this is asserted here
+      // rather than read back from the RPC's own unchanged return columns).
+      reviewStatus: "pending_review",
+      correctionMessage: null,
     },
   };
 }

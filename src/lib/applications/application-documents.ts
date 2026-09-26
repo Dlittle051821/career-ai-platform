@@ -76,6 +76,65 @@ export type ApplicationDocumentSummary = {
   originalFilename: string;
 };
 
+// ---------------------------------------------------------------------------
+// Milestone 18 — document review taxonomy (pure). See
+// docs/application-processing-guide.md "Document review states" for the
+// full decision: a fourth 'rejected' state was considered and dropped —
+// since a student can always replace a document, it would have had no
+// operational consequence distinct from 'needs_correction' in this
+// milestone. Smallest useful model, chosen deliberately.
+// ---------------------------------------------------------------------------
+
+export const APPLICATION_DOCUMENT_REVIEW_STATUSES = ["pending_review", "accepted", "needs_correction"] as const;
+
+export type ApplicationDocumentReviewStatus = (typeof APPLICATION_DOCUMENT_REVIEW_STATUSES)[number];
+
+export function isApplicationDocumentReviewStatus(value: string): value is ApplicationDocumentReviewStatus {
+  return (APPLICATION_DOCUMENT_REVIEW_STATUSES as readonly string[]).includes(value);
+}
+
+export const APPLICATION_DOCUMENT_REVIEW_STATUS_LABELS: Record<ApplicationDocumentReviewStatus, string> = {
+  pending_review: "Pending review",
+  accepted: "Accepted",
+  needs_correction: "Needs correction",
+};
+
+export type ApplicationDocumentReviewSummary = {
+  documentType: ApplicationDocumentType;
+  reviewStatus: ApplicationDocumentReviewStatus;
+};
+
+export interface ApplicationDocumentReviewCompleteness {
+  /** Of the REQUIRED document types that are currently uploaded, how many are also accepted. */
+  requiredAccepted: number;
+  /** True only when every required document is both uploaded and accepted — never merely uploaded. */
+  isRequiredReviewComplete: boolean;
+  /** True when any current document (required or not) is sitting in needs_correction. */
+  hasOutstandingCorrection: boolean;
+}
+
+/**
+ * Pure — takes only CURRENT documents (same caller contract as
+ * getApplicationDocumentCompleteness() above) and computes review coverage.
+ * Deliberately distinct from upload completeness: "documents exist" and
+ * "documents are accepted" are two different signals, and this milestone
+ * must never conflate them (task's own explicit instruction — "do not claim
+ * an application is ready merely because documents exist").
+ */
+export function getApplicationDocumentReviewCompleteness(
+  documents: readonly ApplicationDocumentReviewSummary[]
+): ApplicationDocumentReviewCompleteness {
+  const acceptedTypes = new Set(documents.filter((d) => d.reviewStatus === "accepted").map((d) => d.documentType));
+  const requiredAccepted = REQUIRED_APPLICATION_DOCUMENT_TYPES.filter((type) => acceptedTypes.has(type)).length;
+  const hasOutstandingCorrection = documents.some((d) => d.reviewStatus === "needs_correction");
+
+  return {
+    requiredAccepted,
+    isRequiredReviewComplete: requiredAccepted === REQUIRED_APPLICATION_DOCUMENT_TYPES.length,
+    hasOutstandingCorrection,
+  };
+}
+
 export interface ApplicationDocumentCompleteness {
   requiredTotal: number;
   requiredUploaded: number;

@@ -4,8 +4,15 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createApplication, updateApplication } from "@/lib/supabase/admin/applications";
-import { getApplicationDocumentDownloadUrlForAdmin } from "@/lib/supabase/admin/application-documents";
+import { getApplicationDocumentDownloadUrlForAdmin, reviewApplicationDocument } from "@/lib/supabase/admin/application-documents";
+import { toggleApplicationChecklistItem } from "@/lib/supabase/admin/application-checklist";
+import { addApplicationInternalNote } from "@/lib/supabase/admin/application-notes";
 import { friendlyAdminError, AdminValidationError, type ActionState } from "@/lib/admin/form-state";
+
+export interface SimpleActionResult {
+  success: boolean;
+  error?: string;
+}
 
 async function resolveStudentEmailToId(formData: FormData): Promise<FormData> {
   const email = String(formData.get("studentEmail") ?? "").trim().toLowerCase();
@@ -68,4 +75,48 @@ export async function getAdminApplicationDocumentDownloadUrlAction(storagePath: 
   } catch {
     return { url: null };
   }
+}
+
+/**
+ * Milestone 18 — staff document review. Never accepts a reviewer identity
+ * from the client (the RPC behind reviewApplicationDocument() derives it
+ * server-side from auth.uid() only). revalidatePath refreshes the
+ * server-rendered document list/history on this same page after a
+ * successful review.
+ */
+export async function reviewApplicationDocumentAction(
+  applicationId: string,
+  documentId: string,
+  reviewStatus: string,
+  options: { reviewNote?: string; correctionMessage?: string } = {}
+): Promise<SimpleActionResult> {
+  try {
+    await reviewApplicationDocument(documentId, reviewStatus, { reviewNote: options.reviewNote, correctionMessage: options.correctionMessage });
+  } catch (error) {
+    return { success: false, error: friendlyAdminError(error) };
+  }
+  revalidatePath(`/admin/applications/${applicationId}`);
+  return { success: true };
+}
+
+/** Milestone 18 — toggles one of the four manual checklist items. */
+export async function toggleApplicationChecklistItemAction(applicationId: string, itemKey: string, completed: boolean): Promise<SimpleActionResult> {
+  try {
+    await toggleApplicationChecklistItem(applicationId, itemKey, completed);
+  } catch (error) {
+    return { success: false, error: friendlyAdminError(error) };
+  }
+  revalidatePath(`/admin/applications/${applicationId}`);
+  return { success: true };
+}
+
+/** Milestone 18 — appends one internal (staff-only) note. */
+export async function addApplicationInternalNoteAction(applicationId: string, formData: FormData): Promise<SimpleActionResult> {
+  try {
+    await addApplicationInternalNote(applicationId, formData);
+  } catch (error) {
+    return { success: false, error: friendlyAdminError(error) };
+  }
+  revalidatePath(`/admin/applications/${applicationId}`);
+  return { success: true };
 }

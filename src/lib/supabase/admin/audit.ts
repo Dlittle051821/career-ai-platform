@@ -138,4 +138,11 @@ export const AUDIT_ENTITY_TYPES = [
   "discovery_session",
   "student_profile_section_provenance",
   "student_recommendation_verification",
+  // Milestone 18 — Counsellor Application Processing Workspace. Reuses the
+  // existing "application" entity type above for checklist/notes/
+  // assignment-adjacent audit entries; only document review decisions get
+  // their own entity type, since they are the one M18 action with a real
+  // database-authorized RPC boundary behind them (see
+  // src/lib/supabase/admin/application-documents.ts's reviewApplicationDocument()).
+  "application_document_review",
 ] as const;

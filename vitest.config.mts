@@ -247,6 +247,22 @@ export default defineConfig({
       // in-memory Supabase fake.
       "src/lib/supabase/education/application-documents.test.ts",
       "src/lib/supabase/admin/application-documents.test.ts",
+      // Milestone 18 — Application Processing Workspace. A fourth, equally
+      // narrow exception to the "src/lib/supabase/ is untested here"
+      // convention, for the same reason as refunds.test.ts/
+      // applications.test.ts/application-documents.test.ts above: the
+      // checklist upsert and internal-note insert orchestration
+      // (requireAdminPermission gating + Supabase call + recordAuditLog)
+      // is STATEFUL ORCHESTRATION logic that cannot be exercised as a pure
+      // function. Both files mock the same I/O boundaries behind the same
+      // kind of hand-rolled in-memory Supabase fake as every file above.
+      // (This milestone's pure logic — readiness, checklist view, next
+      // operational action, document-review completeness — lives in
+      // src/lib/applications/ and is already covered by the
+      // "src/lib/applications/**/*.test.ts" glob above; it needs no new
+      // entry here.)
+      "src/lib/supabase/admin/application-checklist.test.ts",
+      "src/lib/supabase/admin/application-notes.test.ts",
     ],
   },
 });

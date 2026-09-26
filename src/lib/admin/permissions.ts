@@ -125,6 +125,25 @@ export const ADMIN_PERMISSIONS = [
   // docs/application-documents-guide.md's "Least-privilege document access
   // (M17-v3)" section for the full decision and reasoning.
   "application-documents:read",
+  // Milestone 18 — Counsellor Application Processing Workspace. Its own
+  // narrow write permission rather than reusing the broader
+  // "applications:write" (task's own explicit instruction: "Do NOT use
+  // broad applications:write as the only authorization boundary if a
+  // narrower document-review permission is appropriate") — even though
+  // applications:write already happens to be held by exactly the same set
+  // (super_admin/admin/counsellor, never finance/analyst/content_editor),
+  // reviewing a document is a distinct, sensitive, database-authorized
+  // action (see supabase/migrations/0020_application_processing_workspace.
+  // sql PART 2's staff_review_application_document() RPC) and deserves its
+  // own clearly-named permission, following this codebase's own
+  // per-milestone-narrow-permission-pair convention exactly as
+  // "application-documents:read" did in M17-v3. Also gates writing an
+  // application's internal notes and toggling its M18 checklist items
+  // (src/lib/supabase/admin/application-notes.ts,
+  // application-checklist.ts) — those are the same "who may operate on
+  // this application's M18 workspace" boundary as document review, so one
+  // permission covers all three rather than proliferating near-duplicates.
+  "application-documents:review",
 ] as const;
 
 export type AdminPermission = (typeof ADMIN_PERMISSIONS)[number];
@@ -197,6 +216,11 @@ export const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
     "recommendation-readiness:write",
     // Milestone 17 (v3) — admin gets read-only application-document access.
     "application-documents:read",
+    // Milestone 18 — admin gets full document review + notes + checklist
+    // access. RLS (0020 PART 2/4/5) additionally scopes admin to every
+    // application regardless — no assignment restriction, matching
+    // "application-documents:read" above.
+    "application-documents:review",
   ],
   counsellor: [
     "dashboard:read",
@@ -236,6 +260,15 @@ export const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
     // scopes that regardless of this permission map, same "app permission is
     // UX, RLS is the boundary" split as every other module here).
     "application-documents:read",
+    // Milestone 18 — counsellors review documents, write internal notes, and
+    // toggle checklist items only for their OWN assigned applications; RLS
+    // (0020 PART 2/4/5, reusing 0018 PART 2's exact
+    // is_admin_role(['counsellor']) + assigned_counsellor_id =
+    // current_counsellor_id() check) is what actually enforces that
+    // narrowing — this permission only gets a counsellor past the
+    // application-layer gate at all, same "permission is UX, RLS is the
+    // boundary" split as everywhere else in this file.
+    "application-documents:review",
   ],
   finance: [
     "dashboard:read",

@@ -1,8 +1,15 @@
 import "server-only";
 import { createClient } from "../server";
 import { requireAdminPermission } from "../admin-auth";
-import { isApplicationDocumentType, type ApplicationDocumentType } from "@/lib/applications/application-documents";
+import {
+  isApplicationDocumentReviewStatus,
+  isApplicationDocumentType,
+  type ApplicationDocumentReviewStatus,
+  type ApplicationDocumentType,
+} from "@/lib/applications/application-documents";
 import { APPLICATION_DOCUMENTS_BUCKET } from "../education/application-documents";
+import { AdminValidationError } from "@/lib/admin/form-state";
+import { recordAuditLog } from "./audit";
 
 /**
  * Milestone 17 — Application Documents Foundation.
@@ -68,6 +75,14 @@ export interface AdminApplicationDocument {
   displayLabel: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Milestone 18 */
+  reviewStatus: ApplicationDocumentReviewStatus;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+  /** Milestone 18 — INTERNAL staff-only. This admin/counsellor read path is the ONLY place this ever surfaces; never returned by any student-facing function. */
+  reviewNote: string | null;
+  /** Milestone 18 — STUDENT-FACING request text, shown here too so staff can see exactly what the student was told. */
+  correctionMessage: string | null;
 }
 
 interface ApplicationDocumentRow {
@@ -80,6 +95,11 @@ interface ApplicationDocumentRow {
   display_label: string | null;
   created_at: string;
   updated_at: string;
+  review_status: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  review_note: string | null;
+  correction_message: string | null;
 }
 
 /**
@@ -101,7 +121,9 @@ export async function listApplicationDocumentsForAdmin(applicationId: string): P
 
   const { data, error } = await supabase
     .from("application_documents")
-    .select("id, document_type, original_filename, storage_path, mime_type, file_size_bytes, display_label, created_at, updated_at")
+    .select(
+      "id, document_type, original_filename, storage_path, mime_type, file_size_bytes, display_label, created_at, updated_at, review_status, reviewed_at, reviewed_by, review_note, correction_message"
+    )
     .eq("application_id", applicationId)
     .eq("is_current", true)
     .order("document_type", { ascending: true });
@@ -123,7 +145,80 @@ export async function listApplicationDocumentsForAdmin(applicationId: string): P
       displayLabel: row.display_label,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      reviewStatus: isApplicationDocumentReviewStatus(row.review_status) ? row.review_status : "pending_review",
+      reviewedAt: row.reviewed_at,
+      reviewedBy: row.reviewed_by,
+      reviewNote: row.review_note,
+      correctionMessage: row.correction_message,
     }));
+}
+
+/**
+ * Milestone 18 — the ONLY admin-layer entry point for changing a document's
+ * review state. Gated by the new `application-documents:review` permission
+ * (never the broader `applications:write` alone — see permissions.ts's own
+ * header comment). The real authorization AND concurrency boundary is
+ * staff_review_application_document() itself
+ * (0020_application_processing_workspace.sql PART 2) — this function is a
+ * thin, honest wrapper: it never re-derives or trusts a caller-supplied
+ * reviewer identity, and it never swallows the RPC's generic
+ * anti-enumeration error into something else. A successful review is
+ * recorded to admin_audit_log (reusing the existing generic audit
+ * infrastructure — task's own instruction not to build a second one) with
+ * entityType "application_document_review".
+ */
+export async function reviewApplicationDocument(
+  documentId: string,
+  reviewStatus: string,
+  options: { reviewNote?: string | null; correctionMessage?: string | null } = {}
+): Promise<void> {
+  const admin = await requireAdminPermission("application-documents:review");
+
+  if (!isApplicationDocumentReviewStatus(reviewStatus)) {
+    throw new AdminValidationError("This review status is not recognized.");
+  }
+  const reviewNote = options.reviewNote?.trim() || null;
+  if (reviewNote && reviewNote.length > 2000) {
+    throw new AdminValidationError("This internal note is too long (2000 characters max).");
+  }
+  const correctionMessage = reviewStatus === "needs_correction" ? options.correctionMessage?.trim() || null : null;
+  if (reviewStatus === "needs_correction" && !correctionMessage) {
+    throw new AdminValidationError("A message for the student is required when requesting a correction.");
+  }
+  if (correctionMessage && correctionMessage.length > 1000) {
+    throw new AdminValidationError("This request message is too long (1000 characters max).");
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("staff_review_application_document", {
+    p_document_id: documentId,
+    p_review_status: reviewStatus,
+    p_review_note: reviewNote,
+    p_correction_message: correctionMessage,
+  });
+
+  if (error) {
+    logDbError("reviewApplicationDocument", error);
+    // staff_review_application_document() raises one generic,
+    // already-safe anti-enumeration message (0020 PART 2) — safe to relay
+    // as-is, matching this milestone's own stricter-than-M16 error
+    // convention for anything reaching a person. No raw Postgres/PostgREST
+    // detail is ever attached to that message.
+    throw new Error(error.message);
+  }
+
+  const row = (data ?? [])[0] ?? null;
+  if (!row) {
+    throw new Error("This document could not be reviewed. Please refresh and try again.");
+  }
+
+  await recordAuditLog({
+    action: `Document review: ${reviewStatus}`,
+    entityType: "application_document_review",
+    entityId: row.application_id,
+    entityLabel: `document ${documentId} on application ${row.application_id}`,
+    context: { documentId, reviewStatus, actorRole: admin.role },
+  });
 }
 
 /**

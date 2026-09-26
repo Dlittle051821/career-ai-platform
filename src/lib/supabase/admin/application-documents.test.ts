@@ -14,10 +14,12 @@ vi.mock("../admin-auth", () => ({
   AdminAuthorizationError: class AdminAuthorizationError extends Error {},
 }));
 vi.mock("../education/application-documents", () => ({ APPLICATION_DOCUMENTS_BUCKET: "application-documents" }));
+vi.mock("./audit", () => ({ recordAuditLog: vi.fn() }));
 
 import { createClient } from "../server";
 import { requireAdminPermission } from "../admin-auth";
-import { getApplicationDocumentDownloadUrlForAdmin, listApplicationDocumentsForAdmin } from "./application-documents";
+import { recordAuditLog } from "./audit";
+import { getApplicationDocumentDownloadUrlForAdmin, listApplicationDocumentsForAdmin, reviewApplicationDocument } from "./application-documents";
 
 type Row = Record<string, unknown>;
 
@@ -121,5 +123,70 @@ describe("getApplicationDocumentDownloadUrlForAdmin()", () => {
     vi.mocked(createClient).mockResolvedValue(fake as unknown as Awaited<ReturnType<typeof createClient>>);
     const url = await getApplicationDocumentDownloadUrlForAdmin("app-1/uuid/f.pdf");
     expect(url).toBeNull();
+  });
+});
+
+/**
+ * Milestone 18 — reviewApplicationDocument(). Mocks supabase.rpc directly
+ * (this function never touches .from() at all — every mutation goes
+ * through staff_review_application_document(), matching the RPC-only
+ * posture 0020 PART 2 requires).
+ */
+function makeFakeSupabaseWithRpc(rpcImpl: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>) {
+  return { rpc: vi.fn(rpcImpl) };
+}
+
+describe("reviewApplicationDocument()", () => {
+  it("requires application-documents:review — never the broader applications:write alone", async () => {
+    const fake = makeFakeSupabaseWithRpc(async () => ({
+      data: [{ id: "doc-1", application_id: "app-1", document_type: "resume_cv", review_status: "accepted", reviewed_at: "t", reviewed_by: "admin-1", review_note: null, correction_message: null }],
+      error: null,
+    }));
+    vi.mocked(createClient).mockResolvedValue(fake as unknown as Awaited<ReturnType<typeof createClient>>);
+    await reviewApplicationDocument("doc-1", "accepted");
+    expect(requireAdminPermission).toHaveBeenCalledWith("application-documents:review");
+  });
+
+  it("rejects an unrecognized review status before ever calling the RPC", async () => {
+    const fake = makeFakeSupabaseWithRpc(async () => ({ data: null, error: null }));
+    vi.mocked(createClient).mockResolvedValue(fake as unknown as Awaited<ReturnType<typeof createClient>>);
+    await expect(reviewApplicationDocument("doc-1", "rejected")).rejects.toThrow();
+    expect(fake.rpc).not.toHaveBeenCalled();
+  });
+
+  it("requires a student-facing message when requesting a correction", async () => {
+    const fake = makeFakeSupabaseWithRpc(async () => ({ data: null, error: null }));
+    vi.mocked(createClient).mockResolvedValue(fake as unknown as Awaited<ReturnType<typeof createClient>>);
+    await expect(reviewApplicationDocument("doc-1", "needs_correction")).rejects.toThrow();
+    expect(fake.rpc).not.toHaveBeenCalled();
+  });
+
+  it("clears correction_message client-side intent when accepting — never sends a stale message alongside 'accepted'", async () => {
+    const fake = makeFakeSupabaseWithRpc(async () => ({
+      data: [{ id: "doc-1", application_id: "app-1", document_type: "resume_cv", review_status: "accepted", reviewed_at: "t", reviewed_by: "admin-1", review_note: null, correction_message: null }],
+      error: null,
+    }));
+    vi.mocked(createClient).mockResolvedValue(fake as unknown as Awaited<ReturnType<typeof createClient>>);
+    await reviewApplicationDocument("doc-1", "accepted", { correctionMessage: "leftover text" });
+    expect(fake.rpc).toHaveBeenCalledWith("staff_review_application_document", expect.objectContaining({ p_correction_message: null }));
+  });
+
+  it("relays the RPC's own generic anti-enumeration error rather than swallowing or rewriting it", async () => {
+    const fake = makeFakeSupabaseWithRpc(async () => ({
+      data: null,
+      error: { message: "This document could not be reviewed — it may no longer be current, or you may not have access. Please refresh and try again." },
+    }));
+    vi.mocked(createClient).mockResolvedValue(fake as unknown as Awaited<ReturnType<typeof createClient>>);
+    await expect(reviewApplicationDocument("doc-1", "accepted")).rejects.toThrow(/no longer be current/);
+  });
+
+  it("records an audit log entry with entityType 'application_document_review' on success", async () => {
+    const fake = makeFakeSupabaseWithRpc(async () => ({
+      data: [{ id: "doc-1", application_id: "app-1", document_type: "resume_cv", review_status: "accepted", reviewed_at: "t", reviewed_by: "admin-1", review_note: null, correction_message: null }],
+      error: null,
+    }));
+    vi.mocked(createClient).mockResolvedValue(fake as unknown as Awaited<ReturnType<typeof createClient>>);
+    await reviewApplicationDocument("doc-1", "accepted");
+    expect(recordAuditLog).toHaveBeenCalledWith(expect.objectContaining({ entityType: "application_document_review" }));
   });
 });

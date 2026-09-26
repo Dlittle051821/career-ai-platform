@@ -107,7 +107,7 @@ describe("listMyApplicationDocuments()", () => {
     expect(fake._rpc).not.toHaveBeenCalled();
   });
 
-  it("maps RPC rows to the camelCase shape", async () => {
+  it("maps RPC rows to the camelCase shape, including Milestone 18's review_status/correction_message", async () => {
     fake._rpc.mockResolvedValue({
       data: [
         {
@@ -120,6 +120,8 @@ describe("listMyApplicationDocuments()", () => {
           display_label: null,
           created_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z",
+          review_status: "needs_correction",
+          correction_message: "Please upload a clearer scan.",
         },
       ],
       error: null,
@@ -136,8 +138,56 @@ describe("listMyApplicationDocuments()", () => {
         displayLabel: null,
         createdAt: "2026-01-01T00:00:00Z",
         updatedAt: "2026-01-01T00:00:00Z",
+        reviewStatus: "needs_correction",
+        correctionMessage: "Please upload a clearer scan.",
       },
     ]);
+  });
+
+  it("Milestone 18 — never surfaces correction_message unless reviewStatus is genuinely needs_correction, even if the row somehow carries stale text", async () => {
+    fake._rpc.mockResolvedValue({
+      data: [
+        {
+          id: "doc-1",
+          document_type: "academic_transcript",
+          original_filename: "t.pdf",
+          storage_path: "app-1/uuid/t.pdf",
+          mime_type: "application/pdf",
+          file_size_bytes: 1000,
+          display_label: null,
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
+          review_status: "accepted",
+          correction_message: "stale leftover text",
+        },
+      ],
+      error: null,
+    });
+    const result = await listMyApplicationDocuments("app-1");
+    expect(result[0].correctionMessage).toBeNull();
+  });
+
+  it("Milestone 18 — defaults reviewStatus to pending_review for an unrecognized/missing value rather than throwing", async () => {
+    fake._rpc.mockResolvedValue({
+      data: [
+        {
+          id: "doc-1",
+          document_type: "academic_transcript",
+          original_filename: "t.pdf",
+          storage_path: "app-1/uuid/t.pdf",
+          mime_type: "application/pdf",
+          file_size_bytes: 1000,
+          display_label: null,
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
+          review_status: "some_future_status",
+          correction_message: null,
+        },
+      ],
+      error: null,
+    });
+    const result = await listMyApplicationDocuments("app-1");
+    expect(result[0].reviewStatus).toBe("pending_review");
   });
 
   it("RPC error: returns [] rather than throwing", async () => {
@@ -232,6 +282,29 @@ describe("uploadApplicationDocument() — happy path (first upload)", () => {
     // No previous_storage_path -> no cleanup attempted at all.
     expect(fake._storageRemove).not.toHaveBeenCalled();
   });
+
+  it("Milestone 18 — a fresh upload always starts at reviewStatus 'pending_review', never inheriting any review state", async () => {
+    fake._rpc.mockResolvedValue({
+      data: [
+        {
+          id: "doc-1",
+          document_type: "resume_cv",
+          original_filename: "resume.pdf",
+          storage_path: "app-1/uuid/resume.pdf",
+          mime_type: "application/pdf",
+          file_size_bytes: 500,
+          display_label: null,
+          created_at: "t",
+          updated_at: "t",
+          previous_storage_path: null,
+        },
+      ],
+      error: null,
+    });
+    const result = await uploadApplicationDocument({ applicationId: "app-1", documentType: "resume_cv", file: makeFile("resume.pdf", "application/pdf", 500) });
+    expect(result.document?.reviewStatus).toBe("pending_review");
+    expect(result.document?.correctionMessage).toBeNull();
+  });
 });
 
 describe("uploadApplicationDocument() — [security fix, Issue 2] replacement cleanup", () => {
@@ -259,6 +332,28 @@ describe("uploadApplicationDocument() — [security fix, Issue 2] replacement cl
     expect(result.success).toBe(true);
     expect(fake._storageRemove).toHaveBeenCalledTimes(1);
     expect(fake._storageRemove).toHaveBeenCalledWith(["app-1/uuid-1/resume-v1.pdf"]);
+  });
+
+  it("Milestone 18 — a replacement upload resets reviewStatus to 'pending_review', never carrying forward the retired document's ACCEPTED state (task's own explicit rule)", async () => {
+    fake._rpc.mockResolvedValue({
+      data: [
+        {
+          id: "doc-2",
+          document_type: "resume_cv",
+          original_filename: "resume-v2.pdf",
+          storage_path: "app-1/uuid-2/resume-v2.pdf",
+          mime_type: "application/pdf",
+          file_size_bytes: 500,
+          display_label: null,
+          created_at: "t",
+          updated_at: "t",
+          previous_storage_path: "app-1/uuid-1/resume-v1.pdf",
+        },
+      ],
+      error: null,
+    });
+    const result = await uploadApplicationDocument({ applicationId: "app-1", documentType: "resume_cv", file: makeFile("resume-v2.pdf", "application/pdf", 500) });
+    expect(result.document?.reviewStatus).toBe("pending_review");
   });
 
   it("a cleanup failure on the old object is logged, but never turns a successful replacement into a failure", async () => {

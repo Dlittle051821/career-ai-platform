@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import {
   APPLICATION_DOCUMENT_CHECKLIST_ORDER,
   APPLICATION_DOCUMENT_TYPE_LABELS,
@@ -175,6 +176,21 @@ function ApplicationDocumentRow({
           </div>
         ) : null}
       </div>
+
+      {/* Milestone 18 — student-safe review status. Only ever
+          'pending_review'/'accepted'/'needs_correction' plus, while
+          needing correction, the STUDENT-FACING correctionMessage — never
+          the internal review note, never the reviewer's identity. */}
+      {currentDocument && currentDocument.reviewStatus !== "pending_review" ? (
+        <div className="mt-1.5">
+          <Badge tone={currentDocument.reviewStatus === "accepted" ? "success" : "warning"}>
+            {currentDocument.reviewStatus === "accepted" ? "Accepted" : "Needs correction"}
+          </Badge>
+        </div>
+      ) : null}
+      {currentDocument?.reviewStatus === "needs_correction" && currentDocument.correctionMessage ? (
+        <p className="mt-1 rounded-md bg-warning-light px-2 py-1.5 text-xs text-text">{currentDocument.correctionMessage}</p>
+      ) : null}
 
       <form ref={formRef} onSubmit={handleUpload} className="mt-2 flex flex-wrap items-center gap-2">
         <input type="file" name="file" accept="application/pdf,image/jpeg,image/png,image/webp" required className="text-xs text-text-soft" />

@@ -88,6 +88,20 @@ describe("ROLE_PERMISSIONS", () => {
   it("Milestone 17 (v3) — application-documents:read has no :write counterpart at all — admin/counsellor document visibility is read-only, full stop", () => {
     expect(ADMIN_PERMISSIONS).not.toContain("application-documents:write");
   });
+
+  it("Milestone 18 — scopes application-documents:review to super_admin/admin/counsellor only, never finance/analyst/content_editor", () => {
+    expect(ROLE_PERMISSIONS.super_admin).toContain("application-documents:review");
+    expect(ROLE_PERMISSIONS.admin).toContain("application-documents:review");
+    expect(ROLE_PERMISSIONS.counsellor).toContain("application-documents:review");
+    expect(ROLE_PERMISSIONS.finance).not.toContain("application-documents:review");
+    expect(ROLE_PERMISSIONS.analyst).not.toContain("application-documents:review");
+    expect(ROLE_PERMISSIONS.content_editor).not.toContain("application-documents:review");
+  });
+
+  it("Milestone 18 — application-documents:review is distinct from the broader applications:write, per the task's own instruction not to rely on the broad permission alone", () => {
+    expect(ADMIN_PERMISSIONS).toContain("application-documents:review");
+    expect(ADMIN_PERMISSIONS).toContain("applications:write");
+  });
 });
 
 describe("hasPermission", () => {

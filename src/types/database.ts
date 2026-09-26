@@ -866,8 +866,44 @@ type ApplicationDocumentsRow = {
   is_current: boolean;
   /** Milestone 17 (v2) — non-load-bearing audit distinction only; null = retired by replacement, non-null = explicit removal. Never used for authorization. */
   removed_at: string | null;
+  /** Milestone 18 — staff review state for the CURRENT row only. Defaults to 'pending_review' on every insert (including a replacement upload) at the database level — see 0020_application_processing_workspace.sql PART 1. */
+  review_status: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  /** Milestone 18 — INTERNAL staff-only. Never returned by any student-facing RPC. */
+  review_note: string | null;
+  /** Milestone 18 — STUDENT-FACING. Kept in a separate column from review_note. Cleared whenever review_status is not 'needs_correction'. */
+  correction_message: string | null;
   created_at: string;
   updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// application_checklist_items (Milestone 18 — see
+// 0020_application_processing_workspace.sql PART 4)
+// ---------------------------------------------------------------------------
+type ApplicationChecklistItemsRow = {
+  id: string;
+  application_id: string;
+  item_key: string;
+  completed_at: string | null;
+  completed_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// application_internal_notes (Milestone 18 — see
+// 0020_application_processing_workspace.sql PART 5). Mirrors
+// admin_student_notes' shape exactly, keyed by application_id instead of
+// student_user_id.
+// ---------------------------------------------------------------------------
+type ApplicationInternalNotesRow = {
+  id: string;
+  application_id: string;
+  author_user_id: string | null;
+  note: string;
+  created_at: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -1719,6 +1755,11 @@ export interface Database {
       // 0018_application_documents_foundation.sql PART 3/6/7 for full
       // documentation of each function's authorization/locking/validation
       // behavior and the specific security fixes each one carries.
+      // Milestone 18 — forward-extended to also return review_status/
+      // correction_message (see 0020_application_processing_workspace.sql
+      // PART 3, which drops and recreates this exact function — 0018's own
+      // file on disk is unmodified). Never review_note/reviewed_by, both
+      // staff-internal only.
       get_my_application_documents: {
         Args: { p_application_id: string };
         Returns: {
@@ -1731,6 +1772,27 @@ export interface Database {
           display_label: string | null;
           created_at: string;
           updated_at: string;
+          review_status: string;
+          correction_message: string | null;
+        }[];
+      };
+      // Milestone 18 — see 0020_application_processing_workspace.sql PART 2.
+      staff_review_application_document: {
+        Args: {
+          p_document_id: string;
+          p_review_status: string;
+          p_review_note?: string | null;
+          p_correction_message?: string | null;
+        };
+        Returns: {
+          id: string;
+          application_id: string;
+          document_type: string;
+          review_status: string;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          review_note: string | null;
+          correction_message: string | null;
         }[];
       };
       student_upload_application_document: {
@@ -2165,14 +2227,43 @@ export interface Database {
       // decide what's optional" convention throughout this file.
       application_documents: {
         Row: ApplicationDocumentsRow;
-        Insert: Omit<ApplicationDocumentsRow, "id" | "created_at" | "updated_at" | "is_current" | "removed_at" | "display_label"> &
+        Insert: Omit<
+          ApplicationDocumentsRow,
+          "id" | "created_at" | "updated_at" | "is_current" | "removed_at" | "display_label" | "review_status" | "reviewed_at" | "reviewed_by" | "review_note" | "correction_message"
+        > &
           TimestampedInsert & {
             id?: string;
             is_current?: boolean;
             removed_at?: string | null;
             display_label?: string | null;
+            review_status?: string;
+            reviewed_at?: string | null;
+            reviewed_by?: string | null;
+            review_note?: string | null;
+            correction_message?: string | null;
           };
         Update: Partial<Omit<ApplicationDocumentsRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      // Milestone 18 — see 0020_application_processing_workspace.sql PART 4.
+      application_checklist_items: {
+        Row: ApplicationChecklistItemsRow;
+        Insert: Omit<ApplicationChecklistItemsRow, "id" | "created_at" | "updated_at" | "completed_at" | "completed_by"> &
+          TimestampedInsert & {
+            id?: string;
+            completed_at?: string | null;
+            completed_by?: string | null;
+          };
+        Update: Partial<Omit<ApplicationChecklistItemsRow, "id" | "application_id" | "item_key" | "created_at">> & { updated_at?: string };
+        Relationships: [];
+      };
+
+      // Milestone 18 — see 0020_application_processing_workspace.sql PART 5.
+      application_internal_notes: {
+        Row: ApplicationInternalNotesRow;
+        Insert: Omit<ApplicationInternalNotesRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<ApplicationInternalNotesRow, "id" | "created_at">> & { created_at?: string };
         Relationships: [];
       };
 
