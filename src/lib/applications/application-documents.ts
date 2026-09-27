@@ -111,6 +111,17 @@ export interface ApplicationDocumentReviewCompleteness {
   isRequiredReviewComplete: boolean;
   /** True when any current document (required or not) is sitting in needs_correction. */
   hasOutstandingCorrection: boolean;
+  /**
+   * UX08 — total count of CURRENT documents (any type, required or not)
+   * that have been reviewed and accepted. Additive field: distinct from
+   * `requiredAccepted` (which only counts the fixed required-type subset)
+   * so the student-facing summary line can say "3 reviewed" using the same
+   * plain count a counsellor sees, not just the narrower required-only
+   * figure this milestone's readiness gate cares about.
+   */
+  acceptedCount: number;
+  /** UX08 — total count of CURRENT documents (any type) sitting in needs_correction. Same additive rationale as `acceptedCount` above. */
+  needsCorrectionCount: number;
 }
 
 /**
@@ -127,11 +138,15 @@ export function getApplicationDocumentReviewCompleteness(
   const acceptedTypes = new Set(documents.filter((d) => d.reviewStatus === "accepted").map((d) => d.documentType));
   const requiredAccepted = REQUIRED_APPLICATION_DOCUMENT_TYPES.filter((type) => acceptedTypes.has(type)).length;
   const hasOutstandingCorrection = documents.some((d) => d.reviewStatus === "needs_correction");
+  const acceptedCount = documents.filter((d) => d.reviewStatus === "accepted").length;
+  const needsCorrectionCount = documents.filter((d) => d.reviewStatus === "needs_correction").length;
 
   return {
     requiredAccepted,
     isRequiredReviewComplete: requiredAccepted === REQUIRED_APPLICATION_DOCUMENT_TYPES.length,
     hasOutstandingCorrection,
+    acceptedCount,
+    needsCorrectionCount,
   };
 }
 

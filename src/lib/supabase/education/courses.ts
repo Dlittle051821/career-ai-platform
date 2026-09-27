@@ -368,7 +368,12 @@ export async function searchCourses(filters: CourseSearchFilters = {}): Promise<
 
   if (error) {
     logDbError("searchCourses", error);
-    return empty;
+    // UX07 — mirrors searchCareers' own error:true convention
+    // (src/lib/supabase/careers.ts) so /courses can tell a genuine query
+    // failure apart from a legitimate zero-row result via
+    // resolveListEmptyState() (src/lib/ui/list-state.ts), instead of
+    // collapsing both into the same unmarked `empty` shape.
+    return { ...empty, error: true };
   }
 
   const rows = (data ?? []) as unknown as PublicCourseRow[];

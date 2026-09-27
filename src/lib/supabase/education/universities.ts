@@ -127,7 +127,12 @@ export async function searchUniversities(filters: UniversitySearchFilters = {}):
 
   if (error) {
     logDbError("searchUniversities", error);
-    return empty;
+    // UX07 — mirrors searchCareers' own error:true convention
+    // (src/lib/supabase/careers.ts) so /universities can tell a genuine
+    // query failure apart from a legitimate zero-row result via
+    // resolveListEmptyState() (src/lib/ui/list-state.ts), instead of
+    // collapsing both into the same unmarked `empty` shape.
+    return { ...empty, error: true };
   }
 
   return { items: (data ?? []).map((r) => toSummary(r as unknown as PublicUniversityRow)), total: count ?? 0, page, pageSize };

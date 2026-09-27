@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SearchX } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
 import { UniversityCard } from "@/components/sections/education/UniversityCard";
 import { UniversityFilterBar } from "@/components/sections/education/UniversityFilterBar";
 import { Pagination } from "@/components/sections/education/Pagination";
+import { TrustedExternalSearchCard } from "@/components/sections/education/TrustedExternalSearchCard";
 import { searchUniversities } from "@/lib/supabase/education/universities";
 import { listActiveCountries } from "@/lib/supabase/education/countries";
+import { getTrustedSearchResults } from "@/lib/supabase/education/external-search";
+import { resolveListEmptyState } from "@/lib/ui/list-state";
 
 // M17A Step 5 — canonical is deliberately static and points at the clean
 // list URL regardless of the q/country/city/studyMode/page query params
@@ -62,6 +65,24 @@ export default async function UniversitiesPage({ searchParams }: UniversitiesPag
 
   const hasActiveFilters = query || countryIds.length > 0 || city || studyModes.length > 0;
 
+  // UX07 — genuinely distinct empty/filtered/error copy instead of the
+  // old collapsed "couldn't be loaded" message for every zero-result case.
+  // See src/lib/ui/list-state.ts (UX06G) — already built and tested for
+  // exactly this, previously wired into no public list page at all.
+  const emptyState = resolveListEmptyState({ itemCount: results.items.length, hasActiveFilters: Boolean(hasActiveFilters), error: results.error });
+
+  // UX07 — when the visitor has narrowed to exactly one country, offer the
+  // trusted official source(s) for that country alongside NextWise's own
+  // (currently partial) catalogue — reuses the SAME Trusted Global Course
+  // Search infrastructure /courses already uses (getTrustedSearchResults,
+  // TrustedExternalSearchCard, listActiveProvidersForDestination), keyed by
+  // that country's real ISO code. No new provider table, no invented
+  // sources: a country with no activated provider simply shows nothing here.
+  const singleSelectedCountry = countryIds.length === 1 ? countries.find((c) => c.id === countryIds[0]) ?? null : null;
+  const trustedSearch = singleSelectedCountry
+    ? await getTrustedSearchResults({ destinationCountryCode: singleSelectedCountry.isoAlpha2, canonicalSubjectId: null, canonicalSubjectLabel: null, degreeLevel: null })
+    : null;
+
   return (
     <Section tone="muted" className="pt-10 sm:pt-14">
       <div className="mb-6">
@@ -77,21 +98,31 @@ export default async function UniversitiesPage({ searchParams }: UniversitiesPag
         <UniversityFilterBar query={query} countryIds={countryIds} city={city} studyModes={studyModes} countries={countries} />
       </Card>
 
-      {results.items.length === 0 ? (
-        <Card className="flex flex-col items-center gap-3 py-14 text-center">
-          <SearchX aria-hidden="true" className="h-10 w-10 text-muted" />
-          <h2 className="text-lg font-semibold text-primary">No universities match your filters</h2>
-          <p className="max-w-sm text-sm text-muted">
-            {hasActiveFilters
-              ? "Try a broader search term, or clear a filter — this dataset covers a growing but limited set of institutions, not every university worldwide."
-              : "The university dataset couldn't be loaded right now. Please try again in a moment."}
-          </p>
-          {hasActiveFilters ? (
-            <Link href="/universities" className="text-sm font-semibold text-secondary-dark hover:text-primary">
-              Clear all filters
-            </Link>
-          ) : null}
-        </Card>
+      {emptyState !== "has_results" ? (
+        <EmptyState
+          tone={emptyState === "error" ? "error" : emptyState === "filtered_empty" ? "filtered" : "empty"}
+          title={
+            emptyState === "error"
+              ? "We couldn't load universities right now"
+              : emptyState === "filtered_empty"
+                ? "No universities match these filters"
+                : "We're still expanding this university catalogue"
+          }
+          description={
+            emptyState === "error"
+              ? "Something went wrong loading the university dataset. Please try again in a moment."
+              : emptyState === "filtered_empty"
+                ? "Try a broader search term, or clear a filter — this dataset covers a growing but limited set of institutions, not every university worldwide."
+                : "New institutions are added over time. In the meantime, the trusted external sources below (when shown for your selected country) can help you keep exploring."
+          }
+          action={
+            emptyState === "filtered_empty" ? (
+              <Link href="/universities" className="text-sm font-semibold text-secondary-dark hover:text-primary">
+                Clear all filters
+              </Link>
+            ) : undefined
+          }
+        />
       ) : (
         <>
           <p className="mb-4 text-sm text-muted">
@@ -105,6 +136,21 @@ export default async function UniversitiesPage({ searchParams }: UniversitiesPag
           <Pagination page={results.page} pageSize={results.pageSize} total={results.total} basePath="/universities" searchParams={activeFiltersForPagination} />
         </>
       )}
+
+      {singleSelectedCountry && trustedSearch && trustedSearch.results.length > 0 ? (
+        <div className="mt-10">
+          <h2 className="mb-3 text-lg font-semibold text-primary">Trusted official source for {singleSelectedCountry.name}</h2>
+          <p className="mb-4 max-w-2xl text-sm text-muted">
+            NextWise&apos;s own catalogue for {singleSelectedCountry.name} is a starter dataset, not an exhaustive one. Continue on
+            the country&apos;s own official study portal to see options beyond what NextWise has verified so far.
+          </p>
+          <div className="grid gap-5 sm:grid-cols-2">
+            {trustedSearch.results.map((result) => (
+              <TrustedExternalSearchCard key={result.providerId} result={result} />
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <GuidanceNotice className="mt-8">
         This is a representative starter dataset, not an exhaustive worldwide database — new universities are added

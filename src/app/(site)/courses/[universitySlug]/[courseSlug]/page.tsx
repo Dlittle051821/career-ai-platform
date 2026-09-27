@@ -262,14 +262,15 @@ export default async function CourseDetailPage({ params, searchParams }: CourseD
         <div className="space-y-6 lg:col-span-2">
           <Card>
             <h2 className="text-lg font-semibold text-primary">Overview</h2>
+            {/* UX07 — essential fields always render (even as "Not
+                available"); non-essential/granular ones are hidden outright
+                when missing rather than adding to "Not available" litter.
+                See docs/ux07-university-discovery.md "Incomplete-data
+                handling" for the essential/non-essential list. */}
             <dl className="mt-3 grid gap-4 sm:grid-cols-2">
               <div>
                 <dt className="text-xs font-medium uppercase tracking-wide text-muted">Qualification</dt>
                 <dd className="mt-1 text-sm text-text-soft">{course.qualificationTitle ?? "Not available"}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Award</dt>
-                <dd className="mt-1 text-sm text-text-soft">{course.award ?? "Not available"}</dd>
               </div>
               <div>
                 <dt className="text-xs font-medium uppercase tracking-wide text-muted">Subject / discipline</dt>
@@ -282,40 +283,10 @@ export default async function CourseDetailPage({ params, searchParams }: CourseD
                 <dd className="mt-1 text-sm text-text-soft">{duration ?? "Not available"}</dd>
               </div>
               <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Study pace</dt>
-                <dd className="mt-1 text-sm text-text-soft">{course.studyPace ? humanizeEnumValue(course.studyPace) : "Not available"}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Teaching language</dt>
-                <dd className="mt-1 text-sm text-text-soft">{course.teachingLanguage ?? "Not available"}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Tuition category</dt>
-                <dd className="mt-1 text-sm text-text-soft">
-                  {course.tuitionDomesticOrInternational ? humanizeEnumValue(course.tuitionDomesticOrInternational) : "Not available"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Campus</dt>
-                <dd className="mt-1 text-sm text-text-soft">{course.campusName ?? "Not available"}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Program code</dt>
-                <dd className="mt-1 text-sm text-text-soft">{course.programCode ?? "Not available"}</dd>
-              </div>
-              <div>
                 <dt className="text-xs font-medium uppercase tracking-wide text-muted">Tuition (list price)</dt>
                 <dd className="mt-1 text-sm text-text-soft">
                   {course.tuitionAmountMinorUnits != null
                     ? `${formatMoney(course.tuitionAmountMinorUnits, course.tuitionCurrency)}${course.tuitionPeriod ? ` / ${humanizeEnumValue(course.tuitionPeriod).toLowerCase()}` : ""}`
-                    : "Not available"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Application fee</dt>
-                <dd className="mt-1 text-sm text-text-soft">
-                  {course.applicationFeeMinorUnits != null && course.applicationFeeCurrency
-                    ? formatMoney(course.applicationFeeMinorUnits, course.applicationFeeCurrency)
                     : "Not available"}
                 </dd>
               </div>
@@ -325,6 +296,48 @@ export default async function CourseDetailPage({ params, searchParams }: CourseD
                   {course.scholarshipsAvailable == null ? "Not available" : course.scholarshipsAvailable ? "Yes" : "No"}
                 </dd>
               </div>
+              {course.award ? (
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted">Award</dt>
+                  <dd className="mt-1 text-sm text-text-soft">{course.award}</dd>
+                </div>
+              ) : null}
+              {course.studyPace ? (
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted">Study pace</dt>
+                  <dd className="mt-1 text-sm text-text-soft">{humanizeEnumValue(course.studyPace)}</dd>
+                </div>
+              ) : null}
+              {course.teachingLanguage ? (
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted">Teaching language</dt>
+                  <dd className="mt-1 text-sm text-text-soft">{course.teachingLanguage}</dd>
+                </div>
+              ) : null}
+              {course.tuitionDomesticOrInternational ? (
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted">Tuition category</dt>
+                  <dd className="mt-1 text-sm text-text-soft">{humanizeEnumValue(course.tuitionDomesticOrInternational)}</dd>
+                </div>
+              ) : null}
+              {course.campusName ? (
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted">Campus</dt>
+                  <dd className="mt-1 text-sm text-text-soft">{course.campusName}</dd>
+                </div>
+              ) : null}
+              {course.programCode ? (
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted">Program code</dt>
+                  <dd className="mt-1 text-sm text-text-soft">{course.programCode}</dd>
+                </div>
+              ) : null}
+              {course.applicationFeeMinorUnits != null && course.applicationFeeCurrency ? (
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted">Application fee</dt>
+                  <dd className="mt-1 text-sm text-text-soft">{formatMoney(course.applicationFeeMinorUnits, course.applicationFeeCurrency)}</dd>
+                </div>
+              ) : null}
             </dl>
 
             {course.additionalFeesSummary ? <p className="mt-4 text-sm text-muted">{course.additionalFeesSummary}</p> : null}
@@ -361,34 +374,57 @@ export default async function CourseDetailPage({ params, searchParams }: CourseD
           <Card>
             <h2 className="text-lg font-semibold text-primary">Entry requirements</h2>
             {course.entryRequirementsSummary ? <p className="mt-2 text-sm leading-relaxed text-muted">{course.entryRequirementsSummary}</p> : null}
-            <dl className="mt-3 grid gap-4 sm:grid-cols-2">
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Minimum academic requirement</dt>
-                <dd className="mt-1 text-sm text-text-soft">{course.minAcademicRequirement ?? "Not available"}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Work experience</dt>
-                <dd className="mt-1 text-sm text-text-soft">{course.workExperienceRequired ?? "Not available"}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Portfolio required</dt>
-                <dd className="mt-1 text-sm text-text-soft">{course.portfolioRequired == null ? "Not available" : course.portfolioRequired ? "Yes" : "No"}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Interview required</dt>
-                <dd className="mt-1 text-sm text-text-soft">{course.interviewRequired == null ? "Not available" : course.interviewRequired ? "Yes" : "No"}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Study gap policy</dt>
-                <dd className="mt-1 text-sm text-text-soft">{course.studyGapPolicy ?? "Not available"}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Additional documents</dt>
-                <dd className="mt-1 text-sm text-text-soft">
-                  {course.additionalDocumentsRequired.length > 0 ? course.additionalDocumentsRequired.join(", ") : "Not available"}
-                </dd>
-              </div>
-            </dl>
+            {/* UX07 — these six fields are granular admissions detail that a
+                starter dataset rarely has populated; the prose summary above
+                already carries the substance, so each row here is hidden
+                outright when unset instead of six more "Not available"
+                lines. If every one is unset, nothing renders below the
+                summary at all — never an empty-looking grid. */}
+            {course.minAcademicRequirement ||
+            course.workExperienceRequired ||
+            course.portfolioRequired != null ||
+            course.interviewRequired != null ||
+            course.studyGapPolicy ||
+            course.additionalDocumentsRequired.length > 0 ? (
+              <dl className="mt-3 grid gap-4 sm:grid-cols-2">
+                {course.minAcademicRequirement ? (
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted">Minimum academic requirement</dt>
+                    <dd className="mt-1 text-sm text-text-soft">{course.minAcademicRequirement}</dd>
+                  </div>
+                ) : null}
+                {course.workExperienceRequired ? (
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted">Work experience</dt>
+                    <dd className="mt-1 text-sm text-text-soft">{course.workExperienceRequired}</dd>
+                  </div>
+                ) : null}
+                {course.portfolioRequired != null ? (
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted">Portfolio required</dt>
+                    <dd className="mt-1 text-sm text-text-soft">{course.portfolioRequired ? "Yes" : "No"}</dd>
+                  </div>
+                ) : null}
+                {course.interviewRequired != null ? (
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted">Interview required</dt>
+                    <dd className="mt-1 text-sm text-text-soft">{course.interviewRequired ? "Yes" : "No"}</dd>
+                  </div>
+                ) : null}
+                {course.studyGapPolicy ? (
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted">Study gap policy</dt>
+                    <dd className="mt-1 text-sm text-text-soft">{course.studyGapPolicy}</dd>
+                  </div>
+                ) : null}
+                {course.additionalDocumentsRequired.length > 0 ? (
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted">Additional documents</dt>
+                    <dd className="mt-1 text-sm text-text-soft">{course.additionalDocumentsRequired.join(", ")}</dd>
+                  </div>
+                ) : null}
+              </dl>
+            ) : null}
 
             {englishLines.length > 0 || testLines.length > 0 ? (
               <div className="mt-4 grid gap-4 sm:grid-cols-2">

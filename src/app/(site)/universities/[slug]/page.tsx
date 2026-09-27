@@ -171,11 +171,14 @@ export default async function UniversityDetailPage({ params }: UniversityDetailP
         <div className="space-y-6 lg:col-span-2">
           <Card>
             <h2 className="text-lg font-semibold text-primary">Overview</h2>
+            {/* UX07 — "essential" fields always render (even as "Not available"
+                — a student deciding whether to consider this university
+                genuinely needs to know these are unknown); non-essential
+                ones are hidden outright when missing instead of adding to
+                the "Not available" litter. See
+                docs/ux07-university-discovery.md "Incomplete-data handling"
+                for the full essential/non-essential list and reasoning. */}
             <dl className="mt-3 grid gap-4 sm:grid-cols-2">
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Founded</dt>
-                <dd className="mt-1 text-sm text-text-soft">{university.foundingYear ?? "Not available"}</dd>
-              </div>
               <div>
                 <dt className="text-xs font-medium uppercase tracking-wide text-muted">Accreditation</dt>
                 <dd className="mt-1 text-sm text-text-soft">
@@ -196,19 +199,23 @@ export default async function UniversityDetailPage({ params }: UniversityDetailP
                 </dd>
               </div>
               <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Application fee</dt>
-                <dd className="mt-1 text-sm text-text-soft">
-                  {university.applicationFeeMinorUnits != null && university.applicationFeeCurrency
-                    ? formatMoney(university.applicationFeeMinorUnits, university.applicationFeeCurrency)
-                    : "Not available"}
-                </dd>
-              </div>
-              <div>
                 <dt className="text-xs font-medium uppercase tracking-wide text-muted">Scholarships available</dt>
                 <dd className="mt-1 text-sm text-text-soft">
                   {university.scholarshipsAvailable == null ? "Not available" : university.scholarshipsAvailable ? "Yes" : "No"}
                 </dd>
               </div>
+              {university.foundingYear != null ? (
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted">Founded</dt>
+                  <dd className="mt-1 text-sm text-text-soft">{university.foundingYear}</dd>
+                </div>
+              ) : null}
+              {university.applicationFeeMinorUnits != null && university.applicationFeeCurrency ? (
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted">Application fee</dt>
+                  <dd className="mt-1 text-sm text-text-soft">{formatMoney(university.applicationFeeMinorUnits, university.applicationFeeCurrency)}</dd>
+                </div>
+              ) : null}
             </dl>
 
             <div className="mt-5 flex flex-wrap gap-4">

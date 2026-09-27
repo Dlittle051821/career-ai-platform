@@ -18,9 +18,9 @@ const INCOMPLETE_DOCS: ApplicationDocumentCompleteness = {
   missingRequired: ["identity_document", "resume_cv"],
 };
 
-const REVIEW_COMPLETE: ApplicationDocumentReviewCompleteness = { requiredAccepted: 3, isRequiredReviewComplete: true, hasOutstandingCorrection: false };
-const REVIEW_INCOMPLETE: ApplicationDocumentReviewCompleteness = { requiredAccepted: 0, isRequiredReviewComplete: false, hasOutstandingCorrection: false };
-const REVIEW_WITH_CORRECTION: ApplicationDocumentReviewCompleteness = { requiredAccepted: 2, isRequiredReviewComplete: false, hasOutstandingCorrection: true };
+const REVIEW_COMPLETE: ApplicationDocumentReviewCompleteness = { requiredAccepted: 3, isRequiredReviewComplete: true, hasOutstandingCorrection: false, acceptedCount: 3, needsCorrectionCount: 0 };
+const REVIEW_INCOMPLETE: ApplicationDocumentReviewCompleteness = { requiredAccepted: 0, isRequiredReviewComplete: false, hasOutstandingCorrection: false, acceptedCount: 0, needsCorrectionCount: 0 };
+const REVIEW_WITH_CORRECTION: ApplicationDocumentReviewCompleteness = { requiredAccepted: 2, isRequiredReviewComplete: false, hasOutstandingCorrection: true, acceptedCount: 2, needsCorrectionCount: 1 };
 
 function baseInput(overrides: Partial<ApplicationChecklistViewInput> = {}): ApplicationChecklistViewInput {
   return {

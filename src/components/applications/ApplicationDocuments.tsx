@@ -8,6 +8,7 @@ import {
   APPLICATION_DOCUMENT_TYPE_LABELS,
   REQUIRED_APPLICATION_DOCUMENT_TYPES,
   getApplicationDocumentCompleteness,
+  getApplicationDocumentReviewCompleteness,
   type ApplicationDocumentType,
 } from "@/lib/applications/application-documents";
 import type { MyApplicationDocument } from "@/lib/supabase/education/application-documents";
@@ -47,10 +48,18 @@ export function ApplicationDocuments({ applicationId, initialDocuments }: { appl
     return map;
   });
 
+  const currentDocuments = Object.values(documentsByType).filter((d): d is MyApplicationDocument => !!d);
+
   const completeness = getApplicationDocumentCompleteness(
-    Object.values(documentsByType)
-      .filter((d): d is MyApplicationDocument => !!d)
-      .map((d) => ({ documentType: d.documentType as ApplicationDocumentType, originalFilename: d.originalFilename }))
+    currentDocuments.map((d) => ({ documentType: d.documentType as ApplicationDocumentType, originalFilename: d.originalFilename }))
+  );
+
+  // UX08 — "reviewed"/"correction needed" are a DIFFERENT signal than
+  // "uploaded" (a document can be uploaded but still pending_review), so
+  // this is reported as its own clause rather than folded into a single
+  // number — never one fabricated completion percentage.
+  const reviewCompleteness = getApplicationDocumentReviewCompleteness(
+    currentDocuments.map((d) => ({ documentType: d.documentType as ApplicationDocumentType, reviewStatus: d.reviewStatus }))
   );
 
   function handleRowChange(type: ApplicationDocumentType, doc: MyApplicationDocument | null) {
@@ -64,11 +73,22 @@ export function ApplicationDocuments({ applicationId, initialDocuments }: { appl
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-text">
-        {completeness.isRequiredComplete
-          ? "All required documents are uploaded."
-          : `${completeness.requiredUploaded} of ${completeness.requiredTotal} required documents uploaded.`}
-      </p>
+      <div className="space-y-1">
+        <p className="text-sm text-text">
+          {completeness.isRequiredComplete
+            ? "All required documents are uploaded."
+            : `${completeness.requiredUploaded} of ${completeness.requiredTotal} required documents uploaded.`}
+        </p>
+        {currentDocuments.length > 0 ? (
+          <p className="text-sm text-muted">
+            {reviewCompleteness.acceptedCount} reviewed and accepted
+            {reviewCompleteness.needsCorrectionCount > 0
+              ? ` · ${reviewCompleteness.needsCorrectionCount} need${reviewCompleteness.needsCorrectionCount === 1 ? "s" : ""} correction`
+              : ""}
+            .
+          </p>
+        ) : null}
+      </div>
       <ul className="space-y-3">
         {APPLICATION_DOCUMENT_CHECKLIST_ORDER.map((type) => (
           <ApplicationDocumentRow

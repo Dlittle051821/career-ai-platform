@@ -32,8 +32,9 @@ export function CourseCard({ course }: { course: PublicCourseSummary }) {
         <FreshnessBadge band={course.freshnessBand} />
       </div>
 
-      <h3 className="mt-3 text-lg font-semibold text-primary">{course.name}</h3>
-      <Link href={`/universities/${course.universitySlug}`} className="mt-1 text-sm font-medium text-secondary-dark hover:text-primary">
+      {/* UX07 mobile pass — a long course/university name must wrap, never overflow the card at 375px. */}
+      <h3 className="mt-3 line-clamp-2 text-lg font-semibold text-primary">{course.name}</h3>
+      <Link href={`/universities/${course.universitySlug}`} className="mt-1 line-clamp-1 text-sm font-medium text-secondary-dark hover:text-primary">
         {course.universityName}
       </Link>
 

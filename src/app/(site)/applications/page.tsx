@@ -43,11 +43,21 @@ export default async function ApplicationsPage() {
           <ClipboardList aria-hidden="true" className="h-9 w-9 text-muted" />
           <h2 className="text-base font-semibold text-primary">No applications started yet</h2>
           <p className="max-w-sm text-sm text-muted">
-            Explore courses to get started — you can start an application directly from any course page.
+            An application here tracks your own progress toward a course — it starts when you choose a course and
+            begin preparing, and stays separate from anything you submit directly to a university yourself.
           </p>
-          <LinkButton href="/courses" size="sm" className="mt-2">
-            Start your first application
-          </LinkButton>
+          {/* UX08 — one primary CTA, two secondary ones (task's own "1 primary, 1-2 secondary" action-hierarchy rule) — not every possible entry point at once. */}
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
+            <LinkButton href="/courses" size="sm">
+              Explore courses
+            </LinkButton>
+            <LinkButton href="/universities" size="sm" variant="outline">
+              Explore universities
+            </LinkButton>
+            <LinkButton href="/book-counselling" size="sm" variant="ghost">
+              Book a discovery session
+            </LinkButton>
+          </div>
         </Card>
       </Section>
     );

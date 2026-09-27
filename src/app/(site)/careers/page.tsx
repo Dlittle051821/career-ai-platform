@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SearchX } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
 import { CareerCard } from "@/components/sections/careers/CareerCard";
 import { CareerFilterBar } from "@/components/sections/careers/CareerFilterBar";
 import { Pagination } from "@/components/sections/careers/Pagination";
 import { searchCareers, getCareerFamilies, getIndustries, getCareerTags } from "@/lib/supabase/careers";
+import { resolveListEmptyState } from "@/lib/ui/list-state";
 import { BRAND_NAME } from "@/config/site";
 
 // M17A Step 5 — canonical is deliberately static and points at the clean
@@ -61,6 +62,13 @@ export default async function CareersPage({ searchParams }: CareersPageProps) {
 
   const hasActiveFilters = query || familyKey || industryKey || tagKey;
 
+  // UX07/UX08 shared-infrastructure fix — see the matching change in
+  // src/app/(site)/universities/page.tsx for why this replaces the old
+  // collapsed "couldn't be loaded" message. searchCareers() already set
+  // `error: true` on a genuine failure (src/lib/supabase/careers.ts); this
+  // page just wasn't reading it yet.
+  const emptyState = resolveListEmptyState({ itemCount: results.careers.length, hasActiveFilters: Boolean(hasActiveFilters), error: results.error });
+
   return (
     <Section tone="muted" className="pt-10 sm:pt-14">
       <div className="mb-6">
@@ -76,21 +84,31 @@ export default async function CareersPage({ searchParams }: CareersPageProps) {
         <CareerFilterBar query={query} familyKey={familyKey} industryKey={industryKey} tagKey={tagKey} families={families} industries={industries} tags={tags} />
       </Card>
 
-      {results.careers.length === 0 ? (
-        <Card className="flex flex-col items-center gap-3 py-14 text-center">
-          <SearchX aria-hidden="true" className="h-10 w-10 text-muted" />
-          <h2 className="text-lg font-semibold text-primary">No careers match your filters</h2>
-          <p className="max-w-sm text-sm text-muted">
-            {hasActiveFilters
-              ? "Try a broader search term, or clear a filter — the library covers around a hundred careers across engineering, technology, business, healthcare, and more."
-              : "The career library couldn't be loaded right now. Please try again in a moment."}
-          </p>
-          {hasActiveFilters ? (
-            <Link href="/careers" className="text-sm font-semibold text-secondary-dark hover:text-primary">
-              Clear all filters
-            </Link>
-          ) : null}
-        </Card>
+      {emptyState !== "has_results" ? (
+        <EmptyState
+          tone={emptyState === "error" ? "error" : emptyState === "filtered_empty" ? "filtered" : "empty"}
+          title={
+            emptyState === "error"
+              ? "We couldn't load careers right now"
+              : emptyState === "filtered_empty"
+                ? "No careers match these filters"
+                : "We're still expanding this career library"
+          }
+          description={
+            emptyState === "error"
+              ? "Something went wrong loading the career library. Please try again in a moment."
+              : emptyState === "filtered_empty"
+                ? "Try a broader search term, or clear a filter — the library covers around a hundred careers across engineering, technology, business, healthcare, and more."
+                : "New careers are added over time — check back soon."
+          }
+          action={
+            emptyState === "filtered_empty" ? (
+              <Link href="/careers" className="text-sm font-semibold text-secondary-dark hover:text-primary">
+                Clear all filters
+              </Link>
+            ) : undefined
+          }
+        />
       ) : (
         <>
           <p className="mb-4 text-sm text-muted">

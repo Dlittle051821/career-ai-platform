@@ -12,7 +12,7 @@ const COMPLETE_DOCS: ApplicationDocumentCompleteness = {
   missingRequired: [],
 };
 
-const REVIEW_COMPLETE: ApplicationDocumentReviewCompleteness = { requiredAccepted: 3, isRequiredReviewComplete: true, hasOutstandingCorrection: false };
+const REVIEW_COMPLETE: ApplicationDocumentReviewCompleteness = { requiredAccepted: 3, isRequiredReviewComplete: true, hasOutstandingCorrection: false, acceptedCount: 3, needsCorrectionCount: 0 };
 
 const ALL_CHECKLIST_COMPLETE: ManualChecklistItemState[] = APPLICATION_CHECKLIST_ITEM_KEYS.map((key) => ({ key, completedAt: "2026-01-01T00:00:00Z" }));
 
@@ -35,7 +35,7 @@ describe("getApplicationReadiness()", () => {
 
   it("is NOT ready merely because required documents are uploaded — task's own explicit rule", () => {
     const result = getApplicationReadiness(
-      baseInput({ documentReviewCompleteness: { requiredAccepted: 0, isRequiredReviewComplete: false, hasOutstandingCorrection: false } })
+      baseInput({ documentReviewCompleteness: { requiredAccepted: 0, isRequiredReviewComplete: false, hasOutstandingCorrection: false, acceptedCount: 0, needsCorrectionCount: 0 } })
     );
     expect(result.isReady).toBe(false);
     expect(result.blockers.map((b) => b.reason)).toContain("documents_not_accepted");
@@ -51,7 +51,7 @@ describe("getApplicationReadiness()", () => {
 
   it("blocks on an outstanding correction request even if required documents are otherwise accepted", () => {
     const result = getApplicationReadiness(
-      baseInput({ documentReviewCompleteness: { requiredAccepted: 3, isRequiredReviewComplete: true, hasOutstandingCorrection: true } })
+      baseInput({ documentReviewCompleteness: { requiredAccepted: 3, isRequiredReviewComplete: true, hasOutstandingCorrection: true, acceptedCount: 3, needsCorrectionCount: 1 } })
     );
     expect(result.isReady).toBe(false);
     expect(result.blockers.map((b) => b.reason)).toContain("correction_outstanding");

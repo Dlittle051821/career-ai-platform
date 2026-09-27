@@ -12,7 +12,7 @@ const COMPLETE_DOCS: ApplicationDocumentCompleteness = {
   missingRequired: [],
 };
 
-const REVIEW_COMPLETE: ApplicationDocumentReviewCompleteness = { requiredAccepted: 3, isRequiredReviewComplete: true, hasOutstandingCorrection: false };
+const REVIEW_COMPLETE: ApplicationDocumentReviewCompleteness = { requiredAccepted: 3, isRequiredReviewComplete: true, hasOutstandingCorrection: false, acceptedCount: 3, needsCorrectionCount: 0 };
 const ALL_CHECKLIST_COMPLETE: ManualChecklistItemState[] = APPLICATION_CHECKLIST_ITEM_KEYS.map((key) => ({ key, completedAt: "2026-01-01T00:00:00Z" }));
 
 function baseInput(overrides: Partial<NextOperationalActionInput> = {}): NextOperationalActionInput {
@@ -60,7 +60,7 @@ describe("getNextOperationalAction() — deterministic, rules-based (no LLM)", (
 
   it("reports waiting-on-student once a correction is outstanding and nothing else is blocking", () => {
     const result = getNextOperationalAction(
-      baseInput({ documentReviewCompleteness: { requiredAccepted: 3, isRequiredReviewComplete: true, hasOutstandingCorrection: true } })
+      baseInput({ documentReviewCompleteness: { requiredAccepted: 3, isRequiredReviewComplete: true, hasOutstandingCorrection: true, acceptedCount: 3, needsCorrectionCount: 1 } })
     );
     expect(result.kind).toBe("waiting_on_student");
   });

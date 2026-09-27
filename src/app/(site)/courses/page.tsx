@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SearchX } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
 import { CourseCard } from "@/components/sections/education/CourseCard";
 import { CourseFilterBar } from "@/components/sections/education/CourseFilterBar";
@@ -15,6 +15,7 @@ import { listActiveCountries } from "@/lib/supabase/education/countries";
 import { getTrustedSearchResults, recordMappingGapEventForPrimaryResult } from "@/lib/supabase/education/external-search";
 import { parseMinorUnitsParam } from "@/lib/education/search";
 import { resolveSubject, resolveDegreeLevel, CANONICAL_DEGREE_LEVELS, CANONICAL_DEGREE_TO_EDUCATION_LEVELS, type CanonicalDegreeLevel } from "@/lib/education/external-search/taxonomy";
+import { resolveListEmptyState } from "@/lib/ui/list-state";
 import type { CourseDurationUnit } from "@/types/education";
 
 // M17A Step 5 — canonical is deliberately static and points at the clean
@@ -184,6 +185,10 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
     subjectRaw ||
     degreeRaw;
 
+  // UX07 — see the matching change in src/app/(site)/universities/page.tsx
+  // for why this replaces the old collapsed "couldn't be loaded" message.
+  const emptyState = resolveListEmptyState({ itemCount: results.items.length, hasActiveFilters: Boolean(hasActiveFilters), error: results.error });
+
   return (
     <Section tone="muted" className="pt-10 sm:pt-14">
       <div className="mb-6">
@@ -247,20 +252,31 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
       ) : null}
 
       <h2 className="mb-3 text-lg font-semibold text-primary">NextWise verified results</h2>
-      {results.items.length === 0 ? (
-        <Card className="flex flex-col items-center gap-3 py-14 text-center">
-          <SearchX aria-hidden="true" className="h-10 w-10 text-muted" />
-          <p className="max-w-sm text-sm text-muted">
-            {hasActiveFilters
-              ? "We do not currently hold verified programme records for this search. Continue on the trusted official portal below."
-              : "The course dataset couldn't be loaded right now. Please try again in a moment."}
-          </p>
-          {hasActiveFilters ? (
-            <Link href="/courses" className="text-sm font-semibold text-secondary-dark hover:text-primary">
-              Clear all filters
-            </Link>
-          ) : null}
-        </Card>
+      {emptyState !== "has_results" ? (
+        <EmptyState
+          tone={emptyState === "error" ? "error" : emptyState === "filtered_empty" ? "filtered" : "empty"}
+          title={
+            emptyState === "error"
+              ? "We couldn't load courses right now"
+              : emptyState === "filtered_empty"
+                ? "No courses match these filters"
+                : "We're still expanding this course catalogue"
+          }
+          description={
+            emptyState === "error"
+              ? "Something went wrong loading the course dataset. Please try again in a moment."
+              : emptyState === "filtered_empty"
+                ? "We do not currently hold verified programme records for this search. Continue on the trusted official portal below."
+                : "New courses are added over time. Continue on the trusted official portal below in the meantime."
+          }
+          action={
+            emptyState === "filtered_empty" ? (
+              <Link href="/courses" className="text-sm font-semibold text-secondary-dark hover:text-primary">
+                Clear all filters
+              </Link>
+            ) : undefined
+          }
+        />
       ) : (
         <CompareProvider>
           <p className="mb-4 text-sm text-muted">

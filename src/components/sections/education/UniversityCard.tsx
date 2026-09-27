@@ -47,7 +47,8 @@ export function UniversityCard({ university }: { university: PublicUniversitySum
         </div>
       </div>
 
-      <h3 className="mt-3 text-lg font-semibold text-primary">{university.name}</h3>
+      {/* UX07 mobile pass — a long institution name must wrap onto a second line, never overflow the card at 375px. */}
+      <h3 className="mt-3 line-clamp-2 text-lg font-semibold text-primary">{university.name}</h3>
 
       {location ? (
         <p className="mt-1.5 flex items-center gap-1.5 text-sm text-muted">
