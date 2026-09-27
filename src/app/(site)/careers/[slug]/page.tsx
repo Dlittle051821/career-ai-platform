@@ -12,6 +12,8 @@ import { getCareerBySlug, getRelatedCareers } from "@/lib/supabase/careers";
 import { subjectLabel, interestLabel, skillLabel, educationLevelLabel, fieldLabel, SKILL_LEVEL_LABELS, RELEVANCE_LABELS } from "@/lib/careers/labels";
 import { deriveCareerCharacteristics } from "@/lib/careers/characteristics";
 import { trackEvent } from "@/lib/supabase/analytics/track";
+import { BRAND_NAME } from "@/config/site";
+import { getBreadcrumbListJsonLd, toSafeJsonLdString } from "@/lib/seo/structured-data";
 
 interface CareerDetailPageProps {
   params: Promise<{ slug: string }>;
@@ -24,11 +26,34 @@ interface CareerDetailPageProps {
 // and the route renders a 200 "not found" notice (see below) rather than
 // a real 404, so this is the only signal telling crawlers it isn't real
 // content.
+//
+// M17B FINAL — added an entity-specific `openGraph`/`twitter` block so
+// sharing a career URL shows that career's own title/summary instead of
+// silently falling back to the generic site-wide card from
+// src/app/(site)/layout.tsx. Uses only fields already fetched for this
+// same page (`career.title`, `career.summary`) — no new data source, no
+// invented copy.
 export async function generateMetadata({ params }: CareerDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
   const career = await getCareerBySlug(slug);
   if (!career) return { title: "Career not found", robots: { index: false, follow: false } };
-  return { title: career.title, description: career.summary, alternates: { canonical: `/careers/${slug}` } };
+  const canonicalPath = `/careers/${slug}`;
+  return {
+    title: career.title,
+    description: career.summary,
+    alternates: { canonical: canonicalPath },
+    openGraph: {
+      title: `${career.title} | ${BRAND_NAME}`,
+      description: career.summary,
+      url: canonicalPath,
+      type: "article",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${career.title} | ${BRAND_NAME}`,
+      description: career.summary,
+    },
+  };
 }
 
 /**
@@ -85,6 +110,19 @@ export default async function CareerDetailPage({ params }: CareerDetailPageProps
 
   return (
     <Section tone="muted" className="pt-10 sm:pt-14">
+      {/* M17B FINAL — BreadcrumbList JSON-LD mirroring the visual trail below exactly. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: toSafeJsonLdString(
+            getBreadcrumbListJsonLd([
+              { name: "Home", path: "/" },
+              { name: "Career Explorer", path: "/careers" },
+              { name: career.title, path: `/careers/${career.slug}` },
+            ])
+          ),
+        }}
+      />
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Career Explorer", href: "/careers" }, { label: career.title }]} />
 
       <div className="mt-6 mb-8">

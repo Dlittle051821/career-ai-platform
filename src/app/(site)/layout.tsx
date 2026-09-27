@@ -23,8 +23,14 @@ const DEFAULT_TITLE = `${BRAND_NAME} — ${BRAND_TAGLINE}`;
  * `src/app/robots.ts` (Steps 3-4): prefer `SITE_URL` when it is genuinely
  * set to something, but never fall through to `undefined`/localhost for
  * the one deployment that matters.
+ *
+ * M17B FINAL — corrected from the non-www `https://nextwise.world` used
+ * throughout M17A to the canonical production origin
+ * `https://www.nextwise.world` (WITH www), matching the same www-prefixed
+ * value fixed at the same time in `src/app/robots.ts`,
+ * `src/app/sitemap.ts`, and `src/lib/seo/structured-data.ts`.
  */
-const PRODUCTION_ORIGIN = "https://nextwise.world";
+const PRODUCTION_ORIGIN = "https://www.nextwise.world";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL || PRODUCTION_ORIGIN),

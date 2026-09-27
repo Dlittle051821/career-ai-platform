@@ -21,6 +21,8 @@ import { formatMoney } from "@/lib/admin/money";
 import { ACCREDITATION_STATUS_LABELS, type AccreditationStatus } from "@/types/admin";
 import { EDUCATION_VERIFICATION_STATUS_LABELS, type EducationVerificationStatus } from "@/types/education";
 import { trackEvent } from "@/lib/supabase/analytics/track";
+import { BRAND_NAME } from "@/config/site";
+import { getBreadcrumbListJsonLd, toSafeJsonLdString } from "@/lib/seo/structured-data";
 
 interface UniversityDetailPageProps {
   params: Promise<{ slug: string }>;
@@ -29,14 +31,34 @@ interface UniversityDetailPageProps {
 // M17A Step 5 — self-referencing canonical for real published+active
 // universities, using the actual slug already fetched (never fabricated).
 // A missing/unpublished/inactive slug gets a permanent noindex instead.
+//
+// M17B FINAL — added an entity-specific `openGraph`/`twitter` block so
+// sharing a university URL shows that university's own name/summary
+// instead of the generic site-wide card. `description` falls back to a
+// short generated line when `summary` is null — composed only from fields
+// already fetched for this page, never an invented claim about the
+// institution.
 export async function generateMetadata({ params }: UniversityDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
   const university = await getPublicUniversityBySlug(slug);
   if (!university) return { title: "University not found", robots: { index: false, follow: false } };
+  const canonicalPath = `/universities/${slug}`;
+  const description = university.summary ?? `${university.name} on ${BRAND_NAME}.`;
   return {
     title: university.name,
     description: university.summary ?? undefined,
-    alternates: { canonical: `/universities/${slug}` },
+    alternates: { canonical: canonicalPath },
+    openGraph: {
+      title: `${university.name} | ${BRAND_NAME}`,
+      description,
+      url: canonicalPath,
+      type: "article",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${university.name} | ${BRAND_NAME}`,
+      description,
+    },
   };
 }
 
@@ -111,6 +133,19 @@ export default async function UniversityDetailPage({ params }: UniversityDetailP
 
   return (
     <Section tone="muted" className="pt-10 sm:pt-14">
+      {/* M17B FINAL — BreadcrumbList JSON-LD mirroring the visual trail below exactly. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: toSafeJsonLdString(
+            getBreadcrumbListJsonLd([
+              { name: "Home", path: "/" },
+              { name: "University Explorer", path: "/universities" },
+              { name: university.name, path: `/universities/${university.slug}` },
+            ])
+          ),
+        }}
+      />
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "University Explorer", href: "/universities" }, { label: university.name }]} />
 
       <div className="mt-6 mb-8 flex flex-wrap items-start justify-between gap-4">

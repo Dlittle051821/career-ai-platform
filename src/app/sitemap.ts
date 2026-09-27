@@ -15,8 +15,15 @@ import { getPublishedCourseSlugPairsForSitemap } from "@/lib/supabase/education/
  * this file's one job is to always emit the real production domain,
  * independent of how that environment variable happens to be configured
  * wherever this builds. Do not change this to SITE_URL without first
- * verifying NEXT_PUBLIC_APP_URL is reliably https://nextwise.world in every
- * environment this can build in.
+ * verifying NEXT_PUBLIC_APP_URL is reliably https://www.nextwise.world in
+ * every environment this can build in.
+ *
+ * M17B FINAL — corrected from the non-www `https://nextwise.world` used
+ * throughout M17A to the canonical production origin
+ * `https://www.nextwise.world` (WITH www), matching the www-prefixed value
+ * fixed at the same time in src/app/robots.ts and
+ * src/app/(site)/layout.tsx's PRODUCTION_ORIGIN, and in
+ * src/lib/seo/structured-data.ts.
  *
  * Included:
  *  - Every Group A (PUBLIC + INDEXABLE) static page from the audit.
@@ -49,7 +56,7 @@ import { getPublishedCourseSlugPairsForSitemap } from "@/lib/supabase/education/
  * sequencing.
  */
 
-const SITEMAP_BASE_URL = "https://nextwise.world";
+const SITEMAP_BASE_URL = "https://www.nextwise.world";
 
 type ChangeFrequency = NonNullable<MetadataRoute.Sitemap[number]["changeFrequency"]>;
 

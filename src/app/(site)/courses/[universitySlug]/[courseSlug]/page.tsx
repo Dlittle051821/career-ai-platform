@@ -29,6 +29,7 @@ import { shareCourseFormAction, startApplicationFormAction } from "./actions";
 import { EDUCATION_VERIFICATION_STATUS_LABELS, type EducationVerificationStatus } from "@/types/education";
 import type { EnglishRequirements, StandardizedTestRequirements, CourseAdmissionRequirement } from "@/types/education";
 import { BRAND_NAME } from "@/config/site";
+import { getBreadcrumbListJsonLd, toSafeJsonLdString } from "@/lib/seo/structured-data";
 
 interface CourseDetailPageProps {
   params: Promise<{ universitySlug: string; courseSlug: string }>;
@@ -40,14 +41,37 @@ interface CourseDetailPageProps {
 // getPublicCourseBySlugPair's own guard), using the actual slug pair
 // already fetched (never fabricated). A missing/unpublished slug pair
 // gets a permanent noindex instead.
+//
+// M17B FINAL — added an entity-specific `openGraph`/`twitter` block (title
+// includes the university name, matching the page's own `<h1>`/title
+// convention) so sharing a course URL shows that course's own identity
+// instead of the generic site-wide card. `description` falls back to a
+// short generated line when `entryRequirementsSummary` is null, since an
+// empty OG description renders poorly in most share surfaces — this is
+// composed only from fields already fetched for this page, never invented
+// facts about the course.
 export async function generateMetadata({ params }: CourseDetailPageProps): Promise<Metadata> {
   const { universitySlug, courseSlug } = await params;
   const course = await getPublicCourseBySlugPair(universitySlug, courseSlug);
   if (!course) return { title: "Course not found", robots: { index: false, follow: false } };
+  const canonicalPath = `/courses/${universitySlug}/${courseSlug}`;
+  const title = `${course.name} — ${course.universityName}`;
+  const description = course.entryRequirementsSummary ?? `${course.name} at ${course.universityName} on ${BRAND_NAME}.`;
   return {
-    title: `${course.name} — ${course.universityName}`,
+    title,
     description: course.entryRequirementsSummary ?? undefined,
-    alternates: { canonical: `/courses/${universitySlug}/${courseSlug}` },
+    alternates: { canonical: canonicalPath },
+    openGraph: {
+      title: `${title} | ${BRAND_NAME}`,
+      description,
+      url: canonicalPath,
+      type: "article",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} | ${BRAND_NAME}`,
+      description,
+    },
   };
 }
 
@@ -183,6 +207,20 @@ export default async function CourseDetailPage({ params, searchParams }: CourseD
 
   return (
     <Section tone="muted" className="pt-10 sm:pt-14">
+      {/* M17B FINAL — BreadcrumbList JSON-LD mirroring the visual trail below exactly. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: toSafeJsonLdString(
+            getBreadcrumbListJsonLd([
+              { name: "Home", path: "/" },
+              { name: "Course Explorer", path: "/courses" },
+              { name: course.universityName, path: `/universities/${course.universitySlug}` },
+              { name: course.name, path: `/courses/${course.universitySlug}/${course.slug}` },
+            ])
+          ),
+        }}
+      />
       <Breadcrumbs
         items={[
           { label: "Home", href: "/" },

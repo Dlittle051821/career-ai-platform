@@ -25,7 +25,7 @@ import type { MetadataRoute } from "next";
  * two tiny literal strings that must simply be kept in sync by inspection,
  * simpler than adding a shared module for a single string used twice.
  */
-const SITEMAP_BASE_URL = "https://nextwise.world";
+const SITEMAP_BASE_URL = "https://www.nextwise.world";
 
 /**
  * Every one of these is deliberately written WITHOUT a trailing slash,
