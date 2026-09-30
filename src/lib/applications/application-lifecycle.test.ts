@@ -33,8 +33,15 @@ describe("getAvailableStudentActions / STUDENT_APPLICATION_ACTIONS", () => {
     expect(getAvailableStudentActions("preparing").sort()).toEqual(["mark_ready_to_submit", "withdraw"].sort());
   });
 
-  it("offers submit and withdraw from ready_to_submit", () => {
-    expect(getAvailableStudentActions("ready_to_submit").sort()).toEqual(["submit", "withdraw"].sort());
+  it("[M19 correction] offers only withdraw from ready_to_submit — a student can no longer self-mark an application submitted", () => {
+    expect(getAvailableStudentActions("ready_to_submit")).toEqual(["withdraw"]);
+  });
+
+  it("[M19 correction] the 'submit' action definition is unreachable from every stage, structurally, not merely unused by convention", () => {
+    expect(STUDENT_APPLICATION_ACTIONS.submit.fromStages).toEqual([]);
+    for (const stage of ALL_STAGES) {
+      expect(getAvailableStudentActions(stage)).not.toContain("submit");
+    }
   });
 
   it("offers only withdraw from submitted, under_review, and interview", () => {
@@ -75,6 +82,13 @@ describe("getApplicationNextAction [test 28]", () => {
     for (const stage of ["enrolled", "rejected", "withdrawn"] as ApplicationStage[]) {
       expect(getApplicationNextAction(stage).action).toBeNull();
     }
+  });
+
+  it("[M19 correction] ready_to_submit's next action is no longer student-clickable, and never claims the student can mark it submitted themselves", () => {
+    const next = getApplicationNextAction("ready_to_submit");
+    expect(next.action).toBeNull();
+    expect(next.label.toLowerCase()).not.toContain("mark as submitted");
+    expect(next.label.length).toBeGreaterThan(0);
   });
 });
 

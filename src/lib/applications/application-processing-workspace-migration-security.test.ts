@@ -32,11 +32,22 @@ function slicePolicy(policyName: string): string {
 }
 
 describe("0020 — forward-only, does not edit prior migrations", () => {
-  it("is the next free migration number — no 0020 gap, no 0018/0019 duplication", () => {
+  it("exists on disk with no 0020 gap and no 0018/0019 duplication", () => {
+    // Milestone 19 note: this assertion originally also required 20 to be
+    // the HIGHEST migration number on disk — a point-in-time claim that was
+    // always going to become false the moment a later milestone added its
+    // own next-free-numbered migration (see
+    // application-submission-migration-security.test.ts's own "is the next
+    // free migration number" test, which now owns that claim for 0021). This
+    // test's real, still-true job — 0020 exists, and no duplicate/renumbered
+    // 0018 or 0019 file was introduced — is unaffected by a later milestone
+    // adding 0021 or beyond.
     const files = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith(".sql"));
-    const numbers = files.map((f) => parseInt(f.slice(0, 4), 10)).sort((a, b) => a - b);
+    const numbers = files.map((f) => parseInt(f.slice(0, 4), 10));
     expect(numbers).toContain(20);
-    expect(Math.max(...numbers)).toBe(20);
+    expect(numbers.filter((n) => n === 18)).toHaveLength(1);
+    expect(numbers.filter((n) => n === 19)).toHaveLength(1);
+    expect(numbers.filter((n) => n === 20)).toHaveLength(1);
   });
 
   it("0018 and 0019 exist on disk, unmodified in size-order (this file never rewrites them)", () => {

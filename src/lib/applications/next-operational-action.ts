@@ -26,6 +26,8 @@ export type NextOperationalActionKind =
   | "waiting_on_student"
   | "complete_checklist_item"
   | "ready_for_submission"
+  | "add_application_reference"
+  | "await_university_acknowledgement"
   | "no_action";
 
 export interface NextOperationalAction {
@@ -53,6 +55,15 @@ export interface NextOperationalActionInput {
   documentCompleteness: ApplicationDocumentCompleteness;
   documentReviewCompleteness: ApplicationDocumentReviewCompleteness;
   manualChecklistItems: readonly ManualChecklistItemState[];
+  /**
+   * Milestone 19 — present once a public.application_submissions row exists
+   * for this application; null/undefined for a not-yet-submitted
+   * application. Optional so every M16-M18 call site (and their existing
+   * tests) continues to compile and behave identically without being
+   * updated — a caller that never passes this field simply never reaches
+   * the two new post-submission branches below.
+   */
+  submission?: { hasExternalReference: boolean } | null;
 }
 
 /**
@@ -61,25 +72,36 @@ export interface NextOperationalActionInput {
  *
  *   1. Closed application (enrolled/rejected/withdrawn) — nothing else
  *      matters once an application has reached a terminal state.
- *   2. Any current document sitting in pending_review — reviewing what has
+ *   2. Milestone 19 — a submission has already been recorded: add an
+ *      external reference if none was captured yet, else wait for the
+ *      university. This takes priority over every document/checklist
+ *      branch below, since once a submission is recorded the M18
+ *      processing steps that led to it are already resolved (the
+ *      submission RPC itself re-validates that at write time).
+ *   3. Any current document sitting in pending_review — reviewing what has
  *      already been submitted is the single highest-leverage staff action
  *      (it unblocks the student fastest).
- *   3. A required document is still missing — staff should chase it.
- *   4. A document is in needs_correction (a correction request is
+ *   4. A required document is still missing — staff should chase it.
+ *   5. A document is in needs_correction (a correction request is
  *      outstanding) — the ball is in the student's court now.
- *   5. A manual checklist item is incomplete — staff has an internal task
+ *   6. A manual checklist item is incomplete — staff has an internal task
  *      left.
- *   6. Every signal is satisfied and the stage is appropriate — ready for
+ *   7. Every signal is satisfied and the stage is appropriate — ready for
  *      the staff-controlled submission step (this module never performs
  *      that step itself — see application-readiness.ts's own header
  *      comment).
- *   7. Otherwise (e.g. already submitted/under review/awaiting a
- *      decision, with nothing outstanding on this milestone's own signals)
- *      — no immediate action.
+ *   8. Otherwise (e.g. under review/awaiting a decision, with nothing
+ *      outstanding on this milestone's own signals) — no immediate action.
  */
 export function getNextOperationalAction(input: NextOperationalActionInput): NextOperationalAction {
   if (CLOSED_STAGES.includes(input.stage)) {
     return { kind: "closed", label: "Application closed — no action needed." };
+  }
+
+  if (input.submission) {
+    return input.submission.hasExternalReference
+      ? { kind: "await_university_acknowledgement", label: "Await university acknowledgement." }
+      : { kind: "add_application_reference", label: "Add the application reference once available." };
   }
 
   const pendingReviewCount = input.currentDocuments.filter((d) => d.reviewStatus === "pending_review").length;

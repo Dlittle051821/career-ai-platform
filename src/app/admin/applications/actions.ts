@@ -7,6 +7,7 @@ import { createApplication, updateApplication } from "@/lib/supabase/admin/appli
 import { getApplicationDocumentDownloadUrlForAdmin, reviewApplicationDocument } from "@/lib/supabase/admin/application-documents";
 import { toggleApplicationChecklistItem } from "@/lib/supabase/admin/application-checklist";
 import { addApplicationInternalNote } from "@/lib/supabase/admin/application-notes";
+import { recordApplicationSubmission } from "@/lib/supabase/admin/application-submissions";
 import { friendlyAdminError, AdminValidationError, type ActionState } from "@/lib/admin/form-state";
 
 export interface SimpleActionResult {
@@ -119,4 +120,27 @@ export async function addApplicationInternalNoteAction(applicationId: string, fo
   }
   revalidatePath(`/admin/applications/${applicationId}`);
   return { success: true };
+}
+
+/**
+ * Milestone 19 — "Record submitted application" (deliberately never named
+ * "Submit application" — see AdminApplicationSubmissionPanel.tsx's own
+ * comment). Never accepts a submitted-by identity, stage, or readiness
+ * value from the client — the RPC behind recordApplicationSubmission()
+ * derives/re-validates every one of those server-side from auth.uid() and
+ * the current database state only. revalidatePath refreshes the
+ * server-rendered submission panel/history and the student-facing
+ * application page after a successful recording, since this action also
+ * transitions applications.stage.
+ */
+export async function recordApplicationSubmissionAction(applicationId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    await recordApplicationSubmission(applicationId, formData);
+  } catch (error) {
+    return { error: friendlyAdminError(error) };
+  }
+  revalidatePath("/admin/applications");
+  revalidatePath(`/admin/applications/${applicationId}`);
+  revalidatePath(`/applications/${applicationId}`);
+  return { error: null };
 }

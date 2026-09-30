@@ -285,6 +285,36 @@ export interface ApplicationStatusHistoryEntry {
 }
 
 // ---------------------------------------------------------------------------
+// Milestone 19 — Application Submission Tracking (staff-facing shape). See
+// src/lib/applications/application-submission.ts for the fixed
+// submission-method vocabulary and docs/application-submission-guide.md for
+// the full design. This is the ADMIN-facing shape — includes
+// submittedByUserId/internalNote, both STAFF-ONLY; the student-facing shape
+// lives separately in src/lib/supabase/education/application-submissions.ts
+// and structurally excludes both.
+// ---------------------------------------------------------------------------
+
+export interface ApplicationSubmission {
+  id: string;
+  applicationId: string;
+  submittedAt: string;
+  /** STAFF-ONLY. Never surfaced to a student. */
+  submittedByUserId: string | null;
+  submittedByName: string | null;
+  submissionMethod: string;
+  platformName: string | null;
+  externalReference: string | null;
+  externalUrl: string | null;
+  /** STAFF-ONLY. Never surfaced to a student. */
+  internalNote: string | null;
+  applicationStageAtSubmission: string;
+  universityLabel: string | null;
+  courseLabel: string | null;
+  intakeLabel: string | null;
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
 // Payments — operational tracking only, never a processor. See
 // docs/admin-system-guide.md §7.
 // ---------------------------------------------------------------------------

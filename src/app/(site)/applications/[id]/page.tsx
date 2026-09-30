@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { getCurrentUser } from "@/lib/supabase/profile";
 import { getMyApplicationById, getMyApplicationHistory } from "@/lib/supabase/education/applications";
 import { listMyApplicationDocuments } from "@/lib/supabase/education/application-documents";
+import { getMyApplicationSubmission } from "@/lib/supabase/education/application-submissions";
 import { ApplicationStatusBadge } from "@/components/applications/ApplicationStatusBadge";
 import { ApplicationTimeline } from "@/components/applications/ApplicationTimeline";
 import { ApplicationActions } from "@/components/applications/ApplicationActions";
@@ -52,6 +53,7 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
 
   const history = await getMyApplicationHistory(id);
   const documents = await listMyApplicationDocuments(id);
+  const submission = await getMyApplicationSubmission(id);
   const next = getApplicationNextAction(application.stage);
   const title =
     application.courseName && application.universityName
@@ -153,6 +155,44 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
         </div>
 
         <div className="space-y-6">
+          {/* Milestone 19 — shown only once staff have actually recorded an
+              external submission. Never rendered as an empty/placeholder
+              card beforehand — a not-yet-submitted application simply has
+              no card here, matching the task's own "don't show a fake
+              empty submission card" instruction. Never implies a
+              university has acknowledged anything unless that has
+              genuinely been recorded (it never is, in this milestone). */}
+          {submission ? (
+            <Card>
+              <h2 className="text-base font-semibold text-primary">Application submitted</h2>
+              <dl className="mt-3 space-y-2 text-sm">
+                {submission.universityLabel ? (
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted">University</dt>
+                    <dd className="mt-0.5 text-text">{submission.universityLabel}</dd>
+                  </div>
+                ) : null}
+                {submission.courseLabel ? (
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted">Course</dt>
+                    <dd className="mt-0.5 text-text">{submission.courseLabel}</dd>
+                  </div>
+                ) : null}
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted">Submitted</dt>
+                  <dd className="mt-0.5 text-text">{formatDate(submission.submittedAt)}</dd>
+                </div>
+                {submission.externalReference ? (
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted">Application reference</dt>
+                    <dd className="mt-0.5 text-text">{submission.externalReference}</dd>
+                  </div>
+                ) : null}
+              </dl>
+              <p className="mt-4 text-xs text-muted">Further updates will appear here once NextWise records them.</p>
+            </Card>
+          ) : null}
+
           <Card>
             <h2 className="text-base font-semibold text-primary">Next step</h2>
             <p className="mt-2 text-sm text-text">{next.label}</p>

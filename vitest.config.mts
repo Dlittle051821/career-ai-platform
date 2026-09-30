@@ -263,6 +263,27 @@ export default defineConfig({
       // entry here.)
       "src/lib/supabase/admin/application-checklist.test.ts",
       "src/lib/supabase/admin/application-notes.test.ts",
+      // Milestone 19 — Application Submission Preparation & Manual
+      // Submission Tracking. Pure logic (submission-method vocabulary, URL
+      // validation, the M19 submission-readiness composition) and the
+      // static-SQL-text migration-security regression guard for
+      // 0021_application_submission_tracking.sql live in
+      // src/lib/applications/, same "pure, framework-free" convention as
+      // every directory above.
+      "src/lib/applications/application-submission.test.ts",
+      "src/lib/applications/application-submission-migration-security.test.ts",
+      // A fifth, equally narrow exception to the "src/lib/supabase/ is
+      // untested here" convention, for the same reason as refunds.test.ts/
+      // applications.test.ts/application-documents.test.ts/
+      // application-checklist.test.ts above: recordApplicationSubmission()'s
+      // pre-validation + RPC-call + audit-log orchestration, and
+      // getMyApplicationSubmission()'s ownership/safe-field-exclusion
+      // boundary, are STATEFUL ORCHESTRATION logic that cannot be exercised
+      // as a pure function. Both files mock the same I/O boundaries behind
+      // the same kind of hand-rolled in-memory Supabase fake as every file
+      // above.
+      "src/lib/supabase/admin/application-submissions.test.ts",
+      "src/lib/supabase/education/application-submissions.test.ts",
     ],
   },
 });

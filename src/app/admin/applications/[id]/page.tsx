@@ -13,6 +13,7 @@ import { listCounsellorOptions } from "@/lib/supabase/admin/counsellors";
 import { listApplicationDocumentsForAdmin } from "@/lib/supabase/admin/application-documents";
 import { getApplicationChecklistItems } from "@/lib/supabase/admin/application-checklist";
 import { getApplicationInternalNotes } from "@/lib/supabase/admin/application-notes";
+import { getApplicationSubmissionForAdmin, listApplicationSubmissionDocumentsForAdmin } from "@/lib/supabase/admin/application-submissions";
 import {
   APPLICATION_DOCUMENT_TYPE_LABELS,
   getApplicationDocumentCompleteness,
@@ -21,11 +22,13 @@ import {
 } from "@/lib/applications/application-documents";
 import { getApplicationChecklistView } from "@/lib/applications/application-checklist";
 import { getApplicationReadiness } from "@/lib/applications/application-readiness";
+import { getApplicationSubmissionReadiness } from "@/lib/applications/application-submission";
 import { getNextOperationalAction } from "@/lib/applications/next-operational-action";
 import { AdminDocumentDownloadButton } from "@/components/admin/applications/AdminDocumentDownloadButton";
 import { AdminDocumentReviewControls } from "@/components/admin/applications/AdminDocumentReviewControls";
 import { AdminApplicationChecklist } from "@/components/admin/applications/AdminApplicationChecklist";
 import { AdminApplicationNotes } from "@/components/admin/applications/AdminApplicationNotes";
+import { AdminApplicationSubmissionPanel } from "@/components/admin/applications/AdminApplicationSubmissionPanel";
 import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
 import { hasPermission } from "@/lib/admin/permissions";
 import { APPLICATION_STAGE_LABELS } from "@/types/admin";
@@ -63,11 +66,15 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
 
   const canReadDocuments = hasPermission(admin?.role, "application-documents:read");
   const canReviewWorkspace = hasPermission(admin?.role, "application-documents:review");
+  const canReadSubmissions = hasPermission(admin?.role, "application-submissions:read");
+  const canWriteSubmissions = hasPermission(admin?.role, "application-submissions:write");
 
   const documents = canReadDocuments ? await listApplicationDocumentsForAdmin(id) : [];
   const [checklistItems, internalNotes] = canReviewWorkspace
     ? await Promise.all([getApplicationChecklistItems(id), getApplicationInternalNotes(id)])
     : [[], []];
+  const existingSubmission = canReadSubmissions ? await getApplicationSubmissionForAdmin(id) : null;
+  const submissionDocuments = existingSubmission ? await listApplicationSubmissionDocumentsForAdmin(existingSubmission.id) : [];
 
   const documentCompleteness = getApplicationDocumentCompleteness(documents.map((d) => ({ documentType: d.documentType as ApplicationDocumentType, originalFilename: d.originalFilename })));
   const documentReviewCompleteness = getApplicationDocumentReviewCompleteness(
@@ -85,12 +92,20 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
     documentReviewCompleteness,
     isReady: readiness.isReady,
   });
+  const submissionReadiness = getApplicationSubmissionReadiness({
+    stage: application.stage,
+    applicationReadiness: readiness,
+    hasExistingSubmission: !!existingSubmission,
+  });
+  const documentPack = documents.filter((d) => d.reviewStatus === "accepted").map((d) => ({ documentType: d.documentType, originalFilename: d.originalFilename }));
+
   const nextAction = getNextOperationalAction({
     stage: application.stage,
     currentDocuments: documents.map((d) => ({ documentType: d.documentType as ApplicationDocumentType, reviewStatus: d.reviewStatus })),
     documentCompleteness,
     documentReviewCompleteness,
     manualChecklistItems: checklistItems,
+    submission: existingSubmission ? { hasExternalReference: !!existingSubmission.externalReference } : null,
   });
 
   const boundAction = updateApplicationAction.bind(null, id, application.studentUserId);
@@ -141,6 +156,28 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
           ) : (
             <p className="text-xs text-success">This application is ready for the staff-controlled submission step.</p>
           )}
+        </Card>
+      ) : null}
+
+      {/* SUBMISSION PREPARATION — Milestone 19. Extends this SAME page
+          (never a parallel system). Gated behind application-submissions:read
+          — omitted entirely for a caller without it (finance/analyst/
+          content_editor), same "card disappears rather than crashes" posture
+          as every other M18/M19 card on this page. Viewing this page never
+          mutates anything by itself — only the explicit "Record submitted
+          application" action inside the panel does. */}
+      {canReadSubmissions ? (
+        <Card className="mt-6 space-y-3">
+          <h2 className="text-base font-semibold text-primary">Submission preparation</h2>
+          <AdminApplicationSubmissionPanel
+            applicationId={id}
+            canWrite={canWriteSubmissions}
+            readiness={submissionReadiness}
+            underlyingBlockers={readiness.blockers}
+            documentPack={documentPack}
+            existingSubmission={existingSubmission}
+            submissionDocuments={submissionDocuments}
+          />
         </Card>
       ) : null}
 

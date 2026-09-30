@@ -85,4 +85,33 @@ describe("getNextOperationalAction() — deterministic, rules-based (no LLM)", (
     const input = baseInput();
     expect(getNextOperationalAction(input)).toEqual(getNextOperationalAction(input));
   });
+
+  describe("Milestone 19 — post-submission next action", () => {
+    it("asks staff to add an application reference once submitted with none recorded yet — takes priority over document/checklist signals", () => {
+      const result = getNextOperationalAction(
+        baseInput({
+          stage: "submitted",
+          submission: { hasExternalReference: false },
+          documentReviewCompleteness: { requiredAccepted: 3, isRequiredReviewComplete: true, hasOutstandingCorrection: true, acceptedCount: 3, needsCorrectionCount: 1 },
+          manualChecklistItems: [],
+        })
+      );
+      expect(result.kind).toBe("add_application_reference");
+    });
+
+    it("reports awaiting university acknowledgement once submitted and a reference is already recorded", () => {
+      const result = getNextOperationalAction(baseInput({ stage: "submitted", submission: { hasExternalReference: true } }));
+      expect(result.kind).toBe("await_university_acknowledgement");
+    });
+
+    it("never reaches the post-submission branch for a closed application, even if a submission somehow exists", () => {
+      const result = getNextOperationalAction(baseInput({ stage: "withdrawn", submission: { hasExternalReference: false } }));
+      expect(result.kind).toBe("closed");
+    });
+
+    it("falls back to the pre-M19 behavior when `submission` is omitted entirely — existing M16-M18 call sites are unaffected", () => {
+      const result = getNextOperationalAction(baseInput({ stage: "submitted" }));
+      expect(result.kind).toBe("no_action");
+    });
+  });
 });

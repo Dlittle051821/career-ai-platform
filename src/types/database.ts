@@ -907,6 +907,46 @@ type ApplicationInternalNotesRow = {
 };
 
 // ---------------------------------------------------------------------------
+// application_submissions / application_submission_documents (Milestone 19
+// — see 0021_application_submission_tracking.sql). Both rows are IMMUTABLE
+// once inserted — neither table has an updated_at column or an UPDATE
+// policy, and no code path in this codebase ever issues an UPDATE against
+// either table after creation.
+// ---------------------------------------------------------------------------
+type ApplicationSubmissionsRow = {
+  id: string;
+  application_id: string;
+  submitted_at: string;
+  /** Milestone 19 — always server-derived from auth.uid(). STAFF-ONLY — never returned by get_my_application_submission(). */
+  submitted_by_user_id: string | null;
+  submission_method: string;
+  platform_name: string | null;
+  external_reference: string | null;
+  /** Milestone 19 — STAFF-ONLY, never returned by get_my_application_submission(). */
+  external_url: string | null;
+  /** Milestone 19 — STAFF-ONLY free text. Never returned by any student-facing RPC. */
+  internal_note: string | null;
+  application_stage_at_submission: string;
+  university_id: string | null;
+  university_label: string | null;
+  course_id: string | null;
+  course_label: string | null;
+  course_intake_id: string | null;
+  intake_label: string | null;
+  created_at: string;
+};
+
+type ApplicationSubmissionDocumentsRow = {
+  id: string;
+  submission_id: string;
+  /** Milestone 19 — references the EXACT application_documents row snapshotted, never a document type alone. ON DELETE RESTRICT at the database level. */
+  application_document_id: string;
+  /** Milestone 19 — denormalized from application_documents.document_type at snapshot time; see the migration's own PART 2 comment for why. */
+  document_type: string;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
 // payments (Milestone 7 — operational tracking only, see 0004 migration)
 // ---------------------------------------------------------------------------
 type PaymentsRow = {
@@ -1825,6 +1865,45 @@ export interface Database {
           storage_path: string;
         }[];
       };
+      // Milestone 19 — see 0021_application_submission_tracking.sql PART 3.
+      // The ONLY way a submission is ever recorded.
+      staff_record_application_submission: {
+        Args: {
+          p_application_id: string;
+          p_submission_method: string;
+          p_platform_name?: string | null;
+          p_external_reference?: string | null;
+          p_external_url?: string | null;
+          p_internal_note?: string | null;
+        };
+        Returns: {
+          id: string;
+          application_id: string;
+          submitted_at: string;
+          submission_method: string;
+          platform_name: string | null;
+          external_reference: string | null;
+          external_url: string | null;
+          stage: string;
+        }[];
+      };
+      // Milestone 19 — see 0021_application_submission_tracking.sql PART 4.
+      // The ONLY way a student reads their own submission record. Never
+      // returns submitted_by_user_id/internal_note/external_url/
+      // platform_name — all staff-only.
+      get_my_application_submission: {
+        Args: { p_application_id: string };
+        Returns: {
+          id: string;
+          application_id: string;
+          submitted_at: string;
+          submission_method: string;
+          external_reference: string | null;
+          university_label: string | null;
+          course_label: string | null;
+          created_at: string;
+        }[];
+      };
     };
     Tables: {
       profiles: {
@@ -2264,6 +2343,28 @@ export interface Database {
         Row: ApplicationInternalNotesRow;
         Insert: Omit<ApplicationInternalNotesRow, "id" | "created_at"> & { id?: string; created_at?: string };
         Update: Partial<Omit<ApplicationInternalNotesRow, "id" | "created_at">> & { created_at?: string };
+        Relationships: [];
+      };
+
+      // Milestone 19 — see 0021_application_submission_tracking.sql PART
+      // 1/2. Both tables are IMMUTABLE once inserted — every write happens
+      // exclusively inside staff_record_application_submission(); no
+      // TypeScript code ever calls .insert()/.update() on either table
+      // directly. The Row/Insert/Update shapes below exist only so admin-
+      // side read code (listing a submission for the workspace/history
+      // view) can use the typed `.from(...).select(...)` path, same
+      // convention as application_internal_notes above.
+      application_submissions: {
+        Row: ApplicationSubmissionsRow;
+        Insert: Omit<ApplicationSubmissionsRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<ApplicationSubmissionsRow, "id" | "application_id" | "created_at">>;
+        Relationships: [];
+      };
+
+      application_submission_documents: {
+        Row: ApplicationSubmissionDocumentsRow;
+        Insert: Omit<ApplicationSubmissionDocumentsRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<ApplicationSubmissionDocumentsRow, "id" | "submission_id" | "created_at">>;
         Relationships: [];
       };
 

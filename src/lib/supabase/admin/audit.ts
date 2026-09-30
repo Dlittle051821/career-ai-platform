@@ -145,4 +145,12 @@ export const AUDIT_ENTITY_TYPES = [
   // database-authorized RPC boundary behind them (see
   // src/lib/supabase/admin/application-documents.ts's reviewApplicationDocument()).
   "application_document_review",
+  // Milestone 19 — Application Submission Preparation & Manual Submission
+  // Tracking. Reuses the existing generic audit infrastructure (task's own
+  // instruction not to build a second one) — only submission recording gets
+  // its own entity type, since it is the one M19 action with a real
+  // database-authorized RPC boundary behind it (see
+  // src/lib/supabase/admin/application-submissions.ts's
+  // recordApplicationSubmission()).
+  "application_submission",
 ] as const;

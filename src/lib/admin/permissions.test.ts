@@ -102,6 +102,28 @@ describe("ROLE_PERMISSIONS", () => {
     expect(ADMIN_PERMISSIONS).toContain("application-documents:review");
     expect(ADMIN_PERMISSIONS).toContain("applications:write");
   });
+
+  it("Milestone 19 — scopes application-submissions:read/write to super_admin/admin/counsellor only, never finance/analyst/content_editor", () => {
+    for (const permission of ["application-submissions:read", "application-submissions:write"] as const) {
+      expect(ROLE_PERMISSIONS.super_admin).toContain(permission);
+      expect(ROLE_PERMISSIONS.admin).toContain(permission);
+      expect(ROLE_PERMISSIONS.counsellor).toContain(permission);
+      expect(ROLE_PERMISSIONS.finance).not.toContain(permission);
+      expect(ROLE_PERMISSIONS.analyst).not.toContain(permission);
+      expect(ROLE_PERMISSIONS.content_editor).not.toContain(permission);
+    }
+  });
+
+  it("Milestone 19 — application-submissions:write is its own permission, distinct from application-documents:review and applications:write", () => {
+    expect(ADMIN_PERMISSIONS).toContain("application-submissions:write");
+    expect(ADMIN_PERMISSIONS).toContain("application-documents:review");
+    expect(ADMIN_PERMISSIONS).toContain("applications:write");
+  });
+
+  it("Milestone 19 — student/anonymous callers hold no admin role at all, so hasPermission denies application-submissions:write regardless of role list contents", () => {
+    expect(hasPermission(null, "application-submissions:write")).toBe(false);
+    expect(hasPermission(undefined, "application-submissions:write")).toBe(false);
+  });
 });
 
 describe("hasPermission", () => {

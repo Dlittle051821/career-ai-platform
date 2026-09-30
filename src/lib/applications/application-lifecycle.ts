@@ -37,8 +37,27 @@ export const STUDENT_APPLICATION_ACTIONS: Record<StudentApplicationAction, Stude
     buttonLabel: "Mark ready to submit",
     requiresConfirmation: false,
   },
+  /**
+   * MILESTONE 19 CORRECTION: `fromStages` is deliberately empty, not
+   * removed. `applications.stage = 'submitted'` must now always correspond
+   * to an immutable `application_submissions` row created by
+   * `staff_record_application_submission()` — a plain student self-service
+   * action structurally cannot create that row, so it can no longer be
+   * allowed to reach this stage at all. Emptying `fromStages` (rather than
+   * deleting this entry, or the `StudentApplicationAction` union member)
+   * means `getAvailableStudentActions()` never offers it from any stage —
+   * the button simply never renders — without touching
+   * `STUDENT_APPLICATION_ACTIONS`'s `Record<StudentApplicationAction, ...>`
+   * shape, `ApplicationActions.tsx`, or any historical
+   * `action: "submit"`-referencing analytics/history row's meaning. The
+   * actual enforcement is database-level (see
+   * `supabase/migrations/0022_authoritative_submission_invariant.sql`) —
+   * this is the UX courtesy on top of that, never a substitute for it: even
+   * a stale client that still tries to call the RPC directly with this
+   * action is rejected server-side.
+   */
   submit: {
-    fromStages: ["ready_to_submit"],
+    fromStages: [],
     toStage: "submitted",
     buttonLabel: "Mark as submitted",
     requiresConfirmation: true,
@@ -83,7 +102,15 @@ export function getApplicationNextAction(stage: ApplicationStage): ApplicationNe
     case "preparing":
       return { label: "Mark ready when your application is complete", action: "mark_ready_to_submit" };
     case "ready_to_submit":
-      return { label: "Mark as submitted once you've applied", action: "submit" };
+      // MILESTONE 19 CORRECTION: previously `{ label: "Mark as submitted
+      // once you've applied", action: "submit" }` — but a student can no
+      // longer perform that transition (see STUDENT_APPLICATION_ACTIONS.submit
+      // above), so `action` must never again be "submit" here, and the
+      // label must never imply the student can mark this submitted
+      // themselves. `action: null` is honest: from this stage, Nextwise
+      // staff recording the actual submission is the next real event, not
+      // a student-clickable step.
+      return { label: "Your application is ready — Nextwise staff will record it as submitted once it has been sent to the university.", action: null };
     case "submitted":
       return { label: "Wait for the university to review your application", action: null };
     case "under_review":

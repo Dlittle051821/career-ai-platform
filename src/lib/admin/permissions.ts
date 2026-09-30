@@ -144,6 +144,22 @@ export const ADMIN_PERMISSIONS = [
   // this application's M18 workspace" boundary as document review, so one
   // permission covers all three rather than proliferating near-duplicates.
   "application-documents:review",
+  // Milestone 19 — Application Submission Preparation & Manual Submission
+  // Tracking. Its own narrow read/write pair rather than reusing
+  // "application-documents:review" or the broader "applications:write" —
+  // recording an external submission is a distinct, database-authorized
+  // action (staff_record_application_submission(),
+  // 0021_application_submission_tracking.sql PART 3) with its own
+  // authorization boundary (super_admin/admin/assigned-counsellor only),
+  // following this codebase's own per-milestone-narrow-permission-pair
+  // convention exactly as "application-documents:read"/"review" did before
+  // it. ":read" gates viewing the Submission preparation section/history;
+  // ":write" additionally gates the "Record submission" action itself.
+  // Deliberately NOT granted to finance/analyst/content_editor — see
+  // ROLE_PERMISSIONS below and docs/application-submission-guide.md
+  // "Authorization model".
+  "application-submissions:read",
+  "application-submissions:write",
 ] as const;
 
 export type AdminPermission = (typeof ADMIN_PERMISSIONS)[number];
@@ -221,6 +237,12 @@ export const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
     // application regardless — no assignment restriction, matching
     // "application-documents:read" above.
     "application-documents:review",
+    // Milestone 19 — admin gets full submission-tracking access. RLS
+    // (0021 PART 5) additionally scopes admin to every application
+    // regardless — no assignment restriction, matching
+    // "application-documents:review" above.
+    "application-submissions:read",
+    "application-submissions:write",
   ],
   counsellor: [
     "dashboard:read",
@@ -269,6 +291,14 @@ export const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
     // application-layer gate at all, same "permission is UX, RLS is the
     // boundary" split as everywhere else in this file.
     "application-documents:review",
+    // Milestone 19 — counsellors record/view submissions only for their OWN
+    // assigned applications; RLS (0021 PART 5) and
+    // staff_record_application_submission()'s own re-check at write time
+    // are what actually enforce that narrowing — this permission only gets
+    // a counsellor past the application-layer gate at all, same "permission
+    // is UX, RLS/RPC is the boundary" split as everywhere else in this file.
+    "application-submissions:read",
+    "application-submissions:write",
   ],
   finance: [
     "dashboard:read",
