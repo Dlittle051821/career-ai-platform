@@ -1,6 +1,7 @@
 import { Compass, GraduationCap, Lightbulb, Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
+import { FADE_UP_CLASSES, FLOW_DASH_CLASSES, getStaggerDelayMs } from "@/lib/ui/motion";
 
 const NODES = [
   { icon: Lightbulb, label: "Interests", tone: "accent" as const },
@@ -8,6 +9,13 @@ const NODES = [
   { icon: GraduationCap, label: "Course & pathway", tone: "secondary" as const },
   { icon: Briefcase, label: "Job readiness", tone: "primary" as const },
 ];
+
+// UX09 Part D — exactly one connecting segment (between "Career direction"
+// and "Course & pathway", the journey's conceptual midpoint) carries the
+// slow, subtle flow-dash motion. Deliberately not every segment: the task's
+// own rule is "animation on every card" is forbidden, and a graphic where
+// every line moves reads as busy rather than calm.
+const ANIMATED_SEGMENT_INDEX = 1;
 
 const TONE_CLASSES = {
   accent: "bg-accent-light text-accent-dark ring-accent/15",
@@ -18,6 +26,11 @@ const TONE_CLASSES = {
 /**
  * Original, component-built roadmap graphic — no stock imagery. Purely
  * illustrative; explicitly labelled as such for parents and students.
+ *
+ * UX09 Part B/D — each node now fades/rises in on a short stagger (one
+ * single playthrough on mount, never looping), and the one marked segment
+ * above carries the shared ambient pathway motion. This is a presentation
+ * change only — the four labeled stages and their order are unchanged.
  */
 export function RoadmapVisual() {
   return (
@@ -29,7 +42,11 @@ export function RoadmapVisual() {
 
       <div className="mt-9 flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
         {NODES.map(({ icon: Icon, label, tone }, index) => (
-          <div key={label} className="relative flex flex-1 items-center gap-4 sm:flex-col sm:text-center">
+          <div
+            key={label}
+            className={cn("relative flex flex-1 items-center gap-4 sm:flex-col sm:text-center", FADE_UP_CLASSES)}
+            style={{ animationDelay: `${getStaggerDelayMs(index)}ms` }}
+          >
             {index > 0 ? (
               <span
                 aria-hidden="true"
@@ -46,10 +63,24 @@ export function RoadmapVisual() {
             </span>
             <p className="text-sm font-medium text-text-soft sm:text-[13px]">{label}</p>
             {index < NODES.length - 1 ? (
-              <span
+              <svg
                 aria-hidden="true"
-                className="hidden h-px flex-1 bg-border sm:absolute sm:left-[calc(50%+2rem)] sm:top-6 sm:block sm:w-[calc(100%-4rem)]"
-              />
+                className={cn(
+                  "hidden h-px flex-1 sm:absolute sm:left-[calc(50%+2rem)] sm:top-6 sm:block sm:w-[calc(100%-4rem)]",
+                  index === ANIMATED_SEGMENT_INDEX ? "text-primary/50" : "text-border"
+                )}
+              >
+                <line
+                  x1="0"
+                  y1="0.5"
+                  x2="100%"
+                  y2="0.5"
+                  stroke="currentColor"
+                  strokeWidth={1}
+                  strokeDasharray={index === ANIMATED_SEGMENT_INDEX ? "4 4" : undefined}
+                  className={index === ANIMATED_SEGMENT_INDEX ? FLOW_DASH_CLASSES : undefined}
+                />
+              </svg>
             ) : null}
           </div>
         ))}

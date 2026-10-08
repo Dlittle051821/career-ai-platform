@@ -6,6 +6,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { PageHero } from "@/components/sections/PageHero";
+import { NetworkGraphic } from "@/components/graphics/NetworkGraphic";
 import { CTASection } from "@/components/sections/CTASection";
 import { FaqAccordion } from "@/components/sections/FaqAccordion";
 import { DemoNotice } from "@/components/ui/DemoNotice";
@@ -34,6 +35,12 @@ export default function CareerDiscoveryPage() {
           { label: "Home", href: "/" },
           { label: "Career Discovery" },
         ]}
+        visual={
+          <NetworkGraphic
+            accessibility={{ kind: "decorative" }}
+            className="h-44 w-44 sm:h-52 sm:w-52"
+          />
+        }
       >
         <DemoNotice>
           The full scored assessment engine is still in development. The quick

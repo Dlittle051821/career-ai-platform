@@ -223,6 +223,18 @@ export const APPLICATION_BUCKET_LABELS: Record<ApplicationBucket, string> = {
   closed: "Closed",
 };
 
+/**
+ * UX09 Part B — the one canonical ordering of the four buckets above,
+ * pulled out of src/app/(site)/applications/page.tsx's own local
+ * `BUCKET_ORDER` constant so that page and
+ * src/components/applications/ApplicationCard.tsx's per-card progress
+ * visual (which needs the same order to place a bucket as done/current/
+ * upcoming) share one source of truth instead of two copies that could
+ * drift apart. Purely additive — the page's own usage is unchanged in
+ * behavior, just re-pointed at this export.
+ */
+export const APPLICATION_BUCKET_ORDER: readonly ApplicationBucket[] = ["active", "submitted", "decision", "closed"];
+
 export function getApplicationBucket(stage: ApplicationStage): ApplicationBucket {
   switch (stage) {
     case "inquiry":

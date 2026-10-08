@@ -5,6 +5,8 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { DemoNotice } from "@/components/ui/DemoNotice";
 import { LinkButton } from "@/components/ui/Button";
+import { GeometricBackdrop } from "@/components/graphics/GeometricBackdrop";
+import { FADE_UP_CLASSES, HOVER_LIFT_CLASSES } from "@/lib/ui/motion";
 import { ProfileProgressBar } from "@/components/sections/profile/ProfileProgressBar";
 import { JourneyProgress } from "@/components/sections/dashboard/JourneyProgress";
 import { getCurrentProfile, firstNameFrom } from "@/lib/supabase/profile";
@@ -24,6 +26,7 @@ import { ReadinessBadge } from "@/components/sections/recommendations/ReadinessB
 import { BRAND_NAME } from "@/config/site";
 import { getNextBestAction } from "@/lib/dashboard/next-best-action";
 import { computeJourneyProgress } from "@/lib/dashboard/journey-progress";
+import { cn } from "@/lib/utils";
 
 const STUDENT_PROFILE_STATUS_LABEL: Record<string, string> = {
   not_started: "Not started",
@@ -94,8 +97,14 @@ export default async function DashboardPage() {
   });
 
   return (
-    <Section tone="muted" className="pt-10 sm:pt-14">
-      <div className="mb-8">
+    <Section tone="muted" className="relative overflow-hidden pt-10 sm:pt-14">
+      {/* UX09 Part B — restrained depth behind the greeting/next-step area
+          only (not the whole page — the task's own "avoid white card,
+          white card, white card" note is about surface hierarchy, not
+          about washing every section in color). Purely decorative. */}
+      <GeometricBackdrop variant="wash" className="opacity-60" />
+
+      <div className={cn("mb-8", FADE_UP_CLASSES)}>
         <p className="text-sm font-semibold uppercase tracking-wide text-secondary">Dashboard</p>
         <h1 className="mt-2 text-3xl font-semibold text-primary balance sm:text-4xl">
           {greeting()}, {firstName}.
@@ -106,14 +115,14 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <Card className="border-primary/15 bg-primary/[0.03]">
+      <Card className={cn("border-primary/15 bg-primary/[0.03]", FADE_UP_CLASSES)}>
         <p className="text-xs font-semibold uppercase tracking-wide text-secondary">Your next step</p>
         <h2 className="mt-1.5 text-xl font-semibold text-primary balance">{nextBestAction.title}</h2>
         <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted">{nextBestAction.description}</p>
         <LinkButton
           href={nextBestAction.href}
           size="md"
-          className="mt-4"
+          className={cn("mt-4", HOVER_LIFT_CLASSES)}
           trailingIcon={<ArrowRight aria-hidden="true" className="h-4 w-4" />}
         >
           {nextBestAction.cta}

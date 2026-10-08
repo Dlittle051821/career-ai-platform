@@ -1,6 +1,8 @@
 import { ArrowRight, Compass, ShieldCheck, Users2, GitCompareArrows, Sparkle } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { LinkButton } from "@/components/ui/Button";
+import { GeometricBackdrop } from "@/components/graphics/GeometricBackdrop";
+import { FADE_UP_CLASSES, HOVER_LIFT_CLASSES } from "@/lib/ui/motion";
 import { RoadmapVisual } from "./RoadmapVisual";
 import { BRAND_NAME, BRAND_TAGLINE } from "@/config/site";
 
@@ -13,14 +15,14 @@ const REASSURANCE = [
 export function Hero() {
   return (
     <Section className="relative overflow-hidden pt-12 sm:pt-16 lg:pt-20" tone="default">
-      {/* Subtle decorative background — purely visual, never affects layout or contrast */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -top-32 right-[-10%] h-[26rem] w-[26rem] rounded-full bg-secondary/10 blur-3xl" />
-        <div className="absolute top-1/3 -left-24 h-72 w-72 rounded-full bg-accent/10 blur-3xl" />
-      </div>
+      {/* UX09 Part B — shared, reusable decorative backdrop (soft color
+          wash + a faint rotated line pattern for restrained depth),
+          replacing this section's own one-off blur-circle divs. Purely
+          visual; never affects layout or contrast. */}
+      <GeometricBackdrop />
 
       <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
-        <div>
+        <div className={FADE_UP_CLASSES}>
           <p className="text-sm font-semibold uppercase tracking-wide text-intelligence-strong">{BRAND_TAGLINE}</p>
           <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-secondary/25 bg-secondary-light px-3.5 py-1.5 text-sm font-semibold text-secondary-dark">
             <Sparkle aria-hidden="true" className="h-3.5 w-3.5" />
@@ -40,6 +42,7 @@ export function Hero() {
               href="/career-discovery"
               size="lg"
               trailingIcon={<ArrowRight aria-hidden="true" className="h-4 w-4" />}
+              className={HOVER_LIFT_CLASSES}
             >
               Find My Direction
             </LinkButton>

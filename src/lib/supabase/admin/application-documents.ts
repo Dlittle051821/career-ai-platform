@@ -133,24 +133,70 @@ export async function listApplicationDocumentsForAdmin(applicationId: string): P
     return [];
   }
 
-  return ((data ?? []) as ApplicationDocumentRow[])
-    .filter((row) => isApplicationDocumentType(row.document_type))
-    .map((row) => ({
-      id: row.id,
-      documentType: row.document_type as ApplicationDocumentType,
-      originalFilename: row.original_filename,
-      storagePath: row.storage_path,
-      mimeType: row.mime_type,
-      fileSizeBytes: row.file_size_bytes,
-      displayLabel: row.display_label,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      reviewStatus: isApplicationDocumentReviewStatus(row.review_status) ? row.review_status : "pending_review",
-      reviewedAt: row.reviewed_at,
-      reviewedBy: row.reviewed_by,
-      reviewNote: row.review_note,
-      correctionMessage: row.correction_message,
-    }));
+  return ((data ?? []) as ApplicationDocumentRow[]).filter((row) => isApplicationDocumentType(row.document_type)).map(toAdminApplicationDocument);
+}
+
+function toAdminApplicationDocument(row: ApplicationDocumentRow): AdminApplicationDocument {
+  return {
+    id: row.id,
+    documentType: row.document_type as ApplicationDocumentType,
+    originalFilename: row.original_filename,
+    storagePath: row.storage_path,
+    mimeType: row.mime_type,
+    fileSizeBytes: row.file_size_bytes,
+    displayLabel: row.display_label,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    reviewStatus: isApplicationDocumentReviewStatus(row.review_status) ? row.review_status : "pending_review",
+    reviewedAt: row.reviewed_at,
+    reviewedBy: row.reviewed_by,
+    reviewNote: row.review_note,
+    correctionMessage: row.correction_message,
+  };
+}
+
+/**
+ * UX09 — batched sibling of `listApplicationDocumentsForAdmin()`, for a
+ * list/dashboard page that needs document completeness for MANY
+ * applications at once (e.g. to compute each row's "next operational
+ * action") without issuing one query per row. Same permission
+ * (`application-documents:read`), same `is_current = true` filter, same RLS
+ * table — the only difference is `.in("application_id", ids)` instead of
+ * `.eq(...)`, following this codebase's own established batched-read
+ * convention (see e.g. the name-map builders in
+ * src/lib/supabase/admin/applications.ts). Bounded by the caller: this
+ * function itself places no LIMIT, so callers must pass a bounded id list
+ * (a page of results, or a small capped scan) — never an unbounded "all
+ * applications" id list.
+ */
+export async function listApplicationDocumentsForAdminBatch(applicationIds: readonly string[]): Promise<Map<string, AdminApplicationDocument[]>> {
+  await requireAdminPermission("application-documents:read");
+  const result = new Map<string, AdminApplicationDocument[]>();
+  const uniqueIds = Array.from(new Set(applicationIds));
+  if (uniqueIds.length === 0) return result;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("application_documents")
+    .select(
+      "id, application_id, document_type, original_filename, storage_path, mime_type, file_size_bytes, display_label, created_at, updated_at, review_status, reviewed_at, reviewed_by, review_note, correction_message"
+    )
+    .in("application_id", uniqueIds)
+    .eq("is_current", true)
+    .order("document_type", { ascending: true });
+
+  if (error) {
+    logDbError("listApplicationDocumentsForAdminBatch", error);
+    return result;
+  }
+
+  for (const row of (data ?? []) as (ApplicationDocumentRow & { application_id: string })[]) {
+    if (!isApplicationDocumentType(row.document_type)) continue;
+    const existing = result.get(row.application_id) ?? [];
+    existing.push(toAdminApplicationDocument(row));
+    result.set(row.application_id, existing);
+  }
+  return result;
 }
 
 /**

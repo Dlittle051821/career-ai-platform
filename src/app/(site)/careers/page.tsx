@@ -10,6 +10,9 @@ import { Pagination } from "@/components/sections/careers/Pagination";
 import { searchCareers, getCareerFamilies, getIndustries, getCareerTags } from "@/lib/supabase/careers";
 import { resolveListEmptyState } from "@/lib/ui/list-state";
 import { BRAND_NAME } from "@/config/site";
+import { GeometricBackdrop } from "@/components/graphics/GeometricBackdrop";
+import { FADE_UP_CLASSES } from "@/lib/ui/motion";
+import { cn } from "@/lib/utils";
 
 // M17A Step 5 — canonical is deliberately static and points at the clean
 // list URL regardless of any q/family/industry/tag/page query params this
@@ -70,8 +73,12 @@ export default async function CareersPage({ searchParams }: CareersPageProps) {
   const emptyState = resolveListEmptyState({ itemCount: results.careers.length, hasActiveFilters: Boolean(hasActiveFilters), error: results.error });
 
   return (
-    <Section tone="muted" className="pt-10 sm:pt-14">
-      <div className="mb-6">
+    <Section tone="muted" className="relative overflow-hidden pt-10 sm:pt-14">
+      {/* UX09 Part B — a faint geometric texture only (no color wash and
+          no illustration here) for page identity, matching the same
+          restrained treatment on /courses and /universities. */}
+      <GeometricBackdrop variant="grid" />
+      <div className={cn("mb-6", FADE_UP_CLASSES)}>
         <p className="text-sm font-semibold uppercase tracking-wide text-secondary">Career Explorer</p>
         <h1 className="mt-2 text-3xl font-semibold text-primary balance sm:text-4xl">Browse careers</h1>
         <p className="mt-2 max-w-2xl text-muted">

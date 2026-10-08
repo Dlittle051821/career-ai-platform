@@ -284,6 +284,21 @@ export default defineConfig({
       // above.
       "src/lib/supabase/admin/application-submissions.test.ts",
       "src/lib/supabase/education/application-submissions.test.ts",
+      // UX09 — the admin dashboard's "needs your attention" work-queue
+      // widget. Batched-read orchestration (same STATEFUL ORCHESTRATION
+      // reasoning as every src/lib/supabase/admin/ exception above) over a
+      // bounded, non-terminal-stage application scan — not a pure function,
+      // so it lives here rather than in src/lib/applications/.
+      "src/lib/supabase/admin/dashboard-work-queue.test.ts",
+      // UX09 Part B/C — the small, reusable graphics system (decorative vs.
+      // meaningful aria-props resolver) and its static source-text audit
+      // (no external image URL in any graphics component, every ambient
+      // "animate-*" class a component uses has an explicit reduced-motion
+      // override in globals.css). Same "pure, framework-free" convention as
+      // every directory above — the audit test reads component source as
+      // text rather than rendering it, so it needs no React Testing
+      // Library/jsdom (not present in this project, see src/lib/ui/ above).
+      "src/lib/graphics/**/*.test.ts",
     ],
   },
 });

@@ -36,7 +36,12 @@ export function EmptyState({
   const Icon = icon ?? (tone === "error" ? TriangleAlert : tone === "empty" ? Inbox : SearchX);
   return (
     <Card className="flex flex-col items-center gap-3 py-14 text-center">
-      <Icon aria-hidden="true" className={cn("h-9 w-9", tone === "error" ? "text-warning" : "text-muted")} />
+      {/* UX09 — same tone-matched circular backdrop as the admin EmptyState
+          (src/components/admin/EmptyState.tsx), adapted for this
+          component's own "error" tone. Decorative only. */}
+      <span className={cn("flex h-16 w-16 items-center justify-center rounded-full", tone === "error" ? "bg-warning-light" : "bg-surface-alt")}>
+        <Icon aria-hidden="true" className={cn("h-8 w-8", tone === "error" ? "text-warning" : "text-muted")} />
+      </span>
       <h2 className="text-base font-semibold text-primary">{title}</h2>
       {description ? <p className="max-w-sm text-sm text-muted">{description}</p> : null}
       {action}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Lock, MessageSquareText } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Textarea } from "@/components/forms/Textarea";
@@ -60,7 +61,36 @@ export function AdminDocumentReviewControls({
         {reviewedAt ? <span className="text-xs text-muted">Reviewed {new Date(reviewedAt).toLocaleString("en-IN")}</span> : null}
       </div>
 
-      {reviewNote ? <p className="rounded-md bg-surface-alt px-2 py-1.5 text-xs text-text-soft">Internal note: {reviewNote}</p> : null}
+      {/* UX09 — the two messages below were already stored and already
+          distinct in the data model (correction_message is STUDENT-FACING,
+          review_note is STAFF-ONLY — see this file's own header comment),
+          but only reviewNote was ever actually rendered once set; the
+          active correction message a student was actually sent had no
+          read-only display at all outside the edit form. Fixing that (never
+          changing which field is which, never adding a new field) and
+          giving the two a deliberately different visual treatment — accent/
+          message-icon for what the student sees, neutral/lock-icon for what
+          only staff sees — so the distinction the task requires is obvious
+          at a glance, not just correct in the data. */}
+      {reviewStatus === "needs_correction" && correctionMessage ? (
+        <div className="flex items-start gap-2 rounded-md border border-accent/25 bg-accent-light px-2.5 py-2 text-xs">
+          <MessageSquareText aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent-dark" />
+          <div>
+            <p className="font-semibold uppercase tracking-wide text-accent-dark">Sent to student</p>
+            <p className="mt-0.5 text-text">{correctionMessage}</p>
+          </div>
+        </div>
+      ) : null}
+
+      {reviewNote ? (
+        <div className="flex items-start gap-2 rounded-md border border-border-strong bg-surface-alt px-2.5 py-2 text-xs">
+          <Lock aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted" />
+          <div>
+            <p className="font-semibold uppercase tracking-wide text-muted">Internal note — staff only</p>
+            <p className="mt-0.5 text-text-soft">{reviewNote}</p>
+          </div>
+        </div>
+      ) : null}
 
       {mode === "idle" ? (
         <div className="flex flex-wrap gap-2">

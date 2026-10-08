@@ -3,10 +3,14 @@ import Link from "next/link";
 import { Users, UserCheck, Sparkles, CalendarClock, ClipboardList, Clock, Wallet, TrendingUp, UserCog, ScrollText } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/admin/EmptyState";
+import { WORK_QUEUE_BUCKET_ICON, WORK_QUEUE_BUCKET_ICON_CLASS, WORK_QUEUE_BUCKET_TONE } from "@/components/admin/applications/work-queue-visuals";
 import { getAdminDashboardSummary } from "@/lib/supabase/admin/dashboard";
+import { getApplicationsNeedingAttention } from "@/lib/supabase/admin/dashboard-work-queue";
 import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
 import { formatMoney } from "@/lib/admin/money";
 import { withShareOfTotal } from "@/lib/admin/analytics";
+import { hasPermission } from "@/lib/admin/permissions";
 import { ADMIN_ROLE_LABELS, LEAD_STAGE_LABELS, type LeadStage } from "@/types/admin";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -54,6 +58,8 @@ function SummaryCard({
 export default async function AdminDashboardPage() {
   const [admin, summary] = await Promise.all([getCurrentAdmin(), getAdminDashboardSummary()]);
   const funnelWithShare = withShareOfTotal(summary.leadFunnel);
+  const canReadDocuments = hasPermission(admin?.role, "application-documents:read");
+  const needsAttention = canReadDocuments ? await getApplicationsNeedingAttention(admin?.role) : [];
 
   return (
     <div className="max-w-6xl">
@@ -102,6 +108,55 @@ export default async function AdminDashboardPage() {
           tone="success"
         />
       </div>
+
+      {/* UX09 — "Applications needing your attention". Omitted entirely for
+          a role without application-documents:read (finance/analyst/
+          content_editor), same posture as every other gated admin section.
+          Bounded, batched, deterministic — see
+          src/lib/supabase/admin/dashboard-work-queue.ts's own header
+          comment for exactly what "needing attention" means here and why
+          waiting-on-student/awaiting-university applications are excluded. */}
+      {canReadDocuments ? (
+        <Card className="mt-6">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold text-primary">Applications needing your attention</h2>
+            <Link href="/admin/applications" className="text-sm font-semibold text-secondary-dark hover:text-primary">
+              View all →
+            </Link>
+          </div>
+          <p className="mt-1 text-sm text-muted">The most recently updated applications with a document, checklist, or reference step waiting on staff.</p>
+          {needsAttention.length === 0 ? (
+            <div className="mt-4">
+              <EmptyState icon={ClipboardList} title="Nothing needs you right now" description="Every active application is either on track, waiting on the student, or awaiting the university." />
+            </div>
+          ) : (
+            <ul className="mt-4 space-y-2">
+              {needsAttention.map((a) => {
+                const Icon = WORK_QUEUE_BUCKET_ICON[a.bucket];
+                return (
+                  <li key={a.id}>
+                    <Link
+                      href={`/admin/applications/${a.id}`}
+                      className="flex items-center justify-between gap-3 rounded-[var(--radius-control)] border border-border px-3 py-2.5 text-sm transition-colors hover:border-secondary hover:bg-surface-alt/60"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium text-text">{a.studentName ?? "Unnamed student"}</span>
+                        <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted">
+                          <Icon aria-hidden="true" className={`h-3.5 w-3.5 shrink-0 ${WORK_QUEUE_BUCKET_ICON_CLASS[a.bucket]}`} />
+                          {a.actionLabel}
+                        </span>
+                      </span>
+                      <Badge tone={WORK_QUEUE_BUCKET_TONE[a.bucket]} className="shrink-0">
+                        {a.stage.replaceAll("_", " ")}
+                      </Badge>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card>
+      ) : null}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Card>

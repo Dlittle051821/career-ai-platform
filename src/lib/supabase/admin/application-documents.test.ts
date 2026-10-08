@@ -19,7 +19,12 @@ vi.mock("./audit", () => ({ recordAuditLog: vi.fn() }));
 import { createClient } from "../server";
 import { requireAdminPermission } from "../admin-auth";
 import { recordAuditLog } from "./audit";
-import { getApplicationDocumentDownloadUrlForAdmin, listApplicationDocumentsForAdmin, reviewApplicationDocument } from "./application-documents";
+import {
+  getApplicationDocumentDownloadUrlForAdmin,
+  listApplicationDocumentsForAdmin,
+  listApplicationDocumentsForAdminBatch,
+  reviewApplicationDocument,
+} from "./application-documents";
 
 type Row = Record<string, unknown>;
 
@@ -123,6 +128,83 @@ describe("getApplicationDocumentDownloadUrlForAdmin()", () => {
     vi.mocked(createClient).mockResolvedValue(fake as unknown as Awaited<ReturnType<typeof createClient>>);
     const url = await getApplicationDocumentDownloadUrlForAdmin("app-1/uuid/f.pdf");
     expect(url).toBeNull();
+  });
+});
+
+/**
+ * UX09 — listApplicationDocumentsForAdminBatch(). A separate fake builder
+ * that supports `.in()` (the plain `makeFakeSupabase()` above only supports
+ * `.eq()`, matching what the single-id function needs).
+ */
+function makeFakeSupabaseForBatch(rows: Row[]) {
+  function from(_table: string) {
+    const filters: ((r: Row) => boolean)[] = [];
+    const builder = {
+      select() {
+        return builder;
+      },
+      eq(col: string, val: unknown) {
+        filters.push((r) => r[col] === val);
+        return builder;
+      },
+      in(col: string, vals: unknown[]) {
+        filters.push((r) => vals.includes(r[col]));
+        return builder;
+      },
+      order() {
+        return builder;
+      },
+      then(onFulfilled: (v: { data: Row[]; error: null }) => unknown) {
+        const filtered = rows.filter((r) => filters.every((f) => f(r)));
+        return Promise.resolve({ data: filtered, error: null }).then(onFulfilled);
+      },
+    };
+    return builder;
+  }
+  return { from };
+}
+
+describe("listApplicationDocumentsForAdminBatch()", () => {
+  const ROWS: Row[] = [
+    { id: "doc-1", application_id: "app-1", document_type: "resume_cv", original_filename: "r1.pdf", storage_path: "p1", mime_type: "application/pdf", file_size_bytes: 1, display_label: null, is_current: true, created_at: "t", updated_at: "t", review_status: "accepted", reviewed_at: "t", reviewed_by: "admin-1", review_note: null, correction_message: null },
+    { id: "doc-2", application_id: "app-1", document_type: "identity_document", original_filename: "r2.pdf", storage_path: "p2", mime_type: "application/pdf", file_size_bytes: 1, display_label: null, is_current: true, created_at: "t", updated_at: "t", review_status: "pending_review", reviewed_at: null, reviewed_by: null, review_note: null, correction_message: null },
+    { id: "doc-3", application_id: "app-2", document_type: "academic_transcript", original_filename: "r3.pdf", storage_path: "p3", mime_type: "application/pdf", file_size_bytes: 1, display_label: null, is_current: true, created_at: "t", updated_at: "t", review_status: "needs_correction", reviewed_at: "t", reviewed_by: "admin-1", review_note: null, correction_message: "please re-upload" },
+    { id: "doc-4", application_id: "app-3", document_type: "resume_cv", original_filename: "r4.pdf", storage_path: "p4", mime_type: "application/pdf", file_size_bytes: 1, display_label: null, is_current: false, created_at: "t", updated_at: "t", review_status: "accepted", reviewed_at: "t", reviewed_by: "admin-1", review_note: null, correction_message: null },
+  ];
+
+  it("requires application-documents:read", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeFakeSupabaseForBatch([]) as unknown as Awaited<ReturnType<typeof createClient>>);
+    await listApplicationDocumentsForAdminBatch(["app-1"]);
+    expect(requireAdminPermission).toHaveBeenCalledWith("application-documents:read");
+  });
+
+  it("returns an empty map for an empty id list, without ever querying", async () => {
+    const fake = makeFakeSupabaseForBatch(ROWS);
+    vi.mocked(createClient).mockResolvedValue(fake as unknown as Awaited<ReturnType<typeof createClient>>);
+    const result = await listApplicationDocumentsForAdminBatch([]);
+    expect(result.size).toBe(0);
+  });
+
+  it("groups documents by application_id, keyed correctly across multiple applications", async () => {
+    const fake = makeFakeSupabaseForBatch(ROWS);
+    vi.mocked(createClient).mockResolvedValue(fake as unknown as Awaited<ReturnType<typeof createClient>>);
+    const result = await listApplicationDocumentsForAdminBatch(["app-1", "app-2"]);
+    expect(result.get("app-1")?.map((d) => d.id).sort()).toEqual(["doc-1", "doc-2"]);
+    expect(result.get("app-2")?.map((d) => d.id)).toEqual(["doc-3"]);
+  });
+
+  it("filters to is_current = true only, same as the single-id function", async () => {
+    const fake = makeFakeSupabaseForBatch(ROWS);
+    vi.mocked(createClient).mockResolvedValue(fake as unknown as Awaited<ReturnType<typeof createClient>>);
+    const result = await listApplicationDocumentsForAdminBatch(["app-3"]);
+    expect(result.get("app-3")).toBeUndefined();
+  });
+
+  it("de-duplicates a repeated application id before querying", async () => {
+    const fake = makeFakeSupabaseForBatch(ROWS);
+    vi.mocked(createClient).mockResolvedValue(fake as unknown as Awaited<ReturnType<typeof createClient>>);
+    const result = await listApplicationDocumentsForAdminBatch(["app-1", "app-1"]);
+    expect(result.get("app-1")?.map((d) => d.id).sort()).toEqual(["doc-1", "doc-2"]);
   });
 });
 

@@ -15,6 +15,8 @@ import { ApplicationNoteEditor } from "@/components/applications/ApplicationNote
 import { ApplicationDocuments } from "@/components/applications/ApplicationDocuments";
 import { getApplicationNextAction } from "@/lib/applications/application-lifecycle";
 import { APPLICATION_STAGE_LABELS, type ApplicationStage } from "@/types/admin";
+import { FADE_UP_CLASSES } from "@/lib/ui/motion";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Application details" };
 
@@ -67,7 +69,7 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
         Back to my applications
       </Link>
 
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className={cn("mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between", FADE_UP_CLASSES)}>
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-secondary">Application</p>
           <h1 className="mt-2 text-2xl font-semibold text-primary balance sm:text-3xl">{title}</h1>
@@ -193,7 +195,11 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
             </Card>
           ) : null}
 
-          <Card>
+          {/* UX09 Part B — same accent treatment as the dashboard's own
+              "Your next step" card, so "what should I do right now" reads
+              as the visually dominant card in this column rather than
+              competing equally with the submission-record card above it. */}
+          <Card className="border-primary/15 bg-primary/[0.03]">
             <h2 className="text-base font-semibold text-primary">Next step</h2>
             <p className="mt-2 text-sm text-text">{next.label}</p>
             <p className="mt-4 text-xs text-muted">

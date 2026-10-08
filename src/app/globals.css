@@ -219,6 +219,48 @@
   .balance {
     text-wrap: balance;
   }
+
+  /* ------------------------------------------------------------------
+     UX09 Part D — motion system keyframes.
+     Two custom animations, used only via the guarded class-name
+     constants in src/lib/ui/motion.ts (never applied raw in a page), so
+     every usage already carries its own `motion-reduce:` Tailwind
+     variant. See the explicit override block below for why this pass
+     does NOT rely solely on the blanket (prefers-reduced-motion: reduce)
+     rule a few lines down, even though that rule already exists.
+  ------------------------------------------------------------------- */
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-up {
+    animation: fade-up 500ms ease-out both;
+  }
+
+  /* Very slow (6s), low-amplitude dash travel along an SVG path's stroke —
+     the task's own "gentle pathway animation" example of acceptable
+     ambient motion. Non-blocking (purely decorative stroke-dashoffset,
+     never affects layout) and intentionally subtle rather than a visible
+     "marching ants" effect. */
+  @keyframes flow-dash {
+    from {
+      stroke-dashoffset: 24;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .animate-flow-dash {
+    animation: flow-dash 6s linear infinite;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -233,5 +275,28 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* ------------------------------------------------------------------
+     UX09 Part D — explicit per-animation reduced-motion overrides.
+     The blanket rule above (animation-duration: 0.01ms, iteration-count:
+     1) already neutralizes every animation on the page, including these
+     two — but collapsing a keyframe to a ~0ms single iteration only looks
+     right if its 100% frame is itself an acceptable resting state, and
+     relying on that implicitly is exactly what the task's own
+     instruction warns against ("do not rely only on a generic existing
+     rule without verifying it actually covers each new animation").
+     These two explicit rules remove any doubt: .animate-fade-up simply
+     renders in its final, fully-visible state with no animation at all,
+     and .animate-flow-dash's infinite ambient loop is switched off
+     outright rather than left to decay to a single near-instant pass. */
+  .animate-fade-up {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .animate-flow-dash {
+    animation: none;
   }
 }

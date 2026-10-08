@@ -52,6 +52,36 @@ export async function getApplicationChecklistItems(applicationId: string): Promi
 }
 
 /**
+ * UX09 — batched sibling of `getApplicationChecklistItems()`, following the
+ * identical `.in("application_id", ids)` convention added alongside it in
+ * src/lib/supabase/admin/application-documents.ts (see that function's own
+ * header comment). Same permission (`application-documents:review`), same
+ * table, same "missing row means pending" contract — only the caller
+ * supplies a bounded list of application ids instead of one.
+ */
+export async function getApplicationChecklistItemsBatch(applicationIds: readonly string[]): Promise<Map<string, ManualChecklistItemState[]>> {
+  await requireAdminPermission("application-documents:review");
+  const result = new Map<string, ManualChecklistItemState[]>();
+  const uniqueIds = Array.from(new Set(applicationIds));
+  if (uniqueIds.length === 0) return result;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("application_checklist_items").select("application_id, item_key, completed_at").in("application_id", uniqueIds);
+  if (error) {
+    logDbError("getApplicationChecklistItemsBatch", error);
+    return result;
+  }
+
+  for (const row of (data ?? []) as (ChecklistItemRow & { application_id: string })[]) {
+    if (!isApplicationChecklistItemKey(row.item_key)) continue;
+    const existing = result.get(row.application_id) ?? [];
+    existing.push({ key: row.item_key as ApplicationChecklistItemKey, completedAt: row.completed_at });
+    result.set(row.application_id, existing);
+  }
+  return result;
+}
+
+/**
  * Marks one checklist item complete or incomplete for one application. A
  * single upsert on the (application_id, item_key) unique constraint
  * (0020 PART 4) — never a separate exists-then-insert-or-update round trip

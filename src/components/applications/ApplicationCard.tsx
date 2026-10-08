@@ -1,8 +1,44 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { ApplicationStatusBadge } from "./ApplicationStatusBadge";
-import { getApplicationNextAction } from "@/lib/applications/application-lifecycle";
+import {
+  APPLICATION_BUCKET_LABELS,
+  APPLICATION_BUCKET_ORDER,
+  getApplicationBucket,
+  getApplicationNextAction,
+  type ApplicationBucket,
+} from "@/lib/applications/application-lifecycle";
 import type { MyApplicationSummary } from "@/lib/supabase/education/applications";
+import { PathwayGraphic, type PathwayNode } from "@/components/graphics/PathwayGraphic";
+
+/**
+ * UX09 Part B — the task asks to "make the journey clearer... only where
+ * state truthfully supports it." This card's bucket already comes from
+ * getApplicationBucket() (Milestone 16), so this never introduces a
+ * second rules engine — it only decides whether showing that bucket as a
+ * forward-moving pathway would be an honest picture.
+ *
+ * `closed` is deliberately excluded from the "normal forward progress"
+ * read: it covers `enrolled` (a genuine success) AND `rejected`/
+ * `withdrawn` (not a success) alike. A filled, checkmarked pathway node
+ * reads as "completed successfully" — true for an enrolled application,
+ * misleading for a rejected or withdrawn one. So the pathway only renders
+ * for a bucket a student is still actively moving through, or has moved
+ * through successfully; a rejected/withdrawn application keeps its
+ * existing, already-correctly-toned ApplicationStatusBadge instead.
+ */
+function shouldShowPathway(stage: MyApplicationSummary["stage"]): boolean {
+  return stage !== "rejected" && stage !== "withdrawn";
+}
+
+function buildPathwayNodes(currentBucket: ApplicationBucket): PathwayNode[] {
+  const currentIndex = APPLICATION_BUCKET_ORDER.indexOf(currentBucket);
+  return APPLICATION_BUCKET_ORDER.map((bucket, index) => ({
+    id: bucket,
+    label: APPLICATION_BUCKET_LABELS[bucket],
+    state: index < currentIndex ? "done" : index === currentIndex ? "current" : "upcoming",
+  }));
+}
 
 function formatDate(value: string | null): string | null {
   if (!value) return null;
@@ -28,6 +64,8 @@ export function ApplicationCard({ application }: { application: MyApplicationSum
   const next = getApplicationNextAction(application.stage);
   const deadline = application.resolvedDeadline;
   const updated = formatDate(application.updatedAt);
+  const bucket = getApplicationBucket(application.stage);
+  const showPathway = shouldShowPathway(application.stage);
 
   return (
     <Card as="article" className="!p-4 sm:!p-5">
@@ -53,6 +91,15 @@ export function ApplicationCard({ application }: { application: MyApplicationSum
           <dd className="mt-0.5 text-text">{next.label}</dd>
         </div>
       </dl>
+
+      {showPathway ? (
+        <PathwayGraphic
+          nodes={buildPathwayNodes(bucket)}
+          accessibility={{ kind: "meaningful", label: `Application progress: ${APPLICATION_BUCKET_LABELS[bucket]}` }}
+          className="mt-4 border-t border-border pt-4"
+          animateActiveSegment={false}
+        />
+      ) : null}
 
       <div className="mt-4 flex justify-end">
         <Link href={`/applications/${application.id}`} className="text-sm font-semibold text-secondary-dark hover:text-primary">

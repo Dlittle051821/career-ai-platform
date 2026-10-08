@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, MessageSquareText, UserCircle2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { ApplicationForm } from "@/components/admin/applications/ApplicationForm";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { WORK_QUEUE_BUCKET_ICON, WORK_QUEUE_BUCKET_ICON_CLASS, WORK_QUEUE_BUCKET_TONE } from "@/components/admin/applications/work-queue-visuals";
+import { getWorkQueueBucket, WORK_QUEUE_BUCKET_LABELS } from "@/lib/applications/application-work-queue";
 import { getApplicationById } from "@/lib/supabase/admin/applications";
 import { listUniversityOptions } from "@/lib/supabase/admin/universities";
 import { listCourseOptions } from "@/lib/supabase/admin/courses";
@@ -117,7 +119,10 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
         Back to applications
       </Link>
 
-      {/* APPLICATION HEADER */}
+      {/* APPLICATION HEADER — identity (hierarchy step 1). Stage, assigned
+          counsellor, and every other editable field live in ApplicationForm
+          just below (step 2/3) — an existing M16 component this pass does
+          not redesign, only relocates relative to. */}
       <div className="mb-6">
         <p className="text-sm font-semibold uppercase tracking-wide text-secondary">Application</p>
         <h1 className="mt-2 text-2xl font-semibold text-primary sm:text-3xl">
@@ -126,6 +131,44 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
         </h1>
         <p className="mt-2 text-sm text-muted">Last updated {new Date(application.updatedAt).toLocaleString("en-IN")}</p>
       </div>
+
+      {/* NEXT OPERATIONAL ACTION — Milestone 18/19, UX09-restyled and moved
+          here, immediately after identity and ahead of every editable field
+          (hierarchy step 4: "what happens next" before "what IS it").
+          Sticky on desktop so it stays visible while scrolling through a
+          long workspace; collapses into normal flow below sm (task's own
+          "on mobile/tablet: collapse into normal flow" instruction) since
+          a sticky element pinned mid-scroll on a small screen just eats
+          content height for no benefit. Purely informational — never
+          mutates stage, never auto-submits. Omitted for a caller without
+          application-documents:review (finance/analyst/content_editor). */}
+      {canReviewWorkspace ? (
+        <Card className="sm:sticky sm:top-4 sm:z-10 mb-6 space-y-3 transition-shadow">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-base font-semibold text-primary">Next operational action</h2>
+            <Badge tone={WORK_QUEUE_BUCKET_TONE[getWorkQueueBucket(nextAction.kind)]} className="gap-1.5">
+              {(() => {
+                const Icon = WORK_QUEUE_BUCKET_ICON[getWorkQueueBucket(nextAction.kind)];
+                return <Icon aria-hidden="true" className={`h-3.5 w-3.5 ${WORK_QUEUE_BUCKET_ICON_CLASS[getWorkQueueBucket(nextAction.kind)]}`} />;
+              })()}
+              {WORK_QUEUE_BUCKET_LABELS[getWorkQueueBucket(nextAction.kind)]}
+            </Badge>
+          </div>
+          <p className="text-sm text-text">{nextAction.label}</p>
+          {readiness.blockers.length > 0 ? (
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">What&apos;s blocking the next step</p>
+              <ul className="mt-1.5 space-y-1 text-xs text-muted">
+                {readiness.blockers.map((b) => (
+                  <li key={b.reason}>• {b.message}</li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="text-xs text-success">Every readiness signal is satisfied — ready for the staff-controlled submission step.</p>
+          )}
+        </Card>
+      ) : null}
 
       <ApplicationForm
         action={boundAction}
@@ -136,28 +179,52 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
         submitLabel="Save changes"
       />
 
-      {/* PROCESSING SUMMARY — Milestone 18. Purely informational: never
-          mutates stage, never auto-submits. Omitted for a caller without
-          application-documents:review (finance/analyst/content_editor),
-          same "card disappears rather than crashes" posture as Documents. */}
+      {/* READINESS — Milestone 18's checklist, surfaced right after the
+          editable identity/stage fields (hierarchy step 5), ahead of
+          documents/submission. A checklist + blocker list, deliberately
+          never collapsed into a misleading percentage (task's own
+          instruction). */}
       {canReviewWorkspace ? (
         <Card className="mt-6 space-y-3">
-          <h2 className="text-base font-semibold text-primary">Processing summary</h2>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge tone={nextAction.kind === "ready_for_submission" ? "success" : nextAction.kind === "closed" ? "neutral" : "info"}>Next action</Badge>
-            <p className="text-sm text-text">{nextAction.label}</p>
-          </div>
-          {readiness.blockers.length > 0 ? (
-            <ul className="space-y-1 text-xs text-muted">
-              {readiness.blockers.map((b) => (
-                <li key={b.reason}>• {b.message}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-xs text-success">This application is ready for the staff-controlled submission step.</p>
-          )}
+          <h2 className="text-base font-semibold text-primary">Readiness checklist</h2>
+          <AdminApplicationChecklist applicationId={id} items={checklistView} />
         </Card>
       ) : null}
+
+      {/* STUDENT ACTION REQUIRED — new in UX09, purely presentational: a
+          direct re-read of documents already fetched above (never a new
+          query, never new logic) framed from the STUDENT's side of the
+          workflow (hierarchy step 6), distinct from "Next operational
+          action" above (which is framed from STAFF's side). Shows the
+          student's own note (Milestone 16) alongside, since both answer
+          "what does the student currently see/need to do". */}
+      <Card className="mt-6 space-y-3">
+        <h2 className="text-base font-semibold text-primary">Student action required</h2>
+        {documents.some((d) => d.reviewStatus === "needs_correction") ? (
+          <ul className="space-y-2">
+            {documents
+              .filter((d) => d.reviewStatus === "needs_correction")
+              .map((d) => (
+                <li key={d.id} className="flex items-start gap-2 rounded-md border border-accent/25 bg-accent-light px-2.5 py-2 text-xs">
+                  <MessageSquareText aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent-dark" />
+                  <div>
+                    <p className="font-semibold text-accent-dark">{APPLICATION_DOCUMENT_TYPE_LABELS[d.documentType as ApplicationDocumentType] ?? d.documentType}</p>
+                    <p className="mt-0.5 text-text">{d.correctionMessage}</p>
+                  </div>
+                </li>
+              ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-success">Nothing is currently waiting on the student.</p>
+        )}
+        <div className="border-t border-border pt-3">
+          <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted">
+            <UserCircle2 aria-hidden="true" className="h-3.5 w-3.5" />
+            Student&apos;s own note
+          </p>
+          <p className="mt-1 text-sm text-text">{application.studentNote?.trim() ? application.studentNote : "No note from the student yet."}</p>
+        </div>
+      </Card>
 
       {/* SUBMISSION PREPARATION — Milestone 19. Extends this SAME page
           (never a parallel system). Gated behind application-submissions:read
@@ -181,14 +248,12 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
         </Card>
       ) : null}
 
-      {/* Milestone 16 — student-authored fields, shown read-only here. */}
+      {/* Milestone 16 — key lifecycle timestamps. (The student's own note
+          moved up into "Student action required" above, so it is not
+          repeated here.) */}
       <Card className="mt-6 space-y-3">
-        <h2 className="text-base font-semibold text-primary">Student-visible details</h2>
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Student&apos;s note</p>
-          <p className="mt-1 text-sm text-text">{application.studentNote?.trim() ? application.studentNote : "No note from the student yet."}</p>
-        </div>
-        <div className="grid gap-3 border-t border-border pt-3 text-sm sm:grid-cols-3">
+        <h2 className="text-base font-semibold text-primary">Lifecycle timestamps</h2>
+        <div className="grid gap-3 text-sm sm:grid-cols-3">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-muted">Submitted</p>
             <p className="mt-0.5 text-text">{application.submittedAt ? new Date(application.submittedAt).toLocaleString("en-IN") : "Not yet"}</p>
@@ -243,14 +308,6 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
           )}
         </Card>
       )}
-
-      {/* CHECKLIST — Milestone 18 */}
-      {canReviewWorkspace ? (
-        <Card className="mt-6 space-y-3">
-          <h2 className="text-base font-semibold text-primary">Checklist</h2>
-          <AdminApplicationChecklist applicationId={id} items={checklistView} />
-        </Card>
-      ) : null}
 
       {/* NOTES — Milestone 18. INTERNAL ONLY. */}
       {canReviewWorkspace ? (

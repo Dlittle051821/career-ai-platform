@@ -7,7 +7,7 @@ vi.mock("./audit", () => ({ recordAuditLog: vi.fn() }));
 import { createClient } from "../server";
 import { requireAdminPermission } from "../admin-auth";
 import { recordAuditLog } from "./audit";
-import { getApplicationChecklistItems, toggleApplicationChecklistItem } from "./application-checklist";
+import { getApplicationChecklistItems, getApplicationChecklistItemsBatch, toggleApplicationChecklistItem } from "./application-checklist";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -45,6 +45,62 @@ describe("getApplicationChecklistItems()", () => {
     );
     const result = await getApplicationChecklistItems("app-1");
     expect(result).toEqual([{ key: "eligibility_checked", completedAt: "2026-01-01T00:00:00Z" }]);
+  });
+});
+
+function makeFakeSupabaseForBatchRead(rows: Record<string, unknown>[]) {
+  return {
+    from: () => ({
+      select: () => ({
+        in: (col: string, vals: unknown[]) => Promise.resolve({ data: rows.filter((r) => vals.includes(r[col])), error: null }),
+      }),
+    }),
+  };
+}
+
+describe("getApplicationChecklistItemsBatch()", () => {
+  const ROWS = [
+    { application_id: "app-1", item_key: "eligibility_checked", completed_at: "2026-01-01T00:00:00Z" },
+    { application_id: "app-1", item_key: "profile_reviewed", completed_at: null },
+    { application_id: "app-2", item_key: "intake_confirmed", completed_at: "2026-01-02T00:00:00Z" },
+  ];
+
+  it("requires application-documents:review", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeFakeSupabaseForBatchRead([]) as unknown as Awaited<ReturnType<typeof createClient>>);
+    await getApplicationChecklistItemsBatch(["app-1"]);
+    expect(requireAdminPermission).toHaveBeenCalledWith("application-documents:review");
+  });
+
+  it("returns an empty map for an empty id list", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeFakeSupabaseForBatchRead(ROWS) as unknown as Awaited<ReturnType<typeof createClient>>);
+    const result = await getApplicationChecklistItemsBatch([]);
+    expect(result.size).toBe(0);
+  });
+
+  it("groups checklist items by application_id", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeFakeSupabaseForBatchRead(ROWS) as unknown as Awaited<ReturnType<typeof createClient>>);
+    const result = await getApplicationChecklistItemsBatch(["app-1", "app-2"]);
+    expect(result.get("app-1")).toEqual([
+      { key: "eligibility_checked", completedAt: "2026-01-01T00:00:00Z" },
+      { key: "profile_reviewed", completedAt: null },
+    ]);
+    expect(result.get("app-2")).toEqual([{ key: "intake_confirmed", completedAt: "2026-01-02T00:00:00Z" }]);
+  });
+
+  it("drops a row with an unrecognized item_key, same as the single-id function", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeFakeSupabaseForBatchRead([{ application_id: "app-1", item_key: "unknown_future_item", completed_at: null }]) as unknown as Awaited<
+        ReturnType<typeof createClient>
+      >
+    );
+    const result = await getApplicationChecklistItemsBatch(["app-1"]);
+    expect(result.get("app-1")).toBeUndefined();
+  });
+
+  it("an application with no stored rows is simply absent from the map", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeFakeSupabaseForBatchRead(ROWS) as unknown as Awaited<ReturnType<typeof createClient>>);
+    const result = await getApplicationChecklistItemsBatch(["app-3"]);
+    expect(result.has("app-3")).toBe(false);
   });
 });
 

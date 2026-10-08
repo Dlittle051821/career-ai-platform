@@ -7,13 +7,18 @@ import { LinkButton } from "@/components/ui/Button";
 import { getCurrentUser } from "@/lib/supabase/profile";
 import { listMyApplications } from "@/lib/supabase/education/applications";
 import { ApplicationCard } from "@/components/applications/ApplicationCard";
-import { APPLICATION_BUCKET_LABELS, getApplicationBucket, type ApplicationBucket } from "@/lib/applications/application-lifecycle";
+import {
+  APPLICATION_BUCKET_LABELS,
+  APPLICATION_BUCKET_ORDER,
+  getApplicationBucket,
+  type ApplicationBucket,
+} from "@/lib/applications/application-lifecycle";
+import { FADE_UP_CLASSES } from "@/lib/ui/motion";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "My Applications",
 };
-
-const BUCKET_ORDER: ApplicationBucket[] = ["active", "submitted", "decision", "closed"];
 
 /**
  * Milestone 16 — the real /applications product surface (spec §8): the
@@ -35,7 +40,7 @@ export default async function ApplicationsPage() {
   if (applications.length === 0) {
     return (
       <Section tone="muted" className="pt-10 sm:pt-14">
-        <div className="mb-8">
+        <div className={cn("mb-8", FADE_UP_CLASSES)}>
           <p className="text-sm font-semibold uppercase tracking-wide text-secondary">Your account</p>
           <h1 className="mt-2 text-3xl font-semibold text-primary balance sm:text-4xl">My Applications</h1>
         </div>
@@ -64,14 +69,14 @@ export default async function ApplicationsPage() {
   }
 
   const byBucket = new Map<ApplicationBucket, typeof applications>();
-  for (const bucket of BUCKET_ORDER) byBucket.set(bucket, []);
+  for (const bucket of APPLICATION_BUCKET_ORDER) byBucket.set(bucket, []);
   for (const application of applications) {
     byBucket.get(getApplicationBucket(application.stage))?.push(application);
   }
 
   return (
     <Section tone="muted" className="pt-10 sm:pt-14">
-      <div className="mb-8">
+      <div className={cn("mb-8", FADE_UP_CLASSES)}>
         <p className="text-sm font-semibold uppercase tracking-wide text-secondary">Your account</p>
         <h1 className="mt-2 text-3xl font-semibold text-primary balance sm:text-4xl">My Applications</h1>
         <p className="mt-2 max-w-2xl text-muted">
@@ -80,7 +85,7 @@ export default async function ApplicationsPage() {
       </div>
 
       <div className="space-y-10">
-        {BUCKET_ORDER.map((bucket) => {
+        {APPLICATION_BUCKET_ORDER.map((bucket) => {
           const items = byBucket.get(bucket) ?? [];
           if (items.length === 0) return null;
           return (
