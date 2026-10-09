@@ -15,6 +15,8 @@ import { listActiveCountries } from "@/lib/supabase/education/countries";
 import { getTrustedSearchResults, recordMappingGapEventForPrimaryResult } from "@/lib/supabase/education/external-search";
 import { parseMinorUnitsParam } from "@/lib/education/search";
 import { resolveSubject, resolveDegreeLevel, CANONICAL_DEGREE_LEVELS, CANONICAL_DEGREE_TO_EDUCATION_LEVELS, type CanonicalDegreeLevel } from "@/lib/education/external-search/taxonomy";
+import { isLaunchCountryCode, getLaunchCountryName, type LaunchCountryCode } from "@/lib/education/external-search/launch-countries";
+import { LaunchCountryDiscovery } from "@/components/sections/education/LaunchCountryDiscovery";
 import { resolveListEmptyState } from "@/lib/ui/list-state";
 import type { CourseDurationUnit } from "@/types/education";
 import { GeometricBackdrop } from "@/components/graphics/GeometricBackdrop";
@@ -115,6 +117,52 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
     new Set([...qualificationLevels, ...(canonicalDegree ? CANONICAL_DEGREE_TO_EDUCATION_LEVELS[canonicalDegree] : [])]),
   );
 
+  // M20C — every other active filter, keyed exactly as the query params
+  // already read above, built BEFORE the data fetch below (it depends on
+  // none of it) so LaunchCountryDiscovery's buildHref can use it near the
+  // top of the page without duplicating this record a second time.
+  const activeFiltersForPagination: Record<string, string | string[]> = {};
+  if (query) activeFiltersForPagination.q = query;
+  if (countryIds.length > 0) activeFiltersForPagination.country = countryIds;
+  if (universityId) activeFiltersForPagination.universityId = universityId;
+  if (subjectAreas.length > 0) activeFiltersForPagination.subjectArea = subjectAreas;
+  if (qualificationLevels.length > 0) activeFiltersForPagination.qualificationLevel = qualificationLevels;
+  if (studyModes.length > 0) activeFiltersForPagination.studyMode = studyModes;
+  if (teachingLanguages.length > 0) activeFiltersForPagination.teachingLanguage = teachingLanguages;
+  if (currency) activeFiltersForPagination.currency = currency;
+  if (minTuition) activeFiltersForPagination.minTuition = minTuition;
+  if (maxTuition) activeFiltersForPagination.maxTuition = maxTuition;
+  if (durationUnit) activeFiltersForPagination.durationUnit = durationUnit;
+  if (intakePeriod) activeFiltersForPagination.intakePeriod = intakePeriod;
+  if (scholarshipsAvailable) activeFiltersForPagination.scholarshipsAvailable = "true";
+  if (destinationCode) activeFiltersForPagination.destination = destinationCode;
+  if (subjectRaw) activeFiltersForPagination.subject = subjectRaw;
+  if (degreeRaw) activeFiltersForPagination.degree = degreeRaw;
+
+  // M20C — LaunchCountryDiscovery's quick-select strip for the six Tier 1
+  // launch countries. Reuses the page's EXISTING `destination` param
+  // (already independent of the internal `country` checkbox filter, see
+  // the comment on CourseFilterBar's own `destination` prop above) —
+  // selecting a chip never touches query/subjectArea/qualificationLevel/
+  // etc, and never changes the internal course results, exactly like
+  // typing a destination into the "Find a trusted official portal"
+  // fieldset already does today. `selectedLaunchCode` is null both when no
+  // destination is set AND when the destination is a valid-but-non-launch
+  // country — never re-derives launch-country membership, only asks M20A's
+  // own `isLaunchCountryCode`.
+  const selectedLaunchCode: LaunchCountryCode | null = isLaunchCountryCode(destinationCode) ? destinationCode : null;
+  function buildDestinationHref(code: LaunchCountryCode | null): string {
+    const next: Record<string, string | string[]> = { ...activeFiltersForPagination };
+    if (code) next.destination = code;
+    else delete next.destination;
+    const qs = new URLSearchParams();
+    for (const [key, value] of Object.entries(next)) {
+      if (Array.isArray(value)) value.forEach((v) => qs.append(key, v));
+      else qs.set(key, value);
+    }
+    return qs.toString() ? `/courses?${qs.toString()}` : "/courses";
+  }
+
   const [countries, results, trustedSearch] = await Promise.all([
     listActiveCountries(),
     searchCourses({
@@ -152,24 +200,6 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
     });
   }
 
-  const activeFiltersForPagination: Record<string, string | string[]> = {};
-  if (query) activeFiltersForPagination.q = query;
-  if (countryIds.length > 0) activeFiltersForPagination.country = countryIds;
-  if (universityId) activeFiltersForPagination.universityId = universityId;
-  if (subjectAreas.length > 0) activeFiltersForPagination.subjectArea = subjectAreas;
-  if (qualificationLevels.length > 0) activeFiltersForPagination.qualificationLevel = qualificationLevels;
-  if (studyModes.length > 0) activeFiltersForPagination.studyMode = studyModes;
-  if (teachingLanguages.length > 0) activeFiltersForPagination.teachingLanguage = teachingLanguages;
-  if (currency) activeFiltersForPagination.currency = currency;
-  if (minTuition) activeFiltersForPagination.minTuition = minTuition;
-  if (maxTuition) activeFiltersForPagination.maxTuition = maxTuition;
-  if (durationUnit) activeFiltersForPagination.durationUnit = durationUnit;
-  if (intakePeriod) activeFiltersForPagination.intakePeriod = intakePeriod;
-  if (scholarshipsAvailable) activeFiltersForPagination.scholarshipsAvailable = "true";
-  if (destinationCode) activeFiltersForPagination.destination = destinationCode;
-  if (subjectRaw) activeFiltersForPagination.subject = subjectRaw;
-  if (degreeRaw) activeFiltersForPagination.degree = degreeRaw;
-
   const hasActiveFilters =
     query ||
     countryIds.length > 0 ||
@@ -192,6 +222,24 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
   // for why this replaces the old collapsed "couldn't be loaded" message.
   const emptyState = resolveListEmptyState({ itemCount: results.items.length, hasActiveFilters: Boolean(hasActiveFilters), error: results.error });
 
+  // M20C — an honest display name for the "Trusted external search"
+  // heading/empty-state copy: prefer the real public.countries row's own
+  // name (works for ANY destination, launch country or not — this
+  // generalizes a pre-existing UX07 capability, it doesn't special-case
+  // launch countries), falling back to M20A's own launch-country name for
+  // a launch code with no matching countries row, then the raw typed/
+  // selected code itself so an unrecognized value is never silently blanked.
+  const destinationCountryRow = destinationCode ? countries.find((c) => c.isoAlpha2 === destinationCode) ?? null : null;
+  const destinationDisplayName = destinationCode ? destinationCountryRow?.name ?? getLaunchCountryName(destinationCode) ?? destinationCode : null;
+  // Only ever claim an internal-catalogue count FOR this destination when
+  // the internal `country` checkbox filter is unambiguously set to that
+  // exact same country — `destination` and `country` are deliberately
+  // independent params on this page (see CourseFilterBar's own docblock),
+  // so without this check the number shown could belong to a completely
+  // different filter combination. Never fabricated, never shown unless
+  // genuinely known.
+  const destinationInternalCountMatches = Boolean(destinationCountryRow && countryIds.length === 1 && countryIds[0] === destinationCountryRow.id);
+
   return (
     <Section tone="muted" className="relative overflow-hidden pt-10 sm:pt-14">
       <GeometricBackdrop variant="grid" />
@@ -204,6 +252,8 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
           compare them side by side.
         </p>
       </div>
+
+      <LaunchCountryDiscovery selectedCode={selectedLaunchCode} buildHref={buildDestinationHref} className="mb-6" />
 
       <Card className="mb-8">
         <CourseFilterBar
@@ -297,7 +347,17 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
       )}
 
       <div className="mt-10">
-        <h2 className="mb-3 text-lg font-semibold text-primary">Trusted external search</h2>
+        <div className="mb-3">
+          <h2 className="text-lg font-semibold text-primary">
+            Trusted external search{destinationDisplayName ? ` — ${destinationDisplayName}` : ""}
+          </h2>
+          {destinationInternalCountMatches ? (
+            <p className="mt-1 text-sm text-muted">
+              NextWise&apos;s own catalogue currently includes {results.total} matching course{results.total === 1 ? "" : "s"} for{" "}
+              {destinationDisplayName} — the official source below covers more than NextWise has verified so far.
+            </p>
+          ) : null}
+        </div>
         {trustedSearch.results.length > 0 ? (
           <div className="grid gap-5 sm:grid-cols-2">
             {trustedSearch.results.map((result) => (
@@ -307,7 +367,7 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
         ) : (
           <Card className="text-sm text-muted">
             {destinationCode
-              ? "No trusted official portal is currently activated for this destination in our system yet."
+              ? `No trusted official portal is currently activated for ${destinationDisplayName} in our system yet.`
               : "Choose a destination country above to see a link to that country's trusted official course-search portal."}
           </Card>
         )}

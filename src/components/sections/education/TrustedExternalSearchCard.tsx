@@ -1,8 +1,9 @@
 import { ExternalLink, ShieldAlert, Globe2 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
-import { TRUSTED_SOURCE_ATTRIBUTION_LABEL } from "@/lib/education/external-search/attribution";
+import { CONTINUE_ON_OFFICIAL_SOURCE_LABEL, EXTERNAL_LINK_BADGE_LABEL, TRUSTED_NATIONAL_SOURCE_LABEL, TRUSTED_SOURCE_ATTRIBUTION_LABEL } from "@/lib/education/external-search/attribution";
 import { isLaunchPrimaryResult } from "@/lib/education/external-search/launch-primary-result";
+import { getLaunchCountryPrimarySource } from "@/lib/education/external-search/launch-country-sources";
 import type { AdapterResult } from "@/lib/education/external-search/provider-types";
 
 /**
@@ -36,6 +37,14 @@ export function TrustedExternalSearchCard({ result }: { result: AdapterResult })
   // launch-primary-result.ts and attribution.ts.
   const isLaunchPrimary = isLaunchPrimaryResult(result, result.countryCode);
   const eyebrowLabel = isLaunchPrimary ? TRUSTED_SOURCE_ATTRIBUTION_LABEL : "Official external portal";
+  // M20C — Trusted Country Discovery UX: for a launch country's primary
+  // source specifically, surface M20A's own already-approved, hand-written
+  // `purpose` text as a short description (never fabricated here — this
+  // card never invents its own copy about a provider) and the
+  // `TRUSTED_NATIONAL_SOURCE_LABEL` badge, so it reads as visibly distinct
+  // from a coexisting non-primary specialist provider for the same country
+  // (e.g. UCAS for GB) without replacing or hiding that specialist result.
+  const primarySource = isLaunchPrimary ? getLaunchCountryPrimarySource(result.countryCode) : null;
 
   return (
     <article
@@ -47,7 +56,9 @@ export function TrustedExternalSearchCard({ result }: { result: AdapterResult })
           <Globe2 aria-hidden="true" className="h-4 w-4" />
           {eyebrowLabel}
         </span>
-        <span className="rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-medium">{result.officialDomain}</span>
+        <span className="rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-medium">
+          {EXTERNAL_LINK_BADGE_LABEL} · {result.officialDomain}
+        </span>
       </div>
 
       <div className="p-5 sm:p-6">
@@ -60,6 +71,15 @@ export function TrustedExternalSearchCard({ result }: { result: AdapterResult })
           {result.providerDisplayName}
         </h3>
         <p className="mt-1 text-sm text-muted">{[result.region, result.countryCode].filter(Boolean).join(" · ") || "International"}</p>
+
+        {primarySource ? (
+          <>
+            <Badge tone="accent" className="mt-2 text-[11px]">
+              {TRUSTED_NATIONAL_SOURCE_LABEL}
+            </Badge>
+            <p className="mt-2 text-sm text-text-soft">{primarySource.purpose}</p>
+          </>
+        ) : null}
 
         {result.appliedFilters.length > 0 ? (
           <div className="mt-3 flex flex-wrap gap-1.5" aria-label="Filters applied to this search">
@@ -105,7 +125,7 @@ export function TrustedExternalSearchCard({ result }: { result: AdapterResult })
             rel="noopener noreferrer"
             trailingIcon={<ExternalLink aria-hidden="true" className="h-4 w-4" />}
           >
-            Open official course search
+            {CONTINUE_ON_OFFICIAL_SOURCE_LABEL}
           </LinkButton>
           <p id={`${announcementId}-newtab`} className="text-xs text-muted">
             Opens an official external website in a new browser tab. {result.providerDisplayName} is not part of NextWise —

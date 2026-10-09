@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { containsUnsupportedPartnershipLanguage } from "./attribution";
+import { getLaunchCountryPrimarySource } from "./launch-country-sources";
 
 /**
  * M20B — static source-text audit of
@@ -38,5 +39,51 @@ describe("TrustedExternalSearchCard — M20B attribution integration", () => {
   it("never links directly to result.url — every click still goes through the internal /go/course-search/** redirect route (M20B did not introduce a bypass)", () => {
     expect(cardSource).toContain("/go/course-search/");
     expect(cardSource).not.toMatch(/href=\{result\.url\}/);
+  });
+});
+
+/**
+ * M20C — Trusted Country Discovery UX: refines (never rebuilds) this same
+ * card. Every new assertion below is about a REFINEMENT of existing
+ * wiring — the eyebrow label, the goHref/CTA routing, and the
+ * launch-primary gate are all M20B's, untouched by this pass (covered by
+ * the describe block above, re-run unchanged).
+ */
+describe("TrustedExternalSearchCard — M20C discovery-UX refinement", () => {
+  it("imports the two remaining previously-unused approved wording constants and the M20A primary-source registry, rather than inventing new copy", () => {
+    expect(cardSource).toContain("CONTINUE_ON_OFFICIAL_SOURCE_LABEL");
+    expect(cardSource).toContain("EXTERNAL_LINK_BADGE_LABEL");
+    expect(cardSource).toContain("TRUSTED_NATIONAL_SOURCE_LABEL");
+    expect(cardSource).toContain('from "@/lib/education/external-search/launch-country-sources"');
+    expect(cardSource).toContain("getLaunchCountryPrimarySource");
+  });
+
+  it("uses the approved CONTINUE_ON_OFFICIAL_SOURCE_LABEL as the CTA's own text, built from the pre-existing goHref — never a second, parallel link to result.url", () => {
+    expect(cardSource).toContain("{CONTINUE_ON_OFFICIAL_SOURCE_LABEL}");
+    expect(cardSource).toContain("href={goHref}");
+  });
+
+  it("gates the short per-country description and the 'Trusted national source' badge on isLaunchPrimary — never rendered for a launch country's own non-primary specialist provider (e.g. UCAS for GB, CRICOS for AU)", () => {
+    expect(cardSource).toMatch(/const primarySource = isLaunchPrimary \? getLaunchCountryPrimarySource\(result\.countryCode\) : null/);
+    expect(cardSource).toContain("{primarySource.purpose}");
+  });
+
+  it("never fabricates its own country-source description — the only text source for a launch-primary's short description is the M20A registry's own already-approved `purpose` field", () => {
+    // Every registry purpose string is already asserted non-partnership by
+    // launch-country-sources.test.ts; this just confirms the card surfaces
+    // that exact field rather than a hand-written string of its own.
+    for (const code of ["DE", "GB", "US", "CA", "AU", "IE"] as const) {
+      const primary = getLaunchCountryPrimarySource(code);
+      expect(primary).not.toBeNull();
+      expect(containsUnsupportedPartnershipLanguage(primary?.purpose)).toBe(false);
+    }
+  });
+
+  it("still contains no unsupported partnership language anywhere in its own source text after the M20C refinement (re-run, not just inherited)", () => {
+    expect(containsUnsupportedPartnershipLanguage(cardSource)).toBe(false);
+  });
+
+  it("DAAD remains Germany's launch-primary source, unchanged by M20C", () => {
+    expect(getLaunchCountryPrimarySource("DE")?.providerSlug).toBe("daad-international-programmes");
   });
 });

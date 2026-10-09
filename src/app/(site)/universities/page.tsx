@@ -11,6 +11,8 @@ import { TrustedExternalSearchCard } from "@/components/sections/education/Trust
 import { searchUniversities } from "@/lib/supabase/education/universities";
 import { listActiveCountries } from "@/lib/supabase/education/countries";
 import { getTrustedSearchResults } from "@/lib/supabase/education/external-search";
+import { isLaunchCountryCode, LAUNCH_COUNTRY_CODES, type LaunchCountryCode } from "@/lib/education/external-search/launch-countries";
+import { LaunchCountryDiscovery } from "@/components/sections/education/LaunchCountryDiscovery";
 import { resolveListEmptyState } from "@/lib/ui/list-state";
 import { GeometricBackdrop } from "@/components/graphics/GeometricBackdrop";
 import { FADE_UP_CLASSES } from "@/lib/ui/motion";
@@ -86,6 +88,41 @@ export default async function UniversitiesPage({ searchParams }: UniversitiesPag
     ? await getTrustedSearchResults({ destinationCountryCode: singleSelectedCountry.isoAlpha2, canonicalSubjectId: null, canonicalSubjectLabel: null, degreeLevel: null })
     : null;
 
+  // M20C — LaunchCountryDiscovery's quick-select strip, reusing THIS page's
+  // existing `country` checkbox param (the one and only "which country"
+  // signal /universities already has — see singleSelectedCountry above),
+  // rather than introducing a second, independent `destination` param the
+  // way /courses has. Selecting a chip sets `country` to exactly that one
+  // launch country's real public.countries id (replacing any other
+  // country checkboxes); "All countries" clears it. `q`/`city`/`studyMode`
+  // are always preserved. `selectedLaunchCode` mirrors singleSelectedCountry
+  // but only when that single country IS one of the six launch countries —
+  // never re-derives launch-country membership, only asks M20A's own
+  // `isLaunchCountryCode`.
+  const selectedLaunchCode: LaunchCountryCode | null =
+    singleSelectedCountry && isLaunchCountryCode(singleSelectedCountry.isoAlpha2) ? singleSelectedCountry.isoAlpha2 : null;
+  // A launch country this page cannot link to today because no active
+  // public.countries row exists for it — rendered as an honest disabled
+  // chip rather than a silently-broken link. Computed from data already
+  // fetched above; never fabricated.
+  const unavailableLaunchCodes = LAUNCH_COUNTRY_CODES.filter((code) => !countries.some((c) => c.isoAlpha2 === code));
+  function buildCountryHref(code: LaunchCountryCode | null): string {
+    const next: Record<string, string | string[]> = {};
+    if (query) next.q = query;
+    if (city) next.city = city;
+    if (studyModes.length > 0) next.studyMode = studyModes;
+    if (code) {
+      const match = countries.find((c) => c.isoAlpha2 === code);
+      if (match) next.country = match.id;
+    }
+    const qs = new URLSearchParams();
+    for (const [key, value] of Object.entries(next)) {
+      if (Array.isArray(value)) value.forEach((v) => qs.append(key, v));
+      else qs.set(key, value);
+    }
+    return qs.toString() ? `/universities?${qs.toString()}` : "/universities";
+  }
+
   return (
     <Section tone="muted" className="relative overflow-hidden pt-10 sm:pt-14">
       <GeometricBackdrop variant="grid" />
@@ -97,6 +134,8 @@ export default async function UniversitiesPage({ searchParams }: UniversitiesPag
           and a link through to each university&apos;s own detail page.
         </p>
       </div>
+
+      <LaunchCountryDiscovery selectedCode={selectedLaunchCode} buildHref={buildCountryHref} unavailableCodes={unavailableLaunchCodes} className="mb-6" />
 
       <Card className="mb-8">
         <UniversityFilterBar query={query} countryIds={countryIds} city={city} studyModes={studyModes} countries={countries} />
@@ -141,18 +180,31 @@ export default async function UniversitiesPage({ searchParams }: UniversitiesPag
         </>
       )}
 
-      {singleSelectedCountry && trustedSearch && trustedSearch.results.length > 0 ? (
+      {singleSelectedCountry && trustedSearch ? (
         <div className="mt-10">
-          <h2 className="mb-3 text-lg font-semibold text-primary">Trusted official source for {singleSelectedCountry.name}</h2>
+          <h2 className="mb-1 text-lg font-semibold text-primary">Trusted official source for {singleSelectedCountry.name}</h2>
           <p className="mb-4 max-w-2xl text-sm text-muted">
-            NextWise&apos;s own catalogue for {singleSelectedCountry.name} is a starter dataset, not an exhaustive one. Continue on
-            the country&apos;s own official study portal to see options beyond what NextWise has verified so far.
+            NextWise&apos;s own catalogue for {singleSelectedCountry.name} currently includes {results.total} matching
+            universit{results.total === 1 ? "y" : "ies"} — a starter dataset, not an exhaustive one. Continue on the
+            country&apos;s own official study portal to see options beyond what NextWise has verified so far.
           </p>
-          <div className="grid gap-5 sm:grid-cols-2">
-            {trustedSearch.results.map((result) => (
-              <TrustedExternalSearchCard key={result.providerId} result={result} />
-            ))}
-          </div>
+          {trustedSearch.results.length > 0 ? (
+            <div className="grid gap-5 sm:grid-cols-2">
+              {trustedSearch.results.map((result) => (
+                <TrustedExternalSearchCard key={result.providerId} result={result} />
+              ))}
+            </div>
+          ) : (
+            // M20C — an explicit, honest empty state instead of this whole
+            // section silently vanishing: a country is selected, but no
+            // trusted official portal is active for it in our system yet
+            // (covers both "never seeded" and "seeded but currently
+            // inactive" — RLS/active-filtering means both look identical
+            // from here, and neither is misrepresented as a failure).
+            <Card className="text-sm text-muted">
+              No trusted official portal is currently activated for {singleSelectedCountry.name} in our system yet.
+            </Card>
+          )}
         </div>
       ) : null}
 
