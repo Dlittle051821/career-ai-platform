@@ -1,6 +1,8 @@
 import { ExternalLink, ShieldAlert, Globe2 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
+import { TRUSTED_SOURCE_ATTRIBUTION_LABEL } from "@/lib/education/external-search/attribution";
+import { isLaunchPrimaryResult } from "@/lib/education/external-search/launch-primary-result";
 import type { AdapterResult } from "@/lib/education/external-search/provider-types";
 
 /**
@@ -23,6 +25,17 @@ import type { AdapterResult } from "@/lib/education/external-search/provider-typ
 export function TrustedExternalSearchCard({ result }: { result: AdapterResult }) {
   const goHref = result.isFiltered && result.mappingId ? `/go/course-search/${result.mappingId}` : `/go/course-search/provider/${result.providerId}`;
   const announcementId = `trusted-portal-${result.providerId}`;
+  // M20B — Trusted Country Source Operational Integration: for a launch
+  // country's M20A-registry primary source specifically, the eyebrow label
+  // below uses M20A's own approved attribution wording ("Official study
+  // source") instead of this card's pre-existing generic "Official
+  // external portal" label — every other provider (every non-launch-
+  // country result, and every launch country's non-primary specialist
+  // provider, e.g. UCAS/NCES/EduCanada/CRICOS/CAO) keeps the original
+  // wording unchanged. See src/lib/education/external-search/
+  // launch-primary-result.ts and attribution.ts.
+  const isLaunchPrimary = isLaunchPrimaryResult(result, result.countryCode);
+  const eyebrowLabel = isLaunchPrimary ? TRUSTED_SOURCE_ATTRIBUTION_LABEL : "Official external portal";
 
   return (
     <article
@@ -32,7 +45,7 @@ export function TrustedExternalSearchCard({ result }: { result: AdapterResult })
       <div className="flex items-center justify-between gap-3 px-5 py-3 text-white" style={{ backgroundColor: "var(--brand-ink)" }}>
         <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">
           <Globe2 aria-hidden="true" className="h-4 w-4" />
-          Official external portal
+          {eyebrowLabel}
         </span>
         <span className="rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-medium">{result.officialDomain}</span>
       </div>

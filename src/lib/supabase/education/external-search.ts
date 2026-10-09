@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "../server";
 import { buildProviderSearchResult, needsMappingGapEvent } from "@/lib/education/external-search/adapter";
+import { compareTrustedSearchResults } from "@/lib/education/external-search/launch-primary-result";
 import type { AdapterOutcome, MappingRecord, ProviderRecord } from "@/lib/education/external-search/provider-types";
 import type { CanonicalDegreeLevel } from "@/lib/education/external-search/taxonomy";
 import type { ExternalSearchSourcePage } from "@/types/education-search";
@@ -208,7 +209,13 @@ export async function getTrustedSearchResults(query: TrustedSearchQuery): Promis
   );
 
   const results = outcomes.filter((o): o is import("@/lib/education/external-search/provider-types").AdapterResult => o.available);
-  results.sort((a, b) => Number(b.isFiltered) - Number(a.isFiltered));
+  // M20B — Trusted Country Source Operational Integration: ordering is now
+  // decided by the pure, unit-tested compareTrustedSearchResults() (a
+  // genuine filtered deep link still always wins, exactly as before; a
+  // launch-country's M20A-registry primary source is now the tie-break
+  // among equally-filtered results) rather than inline here, so the full
+  // rule is testable without a DB. See launch-primary-result.ts.
+  results.sort((a, b) => compareTrustedSearchResults(a, b, query.destinationCountryCode));
   return { results };
 }
 
