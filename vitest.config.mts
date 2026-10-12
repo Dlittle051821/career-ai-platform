@@ -299,6 +299,18 @@ export default defineConfig({
       // text rather than rendering it, so it needs no React Testing
       // Library/jsdom (not present in this project, see src/lib/ui/ above).
       "src/lib/graphics/**/*.test.ts",
+      // UX10A — Premium Homepage Visual Implementation. No new business
+      // logic was introduced beyond the route-aware active-nav resolver
+      // (src/lib/navigation/active-nav.ts, covered by the existing
+      // "src/lib/navigation/**/*.test.ts" entry above — no new entry
+      // needed for that one) — this new directory holds only the static
+      // source-text audit of the six new homepage section components
+      // (src/components/sections/home/HomeHero.tsx,
+      // DiscoveryPillars.tsx, TrustedStudyExplorer.tsx, HowItWorks.tsx,
+      // WhyNextwise.tsx, HomeFinalCTA.tsx), same "no React Testing
+      // Library/jsdom in this project" convention as
+      // src/lib/graphics/graphics-source-audit.test.ts above.
+      "src/lib/home/**/*.test.ts",
     ],
   },
 });

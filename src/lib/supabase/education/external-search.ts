@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "../server";
 import { buildProviderSearchResult, needsMappingGapEvent } from "@/lib/education/external-search/adapter";
 import { compareTrustedSearchResults } from "@/lib/education/external-search/launch-primary-result";
+import { LAUNCH_COUNTRY_PRIMARY_SOURCES } from "@/lib/education/external-search/launch-country-sources";
 import type { AdapterOutcome, MappingRecord, ProviderRecord } from "@/lib/education/external-search/provider-types";
 import type { CanonicalDegreeLevel } from "@/lib/education/external-search/taxonomy";
 import type { ExternalSearchSourcePage } from "@/types/education-search";
@@ -334,4 +335,35 @@ export async function getProviderById(providerId: string): Promise<ProviderRecor
   }
   if (!data) return null;
   return toProviderRecord(data as unknown as ProviderRow);
+}
+
+/**
+ * UX10A — the homepage's "Trusted Study Explorer" section needs each
+ * launch country's REAL provider row (specifically its database `id`, to
+ * link safely through /go/course-search/provider/[providerId]) rather
+ * than a subject/degree-filtered search result — the homepage shows no
+ * search form, so there is no (canonicalSubjectId, degreeLevel) tuple to
+ * call getTrustedSearchResults with. This is a single batched `IN (slug
+ * list)` query (never one query per country) against the same
+ * external_search_providers table/RLS every other reader in this file
+ * uses, filtered to exactly the 6 slugs src/lib/education/external-search/
+ * launch-country-sources.ts's LAUNCH_COUNTRY_PRIMARY_SOURCES registry
+ * names — so an inactive or since-removed launch-primary row simply
+ * doesn't come back, rather than this function inventing a fallback.
+ * Returns [] (never throws) on a query error, same convention as every
+ * other reader in this file.
+ */
+export async function getLaunchCountryPrimaryProviders(): Promise<ProviderRecord[]> {
+  const slugs = LAUNCH_COUNTRY_PRIMARY_SOURCES.map((entry) => entry.providerSlug);
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("external_search_providers")
+    .select(PROVIDER_COLUMNS)
+    .in("slug", slugs)
+    .eq("active", true);
+  if (error) {
+    logDbError("getLaunchCountryPrimaryProviders", error);
+    return [];
+  }
+  return ((data ?? []) as unknown as ProviderRow[]).map(toProviderRecord);
 }

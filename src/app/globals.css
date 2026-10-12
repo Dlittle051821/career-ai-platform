@@ -17,25 +17,38 @@
      `--color-*` token below is defined as `var(--brand-*)`, never a
      second hard-coded hex, so re-theming the whole site (public pages,
      auth, dashboard, admin, payments, invoices, PDF) means editing this
-     block and nothing else. Two families are REAL — sampled directly
-     from the shipped logo assets / already documented in
-     src/config/site.ts — every other family is explicitly PROVISIONAL:
-     no approved hex for violet/lime/coral/paper existed anywhere in this
-     repo before this milestone (confirmed against docs/branding-guide.md),
-     so these are a deliberately documented, WCAG-AA-checked placeholder
-     palette for the named color families in docs/nextwise-pricing-offers-guide.md's
-     brand spec, meant to be swapped for real approved hex values later
-     without touching a single component. Every pairing below has been
-     checked against the real WCAG 2.1 contrast formula (see that guide's
-     "Brand tokens" section for the exact ratios) — do not add a new
-     provisional value without checking contrast the same way.
+     block and nothing else. Every pairing below has been checked against
+     the real WCAG 2.1 contrast formula — do not add or change a value
+     without checking contrast the same way.
+
+     UX10A CORRECTION PASS — brand color authority, superseding the
+     "REAL (logo-sampled) vs. brief" reasoning two earlier milestones
+     (Milestone 11, UX01-02) recorded here. Both milestones independently
+     received the SAME palette — Navy #0B1F3A / Blue #2563EB /
+     Cyan #22C7F2 / Off White #F8FAFC — as "the brand," and both times a
+     prior pass chose to keep the colors actually sampled from the shipped
+     icon PNG (#005ef6 / #011f66 / #000c24) instead, reasoning that the
+     sampled values were more authoritative than a brief restating them.
+     That reasoning is explicitly overridden now: this palette is
+     authoritative by direct instruction, is not to be re-litigated by a
+     future milestone citing an older comment in this file (including this
+     one), and — independently — the master logo's own dark-field lockup
+     asset (public/brand/nextwise-logo-horizontal-dark.png) is flattened
+     onto a canvas sampling to approximately #010c23 (i.e. the same navy
+     family as #0B1F3A, not the old #000c24 ink), which supports this
+     palette rather than contradicting the logo. --brand-primary/-strong
+     and --brand-ink now carry these authoritative values; every
+     `--color-*` token aliasing them updates automatically. Only these
+     three values changed — no token was renamed, so no component needed
+     editing for this correction. See
+     docs/ux10a-premium-homepage-design-system.md for the full record,
+     including the WCAG re-verification run against every affected pairing.
   ------------------------------------------------------------------- */
 
-  /* --- REAL: sampled from public/brand/nextwise-icon.png --- */
-  --brand-primary: #005ef6;         /* REAL — logo mark blue */
-  --brand-primary-strong: #011f66;  /* REAL — logo gradient/navy */
-  /* --- REAL: = existing BRAND_DARK_BG in src/config/site.ts --- */
-  --brand-ink: #000c24;             /* REAL — primary body copy, premium/data-heavy sections, admin/analytics */
+  /* --- AUTHORITATIVE: Navy / Blue, per the approved NextWise brand spec --- */
+  --brand-primary: #2563eb;         /* AUTHORITATIVE — Blue, primary actions */
+  --brand-primary-strong: var(--brand-ink); /* AUTHORITATIVE — the one Navy value also serves as primary's "strong"/hover-dark variant */
+  --brand-ink: #0b1f3a;             /* AUTHORITATIVE — Navy: primary text/structure, premium/data-heavy sections, admin/analytics */
 
   /* --- PROVISIONAL: documented placeholders, no prior approved hex --- */
   --brand-violet: #4c2e8c;          /* PROVISIONAL */
@@ -43,11 +56,18 @@
   --brand-signal-strong: #557a00;   /* PROVISIONAL — darker lime-olive, safe for lime-as-TEXT/icon use (5.04:1 on white, 4.71:1 on paper) */
   --brand-coral: #af351c;           /* PROVISIONAL — warnings/destructive/validation only, never decorative over large areas */
   --brand-coral-pale: #fbe7e1;      /* PROVISIONAL — pale tint background for coral-toned alert/validation panels */
-  --brand-paper: #faf7f1;           /* PROVISIONAL — warm off-white, editorial/reading backgrounds */
+  /* UX10A CORRECTION PASS: #faf7f1 (warm off-white) -> #f8fafc, the
+     approved brand spec's Off White — see the correction note above.
+     --color-surface (pure white, unchanged) stays the card/reading
+     surface; this token is the page-level background underneath it. */
+  --brand-paper: #f8fafc;           /* AUTHORITATIVE — Off White, page background */
   --brand-surface: #ffffff;         /* card/reading surface white */
   --brand-muted: #5b6472;           /* PROVISIONAL — secondary/muted text */
   --brand-border: #c3ccda;          /* PROVISIONAL — hairline dividers/card borders */
-  --brand-focus: #005ef6;           /* alias of --brand-primary — keyboard focus ring, 4.99:1 on paper (passes 3:1 UI-component minimum) */
+  /* True alias (was a stale hard-coded hex that had drifted out of sync
+     with --brand-primary's own value) so the focus ring always tracks
+     whatever "primary blue actions" currently resolves to. */
+  --brand-focus: var(--brand-primary); /* alias of --brand-primary — keyboard focus ring */
   --brand-success: #1f7a3f;         /* PROVISIONAL */
   --brand-success-pale: #e4f3e9;    /* PROVISIONAL */
   --brand-warning: #8a5a00;         /* PROVISIONAL — amber-toned, softer caution than coral */
@@ -58,32 +78,24 @@
   --brand-info-pale: #e5eeff;       /* PROVISIONAL */
 
   /* ------------------------------------------------------------------
-     UX01-02 — "intelligence" accent (new, additive, PROVISIONAL).
-     The UX01-02 brief specifies a brand palette (Deep Navy #0B1F3A /
-     Primary Blue #2563EB / Cyan #22C7F2 / Off White #F8FAFC) as "the
-     existing NextWise brand." It is not: the REAL, logo-sampled colors
-     above (--brand-primary #005ef6, --brand-primary-strong #011f66,
-     --brand-ink #000c24) predate this brief, are documented as sampled
-     directly from the shipped logo, and are WCAG-checked throughout the
-     product (see the Milestone 11 note above). Overwriting them with the
-     brief's generic suggested hex would both contradict the actual logo
-     and throw away already-verified contrast work, so this pass keeps
-     the REAL brand colors as authoritative and does NOT change
-     --brand-primary / --brand-primary-strong / --brand-ink or any
-     --color-* token derived from them.
-     What the brief asks for that genuinely does not exist yet is a
-     "controlled, restrained accent for AI/intelligence moments" — no
-     cyan or teal-adjacent token served that purpose before this pass
-     (--color-secondary is a separate, already-heavily-used teal for
-     links/secondary actions). So --brand-intelligence is added here,
-     additively, following the same two-tone pattern already used for
-     --brand-signal: a vivid chip/background tone plus a darker "-strong"
-     tone for text/icon use, because the vivid tone alone fails AA as
-     text. Use is meant to be sparing — small badges, icons, or a single
-     accent line signalling "this came from Nextwise's guidance/matching
-     logic" — never a background wash. See docs/ux/UX01-02_FOUNDATION.md.
+     UX01-02 — "intelligence" accent (cyan). The UX01-02 brief's palette
+     (Deep Navy #0B1F3A / Primary Blue #2563EB / Cyan #22C7F2 /
+     Off White #F8FAFC) is, per the UX10A correction note above, the
+     authoritative brand spec — navy/blue/off-white now live as
+     --brand-ink / --brand-primary / --brand-paper. Cyan was always
+     already exactly right here: #22c7f2 matched the brief precisely from
+     the start, so this token needed no correction, only this comment
+     update removing the old "kept separate from the brief" framing.
+     "Intelligence" names its original purpose — a restrained accent for
+     AI/guidance moments, sparing use only (small badges, icons, a single
+     accent line) — distinct from --color-secondary (an unrelated,
+     already-heavily-used teal for links/secondary actions). Same
+     two-tone pattern as --brand-signal: a vivid chip/background tone
+     plus a darker "-strong" tone for text/icon use, because the vivid
+     tone alone fails AA as text. See docs/ux/UX01-02_FOUNDATION.md and
+     docs/ux10a-premium-homepage-design-system.md.
   ------------------------------------------------------------------- */
-  --brand-intelligence: #22c7f2;         /* PROVISIONAL — vivid cyan. BACKGROUND/CHIP/ICON USE ONLY, fails AA as small text */
+  --brand-intelligence: #22c7f2;         /* AUTHORITATIVE — Cyan, matches the brand spec exactly. BACKGROUND/CHIP/ICON USE ONLY, fails AA as small text */
   --brand-intelligence-pale: #e3f7fc;    /* PROVISIONAL — pale tint background for cyan-toned accents */
   --brand-intelligence-strong: #0e7490;  /* PROVISIONAL — deep cyan, safe for text/icon use (5.6:1 on white, 5.2:1 on paper) */
 
@@ -151,6 +163,91 @@
 
   --shadow-soft: 0 1px 2px rgba(20, 24, 38, 0.04), 0 8px 24px -12px rgba(20, 24, 38, 0.12);
   --shadow-lifted: 0 2px 4px rgba(20, 24, 38, 0.06), 0 16px 40px -16px rgba(20, 24, 38, 0.18);
+
+  /* ------------------------------------------------------------------
+     UX10A — controlled pastel accent system for the premium homepage.
+     These six tokens were always additive (no rename, no removal).
+
+     UX10A VISUAL POLISH PASS (correction pass #3) — all six pale/strong
+     pairs were deepened slightly for two section-4 asks at once: (a)
+     stronger pastel-card title contrast and (b) stronger separation of
+     each pastel surface from the white/off-white page background. Both
+     move the same direction here because the "strong" text/icon color
+     was also darkened a notch, not just the pale background — darkening
+     only the background while holding text fixed would have *reduced*
+     text contrast (background and dark text luminance moving closer
+     together), so each pair was re-balanced together and re-verified
+     against the real WCAG 2.1 formula rather than eyeballed.
+
+     IMPORTANT architecture change in this pass: soft-cyan and soft-mint
+     used to ALIAS the sitewide status-color tokens (--brand-intelligence-*
+     / --brand-success-*, var()-referenced), and soft-amber-strong aliased
+     --brand-warning. That was a latent coupling the original milestone's
+     comment didn't flag: deepening those pairs for the homepage would
+     have silently deepened every Admin success/warning banner, form
+     notice, and Badge tone sitewide too (confirmed via grep — e.g.
+     src/app/admin/billing-settings/page.tsx, src/components/ui/Badge.tsx,
+     src/components/ui/FormSuccessNotice.tsx, src/components/payments/
+     PayButton.tsx, src/components/sections/career-discovery/
+     GuidedDiscoveryFlow.tsx all consume --color-success-light /
+     --color-intelligence-light / --brand-warning directly). All six
+     families are now fully independent literal values — zero aliasing
+     into the sitewide status-color system — which is what the original
+     comment's own "homepage-accent-only system" intent actually required.
+     --brand-success / --brand-success-pale / --brand-intelligence-* /
+     --brand-warning themselves are UNCHANGED; only this homepage-only
+     pastel system moved.
+
+     Re-verified contrast (WCAG 2.1 relative-luminance formula), strong
+     text/icon color on its own pale surface, then on white for reference:
+       soft-blue   strong #0b1f3a (still the authoritative Navy, via
+         --brand-primary-strong — unchanged value) on pale #dce8fd:
+         13.38:1 (16.52:1 on white)
+       soft-pink   strong #8a1044 (darkened from #9d174d) on pale
+         #fad8ea: 7.18:1 (9.38:1 on white)
+       soft-mint   strong #1a6836 (darkened, now independent of
+         --brand-success) on pale #d6eedd: 5.57:1 (6.82:1 on white)
+       soft-lavender strong #43287d (darkened from --brand-violet
+         #4c2e8c) on pale #e2dcfd: 8.64:1 (11.42:1 on white)
+       soft-amber  strong #7a4f00 (darkened, now independent of
+         --brand-warning) on pale #fbe8c8: 5.93:1 (7.13:1 on white)
+       soft-cyan   strong #0b6278 (darkened, now independent of
+         --brand-intelligence-strong) on pale #d2f0f9: 5.79:1 (6.92:1 on
+         white)
+     Every one of the six improved its own pre-pass figure (the weakest,
+     soft-mint, moved from 4.67:1 — uncomfortably close to the 4.5:1 AA
+     floor — to 5.57:1) while also separating further from the page
+     background #f8fafc (luminance delta roughly doubled in every family
+     — e.g. soft-amber 0.047 -> 0.130, the largest relative jump, which is
+     exactly the family section 4 called "washed out" most).
+
+     Six pastel "surface" families below (one per UX10A accent role, see
+     DiscoveryPillars.tsx / HeroProductPreview.tsx's shared category
+     mapping: exploration=blue, courses/learning=pink, universities=mint,
+     personalisation/guidance=lavender/amber). Every pale tone here is
+     BACKGROUND/SURFACE USE ONLY (card fills, icon chips) — body text
+     always stays --color-text/--color-text-soft/--color-muted on these
+     surfaces, exactly like every other pale tone in this file; only the
+     paired "-strong" tone is approved for text or icon strokes drawn
+     directly on the pale surface. These six tokens are deliberately NOT
+     promoted to --color-* globals: they are a homepage-accent-only
+     system (per the brief's own "must not become new global brand
+     colors" rule), referenced directly as var(--surface-soft-*) by the
+     src/components/sections/home/* components, documented in
+     docs/ux10a-premium-homepage-design-system.md.
+  ------------------------------------------------------------------- */
+  --surface-soft-blue: #dce8fd;
+  --surface-soft-blue-strong: var(--brand-primary-strong);
+  --surface-soft-cyan: #d2f0f9;
+  --surface-soft-cyan-strong: #0b6278;
+  --surface-soft-pink: #fad8ea;
+  --surface-soft-pink-strong: #8a1044;
+  --surface-soft-mint: #d6eedd;
+  --surface-soft-mint-strong: #1a6836;
+  --surface-soft-lavender: #e2dcfd;
+  --surface-soft-lavender-strong: #43287d;
+  --surface-soft-amber: #fbe8c8;
+  --surface-soft-amber-strong: #7a4f00;
 }
 
 @layer base {
@@ -261,6 +358,567 @@
   .animate-flow-dash {
     animation: flow-dash 6s linear infinite;
   }
+
+  /* ------------------------------------------------------------------
+     UX10-H01 — Hero Orbit Journey keyframes.
+     Pure CSS, no animation library. Classic 4-layer "clock hand" orbit
+     technique, GPU-friendly throughout (only transform/opacity/filter
+     are ever animated — never top/left/width/height, per the brief's
+     own performance rule):
+
+       .orbit-ellipse  (static)   squishes a circular sweep into a wide
+                                   ellipse via a constant scaleY.
+       .orbit-arm      (animated) the positioning "clock hand" — rotates
+                                   0->360deg at a strictly LINEAR rate
+                                   (the brief's own "linear for orbital
+                                   travel" rule) around its own top-left
+                                   corner (transform-origin: 0 0, placed
+                                   at the stage's center), carrying its
+                                   card outward to the arm's far end.
+                                   z-index also lives here (discrete
+                                   per-stop, not smoothly animatable
+                                   anyway) so the foreground card is
+                                   reliably on top at the right moment.
+       .orbit-counter  (animated) counter-rotates at the exact same
+                                   linear rate/phase as .orbit-arm (so
+                                   the two cancel out and the card stays
+                                   upright, never spinning on its own
+                                   axis) AND carries a CONSTANT inverse
+                                   scaleY in the same transform list to
+                                   cancel .orbit-ellipse's squish for
+                                   this one card, so the visible card
+                                   itself is never squashed.
+       .orbit-depth    (animated) the actual visible card box — scale /
+                                   opacity / filter(blur) / box-shadow,
+                                   eased with a smooth cubic-bezier (the
+                                   brief's own "foreground emphasis
+                                   should ease smoothly" rule, distinct
+                                   from the arm's strict linear travel).
+                                   Foreground (nearest the viewer) sits
+                                   at 25% of the cycle, farthest at 75%.
+
+     Six cards share these same four keyframes; OrbitJourney.tsx staggers
+     them with NEGATIVE animation-delay (-1/6, -2/6 ... of the duration)
+     rather than defining six separate keyframe sets — the standard way
+     to evenly phase multiple elements around one shared infinite loop.
+  ------------------------------------------------------------------- */
+  @keyframes orbit-arm-spin {
+    0%   { transform: rotate(0deg); z-index: 2; }
+    25%  { transform: rotate(90deg); z-index: 6; }
+    50%  { transform: rotate(180deg); z-index: 2; }
+    75%  { transform: rotate(270deg); z-index: 1; }
+    100% { transform: rotate(360deg); z-index: 2; }
+  }
+
+  /* NOTE on transform order: CSS `transform: A B` composes as matrix
+     A*B (A applied "outside" B). To exactly cancel the ancestor chain
+     .orbit-ellipse's scaleY(squish) -> .orbit-arm's rotate(angle), the
+     inverse must undo them in REVERSE order — rotate(-angle) first in
+     the list, THEN scaleY(1/squish) — not the other way around (scaleY
+     then rotate visibly tilts/skews the card, since scale and rotate
+     don't commute). */
+  @keyframes orbit-counter-spin {
+    0%   { transform: rotate(0deg) scaleY(var(--orbit-unsquish, 1.9)); }
+    100% { transform: rotate(-360deg) scaleY(var(--orbit-unsquish, 1.9)); }
+  }
+
+  @keyframes orbit-depth {
+    0% {
+      transform: scale(0.93);
+      opacity: 0.8;
+      filter: blur(0.5px);
+      box-shadow: 0 1px 2px rgba(20, 24, 38, 0.04), 0 8px 24px -12px rgba(20, 24, 38, 0.12);
+    }
+    25% {
+      transform: scale(1.1);
+      opacity: 1;
+      filter: blur(0);
+      box-shadow: 0 2px 4px rgba(20, 24, 38, 0.06), 0 16px 40px -16px rgba(20, 24, 38, 0.18);
+    }
+    50% {
+      transform: scale(0.93);
+      opacity: 0.8;
+      filter: blur(0.5px);
+      box-shadow: 0 1px 2px rgba(20, 24, 38, 0.04), 0 8px 24px -12px rgba(20, 24, 38, 0.12);
+    }
+    75% {
+      transform: scale(0.82);
+      opacity: 0.58;
+      filter: blur(1.5px);
+      box-shadow: 0 1px 2px rgba(20, 24, 38, 0.03), 0 4px 10px -6px rgba(20, 24, 38, 0.08);
+    }
+    100% {
+      transform: scale(0.93);
+      opacity: 0.8;
+      filter: blur(0.5px);
+      box-shadow: 0 1px 2px rgba(20, 24, 38, 0.04), 0 8px 24px -12px rgba(20, 24, 38, 0.12);
+    }
+  }
+
+  .orbit-ellipse {
+    transform: scaleY(var(--orbit-squish, 0.52));
+  }
+
+  .orbit-arm {
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--orbit-rx, 150px);
+    height: 0;
+    transform-origin: 0 0;
+    animation: orbit-arm-spin var(--orbit-duration, 26s) linear infinite;
+    animation-delay: var(--orbit-delay, 0s);
+  }
+
+  .orbit-counter {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 100%;
+    transform-origin: 0 0;
+    animation: orbit-counter-spin var(--orbit-duration, 26s) linear infinite;
+    animation-delay: var(--orbit-delay, 0s);
+  }
+
+  .orbit-card-anchor {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--orbit-card-w, 110px);
+    transform: translate(-50%, -50%);
+  }
+
+  .orbit-depth {
+    /* No `display` set here deliberately — OrbitJourney.tsx applies
+       Tailwind's `flex flex-col` utility class to this same element to
+       stack icon/title/label; setting `display: block` here too would
+       fight that utility for the `display` property (same specificity,
+       order-dependent winner) and silently collapse the stack onto one
+       line. */
+    animation: orbit-depth var(--orbit-duration, 26s) cubic-bezier(0.45, 0, 0.55, 1) infinite;
+    animation-delay: var(--orbit-delay, 0s);
+    will-change: transform, opacity, filter;
+  }
+
+  /* Hover/focus: pause only THIS card's two animations (the brief's
+     first-choice option over pausing the whole orbit) and force full
+     clarity immediately, regardless of where in the cycle it was
+     paused. */
+  .orbit-item:hover .orbit-arm,
+  .orbit-item:hover .orbit-counter,
+  .orbit-item:hover .orbit-depth,
+  .orbit-item:focus-visible .orbit-arm,
+  .orbit-item:focus-visible .orbit-counter,
+  .orbit-item:focus-visible .orbit-depth {
+    animation-play-state: paused;
+  }
+
+  .orbit-item:hover .orbit-arm,
+  .orbit-item:focus-visible .orbit-arm {
+    z-index: 30 !important;
+  }
+
+  .orbit-item:hover .orbit-depth,
+  .orbit-item:focus-visible .orbit-depth {
+    transform: scale(1.12) !important;
+    opacity: 1 !important;
+    filter: blur(0) !important;
+    box-shadow: 0 2px 4px rgba(20, 24, 38, 0.06), 0 16px 40px -16px rgba(20, 24, 38, 0.18) !important;
+  }
+
+  /* Decorative ellipse path stroke — reuses the existing .animate-flow-dash
+     primitive (already motion-reduce-safe, see the explicit override
+     block below) for the brief's optional "soft highlight traveling
+     through the orbit" rather than inventing a new ambient keyframe. */
+  .orbit-path-stroke {
+    stroke: url(#orbit-path-gradient);
+    opacity: 0.4;
+    rx: var(--orbit-rx, 150px);
+    ry: calc(var(--orbit-rx, 150px) * var(--orbit-squish, 0.52));
+  }
+}
+
+/* ------------------------------------------------------------------
+   UX10-H01 — orbit sizing per tier. Three tiers rather than a naive
+   shrink of the desktop size down to mobile (the brief's own "do not
+   shrink the desktop orbit until it becomes unreadable" rule): each
+   tier gets its own hand-tuned radius/card-size/duration, not a scaled
+   fraction of the one above. Orbit slows down on mobile per the
+   brief's own allowance ("the animation may become slower on mobile").
+   Values live here (plain CSS custom properties on .orbit-stage)
+   rather than as inline React styles per breakpoint, matching how this
+   file already centralizes every other cross-cutting visual constant.
+------------------------------------------------------------------- */
+.orbit-stage {
+  --orbit-rx: 96px;
+  --orbit-squish: 0.52;
+  --orbit-unsquish: 1.92;
+  --orbit-duration: 30s;
+  --orbit-card-w: 78px;
+  position: relative;
+  width: 100%;
+  min-height: calc(var(--orbit-rx) * 2 * var(--orbit-squish) + 150px);
+}
+
+/* UX10-H03 — `--orbit-squish`/`--orbit-unsquish` are plain CSS custom
+   properties on `.orbit-stage` (the same sizing-tier mechanism as
+   `--orbit-rx` above), not part of `.orbit-arm`/`.orbit-counter`/
+   `.orbit-depth`'s internals or any @keyframes — tuning them per
+   breakpoint is the same kind of change UX10-H01 itself already made
+   tunable here. UX10-H01's original 0.52 squish (a wide, flat ellipse)
+   was tuned for the pre-H03 hero, where nothing sat behind the orbit.
+   Now that a large, bottom-anchored student fills most of the stage's
+   vertical band, that flat ellipse put its "top" and "bottom" cards too
+   close to the stage's vertical center — directly over her head/torso,
+   violating the brief's own "avoid covering the student's face" rule —
+   while its "left"/"right" cards cleared her fine. A rounder ellipse
+   (higher squish) lifts the top cards further above her head and the
+   bottom cards further below her feet, without changing anything about
+   HOW a card gets placed (`.orbit-arm`'s own transform math is
+   untouched); `--orbit-unsquish` is kept as the exact inverse
+   (`1 / squish`) at every tier, same invariant UX10-H01 established, so
+   each card still cancels the ellipse's squish and renders upright. */
+@media (min-width: 769px) {
+  .orbit-stage {
+    --orbit-rx: 152px;
+    --orbit-squish: 0.62;
+    --orbit-unsquish: 1.6129;
+    --orbit-duration: 26s;
+    --orbit-card-w: 102px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .orbit-stage {
+    --orbit-rx: 212px;
+    --orbit-squish: 0.68;
+    --orbit-unsquish: 1.4706;
+    --orbit-duration: 22s;
+    --orbit-card-w: 126px;
+  }
+}
+
+/* A fourth tier for the widened (~1560px) homepage container: the
+   reference's orbit cards spread noticeably further from the student
+   than UX10-H01's original tuning (itself sized against a ~1240px
+   container). Same four custom properties, same cards, same motion —
+   only the ellipse's own radius/shape/card-size grow at this wider
+   breakpoint. */
+@media (min-width: 1280px) {
+  .orbit-stage {
+    --orbit-rx: 320px;
+    --orbit-squish: 0.72;
+    --orbit-unsquish: 1.3889;
+    --orbit-duration: 22s;
+    --orbit-card-w: 132px;
+  }
+}
+
+/* ------------------------------------------------------------------
+   UX10-H01B — hero visual stage, extended by UX10-H02 ("Homepage
+   Premium Visual Refinement") and again by UX10-H03 ("Exact Homepage
+   Reference Match"). Composes the real approved student photo and an
+   illustrated sky/campus atmosphere with the APPROVED orbit from
+   UX10-H01 so the orbit reads as surrounding a focal subject within one
+   continuous scene, instead of floating as its own separate widget.
+   Every rule here only ever sizes/offsets plain wrappers
+   (.hero-atmosphere, .hero-student-portrait, .hero-orbit-wrap) OUTSIDE
+   OrbitJourney.tsx via position/margin/z-index — nothing here touches
+   .orbit-stage's internals, .orbit-arm/.orbit-counter/.orbit-depth, or
+   any @keyframes. The orbit's six stages, motion, timing, depth
+   values, icons, copy, and routes are all untouched this pass too
+   (confirmed via `diff -q` against the UX10-H01-approved
+   OrbitJourney.tsx — see UX10-H03_COMPLETION_REPORT.md).
+
+   UX10-H03 moves the stage from a flow-positioned (margin-offset)
+   composition to a deliberately-sized, absolutely-positioned one, to
+   reach the reference image's much larger/more dominant student figure
+   and its wider ring of orbit cards around her:
+     .hero-visual-stage   now carries its own explicit min-height per
+                           breakpoint, acting as a fixed "scene canvas."
+     CampusSkylineBackdrop (z-index 0) fills that canvas edge-to-edge.
+     .hero-atmosphere     (z-index 0) layers extra soft color wash on
+                           top of the illustrated sky for added depth.
+     .hero-student-portrait (z-index 2) is now absolutely bottom-anchored
+                           and significantly larger, so she reads as
+                           standing within the scene.
+     .hero-orbit-wrap      (z-index 1) is now absolutely positioned
+                           across the FULL stage (flex-centered, biased
+                           toward the upper half via padding-top) rather
+                           than flowing below the portrait with a
+                           negative margin — this is what lets the six
+                           cards spread in a wide ring around her instead
+                           of clustering at her feet. Because
+                           .orbit-ellipse's own `transform` isolates the
+                           whole orbit into one atomic stacking context,
+                           comparing z-index at this WRAPPER level alone
+                           (1, below the portrait's 2) is still sufficient
+                           to read as "the orbit passes behind her" —
+                           the same reasoning UX10-H02 already
+                           established, unchanged by the new positioning
+                           model.
+
+   .hero-student-slot (kept, unchanged in its own markup/copy) is the
+   fallback placeholder HomeHero.tsx renders only if
+   HERO_STUDENT_IMAGE_EXISTS is false at render time — i.e. only if the
+   approved asset is ever missing from public/hero/. It now shares the
+   portrait's absolute bottom-anchored sizing so the fallback state
+   still reads as a coherent scene, not a shrunken placeholder adrift in
+   an empty stage.
+
+   UX10-H05B swaps the illustrated backdrop/masked-photo approach for the
+   brief's own real supplied assets — see .hero-campus-backdrop and the
+   updated .hero-student-portrait-img rule below, plus HomeHero.tsx's own
+   docblock for the full reasoning. Two new .hero-annotation rules add the
+   small handwritten-style annotation crops near the student's upper
+   corners, a documented, deliberate reversal of this project's prior
+   no-handwritten-annotation stance. None of this touches
+   .hero-orbit-wrap's own position/size rules below, which are unchanged
+   from H03/H04.
+------------------------------------------------------------------- */
+.hero-visual-stage {
+  position: relative;
+  min-height: 460px;
+  isolation: isolate;
+}
+
+/* UX10-H05B — the real supplied campus/sky photo, now rendered as a
+   direct child of the hero's own full-width outer <section> (NOT inside
+   .hero-visual-stage or <Container>), so it spans truly edge-to-edge of
+   the viewport the way the reference shows — no rounded corners, no
+   container gutter, no "boxed photo" treatment. `position: absolute;
+   inset: 0` on a child of that (position: relative) <section> stretches
+   it to match the section's own rendered height at every breakpoint,
+   including the stacked mobile/tablet layout, without a hardcoded pixel
+   height. The asset itself already fades to white at its bottom edge
+   (confirmed by inspecting the supplied file), so no additional CSS mask
+   is layered on top of it here. See HomeHero.tsx's own docblock. */
+.hero-campus-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 28%;
+}
+
+/* A soft, left-to-right white scrim over the backdrop photo — strongest
+   under the text column, fully transparent by the time it reaches the
+   student/orbit area — so the headline/body copy stay legible regardless
+   of the photo's own local brightness at that point, without ever
+   becoming an opaque panel/box of its own (the brief's own "no ... empty
+   white panels" ban is about a panel REPLACING the photo, not a gentle
+   readability gradient drawn on top of it). */
+.hero-backdrop-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    color-mix(in srgb, white 74%, transparent) 0%,
+    color-mix(in srgb, white 52%, transparent) 30%,
+    color-mix(in srgb, white 24%, transparent) 52%,
+    transparent 74%
+  );
+}
+
+/* UX10-H06 — explicit, viewport-height-independent bottom fade. The
+   campus photo's own internal fade is baked into fixed pixels and its
+   apparent position shifts under `object-fit: cover` as the section's
+   rendered height changes across breakpoints/viewports — this layer
+   guarantees a smooth, hard-edge-free transition into the white
+   feature-cards section regardless. A sibling of `.hero-campus-backdrop`/
+   `.hero-backdrop-scrim`, same z-index: 0 layer, so it paints on top of
+   the raw photo but behind the real foreground content in `<Container>`
+   (which stacks above it — see HomeHero.tsx's own docblock). See
+   HomeHero.tsx's UX10-H06 docblock, item 3. */
+.hero-bottom-fade {
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 0;
+  height: clamp(28px, 6vw, 64px);
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent 0%, color-mix(in srgb, var(--color-background) 92%, transparent) 100%);
+}
+
+.hero-atmosphere {
+  position: absolute;
+  inset: -10% -12% 0 -12%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(45% 50% at 74% 16%, color-mix(in srgb, var(--brand-intelligence) 16%, transparent) 0%, transparent 72%),
+    radial-gradient(52% 52% at 22% 92%, color-mix(in srgb, var(--brand-primary) 10%, transparent) 0%, transparent 72%);
+  filter: blur(36px);
+}
+
+.hero-student-slot,
+.hero-student-portrait {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 66%;
+  max-width: 320px;
+}
+
+.hero-student-slot {
+  aspect-ratio: 4 / 5;
+  border-radius: 1.5rem;
+  background: linear-gradient(165deg, var(--surface-soft-blue) 0%, var(--surface-soft-cyan) 100%);
+  border: 1px dashed color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+
+.hero-student-slot::after {
+  content: "Approved student photo — drop in replacement asset";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: color-mix(in srgb, var(--color-primary) 55%, transparent);
+}
+
+.hero-student-portrait-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* UX10-H02/H03's mask-image/-webkit-mask-image radial fade existed to
+     soften NEXTWISE-STUDENT-HERO.PNG's hard rectangular photo edge (a
+     plain photo with no transparency of its own) into the hero's
+     atmosphere. UX10-H05B's real supplied cutout is ALREADY a transparent
+     PNG with her silhouette pre-separated from any background — masking
+     it again would just clip real pixels of her own shape for no reason,
+     so the mask is removed and object-fit moves from `cover` (cropping to
+     a fixed 4:5 box) to `contain` (showing the whole real cutout at its
+     own aspect ratio, 1086x1448). */
+  aspect-ratio: 1086 / 1448;
+  object-fit: contain;
+  object-position: 50% 100%;
+  filter: drop-shadow(0 22px 28px rgba(11, 31, 58, 0.16));
+}
+
+/* UX10-H05B — the two handwritten-style annotation crops (see
+   HomeHero.tsx's own docblock for the documented reversal of the prior
+   no-handwritten-annotation rule). Small, decorative, absolutely
+   positioned near the student's upper-left/upper-right at every
+   breakpoint; sizes/offsets scale down on narrower stages so they never
+   overlap the orbit cards or run off the stage edge. */
+.hero-annotation {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  height: auto;
+  filter: drop-shadow(0 2px 4px rgba(11, 31, 58, 0.1));
+}
+
+.hero-annotation-left {
+  top: 4%;
+  left: 2%;
+  width: 17%;
+  max-width: 90px;
+}
+
+.hero-annotation-right {
+  top: 2%;
+  right: 1%;
+  width: 24%;
+  max-width: 128px;
+}
+
+/* The orbit's own rotational center is wherever `.hero-orbit-wrap`'s BOX
+   center lands (`.orbit-stage`/`.orbit-ellipse` are `width: 100%` /
+   `absolute inset: 0` of it — see OrbitJourney.tsx). Centering this box
+   at the STAGE's horizontal center (50%) rather than the STUDENT's own
+   center put some cards directly over her face/shoulder at the angles
+   where the ellipse crosses the vertical mid-line (theta ~180°) — the
+   brief's own "avoid covering the student's face" rule. `left` + a
+   matching `transform: translateX(-50%)` instead centers this box on the
+   exact same horizontal position as `.hero-student-portrait` at every
+   breakpoint (same `left` values, kept in sync intentionally), so the
+   ellipse is concentric with HER, not the stage — its near/far extremes
+   clear her body width on both sides instead of crossing through it. */
+.hero-orbit-wrap {
+  position: absolute;
+  z-index: 1;
+  top: 4%;
+  left: 50%;
+  width: 100%;
+  transform: translateX(-50%);
+}
+
+@media (min-width: 769px) {
+  .hero-visual-stage {
+    min-height: 540px;
+  }
+
+  .hero-student-slot,
+  .hero-student-portrait {
+    width: 56%;
+    max-width: 400px;
+    left: 44%;
+  }
+
+  .hero-orbit-wrap {
+    top: 2%;
+    left: 44%;
+  }
+
+  .hero-annotation-left {
+    top: 6%;
+    left: 4%;
+    width: 15%;
+    max-width: 104px;
+  }
+
+  .hero-annotation-right {
+    top: 3%;
+    right: 2%;
+    width: 20%;
+    max-width: 148px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-visual-stage {
+    min-height: 620px;
+  }
+
+  .hero-student-slot,
+  .hero-student-portrait {
+    width: 52%;
+    max-width: 460px;
+    left: 42%;
+  }
+
+  .hero-orbit-wrap {
+    top: 0;
+    left: 42%;
+  }
+
+  .hero-annotation-left {
+    top: 7%;
+    left: 6%;
+    width: 13%;
+    max-width: 118px;
+  }
+
+  .hero-annotation-right {
+    top: 4%;
+    right: 4%;
+    width: 17%;
+    max-width: 164px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -298,5 +956,41 @@
 
   .animate-flow-dash {
     animation: none;
+  }
+
+  /* ------------------------------------------------------------------
+     UX10-H01 — explicit reduced-motion override for the hero orbit.
+     Same discipline as the two rules above: the blanket rule already
+     neutralizes these animations technically, but collapsing a
+     mid-cycle keyframe to its "first frame" would freeze the six cards
+     at six arbitrary, unequal depths (whatever each one's staggered
+     negative delay happened to land on) — not the "static, elegant
+     elliptical arrangement" the brief explicitly requires. These rules
+     replace that with an intentional static state instead: animation
+     off, every card at full, equal clarity (no card looks more
+     "foreground" than another, since there is no motion left to
+     justify favoring one), positioned at its own fixed evenly-spaced
+     angle via --orbit-static-angle (set inline per card by
+     OrbitJourney.tsx — index * 60deg). The decorative traveling-glow
+     path stroke is also switched off outright (.animate-flow-dash
+     above already covers it) — "no traveling glow" per the brief.
+  ------------------------------------------------------------------- */
+  .orbit-arm {
+    animation: none;
+    transform: rotate(var(--orbit-static-angle, 0deg));
+    z-index: 2;
+  }
+
+  .orbit-counter {
+    animation: none;
+    transform: rotate(calc(-1 * var(--orbit-static-angle, 0deg))) scaleY(var(--orbit-unsquish, 1.92));
+  }
+
+  .orbit-depth {
+    animation: none;
+    transform: scale(1);
+    opacity: 1;
+    filter: none;
+    box-shadow: 0 1px 2px rgba(20, 24, 38, 0.04), 0 8px 24px -12px rgba(20, 24, 38, 0.12);
   }
 }

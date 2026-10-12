@@ -66,8 +66,8 @@ export const BRAND_LOGO = {
   socialShareHeight: 630,
 } as const;
 
-/** Flat navy sampled from the supplied dark lockup — used to keep the OG image and any dark logo surface visually consistent. Not a full design-token palette change. */
-export const BRAND_DARK_BG = "#000c24";
+/** Flat navy used to keep the OG image and any dark logo surface visually consistent with the product's own design tokens. UX10A correction pass: now matches the authoritative --brand-ink value in src/app/globals.css (#0b1f3a), the approved brand spec's Navy. Not a full design-token palette change (this is a plain-string constant for non-CSS contexts, not a second source of truth). */
+export const BRAND_DARK_BG = "#0b1f3a";
 
 export const CURRENT_YEAR = new Date().getFullYear();
 
@@ -107,6 +107,20 @@ export const PRIMARY_NAV: NavLink[] = [
   { label: "Pricing", href: "/pricing" },
   { label: "About", href: "/about" },
 ];
+
+/**
+ * UX10A — the header's explicit "Home" link, kept separate from
+ * PRIMARY_NAV (rather than prepended into it) because Header.tsx renders
+ * Home before the Explore dropdown, not interleaved with the rest of
+ * PRIMARY_NAV, and FOOTER_NAV is hand-authored independently of
+ * PRIMARY_NAV — adding a row here does not change what the footer shows.
+ * One new link, matching the approved UX10A reference image's own header
+ * (which shows Home as the first item); every other existing link is
+ * unchanged. Both Header.tsx and MobileNav.tsx import this single
+ * constant, so route-aware active-state (src/lib/navigation/active-nav.ts)
+ * stays correct in both places from one source of truth.
+ */
+export const HOME_NAV_LINK: NavLink = { label: "Home", href: "/" };
 
 export const FOOTER_NAV: Record<string, NavLink[]> = {
   Explore: [

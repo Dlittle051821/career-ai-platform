@@ -55,13 +55,18 @@ describe("src/app/globals.css — NextWise brand token system", () => {
     });
   }
 
-  it("marks every non-real brand token as PROVISIONAL, and every real one as REAL, in a nearby comment", () => {
-    // --brand-primary, --brand-primary-strong, --brand-ink are the three
-    // REAL (logo-sampled / already-documented) values; every other
-    // --brand-* token must be labeled PROVISIONAL somewhere on its
-    // declaration line or immediately around it, per the spec's "do not
-    // falsely label invented colours as official" requirement.
-    const REAL_TOKENS = new Set(["--brand-primary", "--brand-primary-strong", "--brand-ink", "--brand-surface", "--brand-focus", "--brand-danger", "--brand-danger-pale"]);
+  it("marks every non-approved brand token as PROVISIONAL, and every approved one as REAL/AUTHORITATIVE, in a nearby comment", () => {
+    // --brand-primary, --brand-primary-strong, --brand-ink, --brand-paper
+    // are the approved, confirmed values (REAL at Milestone 11; UX10A's
+    // brand-color-authority correction pass re-confirmed --brand-primary/
+    // -strong/-ink against the approved spec and additionally approved
+    // --brand-paper, labeling all four AUTHORITATIVE rather than REAL —
+    // both words mean "not a placeholder," which is what this guard
+    // actually checks); every other --brand-* token must be labeled
+    // PROVISIONAL somewhere on its declaration line or immediately around
+    // it, per the spec's "do not falsely label invented colours as
+    // official" requirement.
+    const REAL_TOKENS = new Set(["--brand-primary", "--brand-primary-strong", "--brand-ink", "--brand-paper", "--brand-surface", "--brand-focus", "--brand-danger", "--brand-danger-pale"]);
     const lines = css.split("\n");
     for (const token of REQUIRED_BRAND_TOKENS) {
       if (REAL_TOKENS.has(token)) continue;

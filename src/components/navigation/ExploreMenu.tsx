@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { EXPLORE_NAV } from "@/config/site";
+import { isAnyNavLinkActive } from "@/lib/navigation/active-nav";
 import { cn } from "@/lib/utils";
 
 /**
@@ -51,7 +52,10 @@ export function ExploreMenu() {
     };
   }, [open]);
 
-  const isActive = EXPLORE_NAV.some((link) => pathname === link.href || pathname.startsWith(`${link.href}/`));
+  const isActive = isAnyNavLinkActive(
+    pathname,
+    EXPLORE_NAV.map((link) => link.href)
+  );
 
   return (
     <div ref={containerRef} className="relative">
@@ -62,12 +66,20 @@ export function ExploreMenu() {
         aria-haspopup="menu"
         aria-controls="explore-menu-panel"
         className={cn(
-          "inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-2 text-sm font-medium transition-colors",
-          isActive || open ? "bg-surface-alt text-primary" : "text-text-soft hover:bg-surface-alt hover:text-primary"
+          "group relative inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-2 text-sm transition-colors duration-200",
+          open ? "bg-surface-alt text-primary" : "text-text-soft hover:text-primary",
+          isActive && !open ? "font-semibold text-primary" : "font-medium"
         )}
       >
         Explore
         <ChevronDown aria-hidden="true" className={cn("h-3.5 w-3.5 transition-transform", open && "rotate-180")} />
+        <span
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute inset-x-2.5 -bottom-px h-0.5 origin-center scale-x-0 rounded-full bg-primary transition-transform duration-200 ease-out motion-reduce:transition-none",
+            isActive && !open ? "scale-x-100" : "group-hover:scale-x-100"
+          )}
+        />
       </button>
 
       {open ? (
@@ -77,17 +89,21 @@ export function ExploreMenu() {
           aria-label="Explore"
           className="absolute left-0 top-full z-50 mt-2 w-72 rounded-[var(--radius-card)] border border-border bg-surface p-1.5 shadow-lifted"
         >
-          {EXPLORE_NAV.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              role="menuitem"
-              className="block rounded-md px-3 py-2.5 text-sm hover:bg-surface-alt"
-            >
-              <span className="font-medium text-text">{link.label}</span>
-              {link.description ? <span className="mt-0.5 block text-xs text-muted">{link.description}</span> : null}
-            </Link>
-          ))}
+          {EXPLORE_NAV.map((link) => {
+            const itemActive = isAnyNavLinkActive(pathname, [link.href]);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                role="menuitem"
+                aria-current={itemActive ? "page" : undefined}
+                className={cn("block rounded-md px-3 py-2.5 text-sm hover:bg-surface-alt", itemActive && "bg-surface-alt")}
+              >
+                <span className={cn("font-medium", itemActive ? "text-primary" : "text-text")}>{link.label}</span>
+                {link.description ? <span className="mt-0.5 block text-xs text-muted">{link.description}</span> : null}
+              </Link>
+            );
+          })}
         </div>
       ) : null}
     </div>
