@@ -95,9 +95,14 @@ const FILES_THAT_MUST_NOT_MENTION_THE_OLD_BRAND = [
   // UX10-D01 moved the dashboard route out of the `(site)` route group to
   // give it its own independent root layout/shell — see
   // src/app/dashboard/layout.tsx's own docblock for why.
-  "src/app/dashboard/page.tsx",
   "src/app/dashboard/layout.tsx",
+  "src/app/dashboard/page.tsx",
   "src/components/dashboard/DashboardShell.tsx",
+  // UX10-P01 did the same for /profile — see src/app/profile/layout.tsx's
+  // own docblock for why.
+  "src/app/profile/layout.tsx",
+  "src/app/profile/page.tsx",
+  "src/components/sections/profile/ProfileWorkspace.tsx",
   "src/app/(site)/applications/page.tsx",
   "src/app/(site)/terms/page.tsx",
   "src/app/(site)/courses/[universitySlug]/[courseSlug]/page.tsx",

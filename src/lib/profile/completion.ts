@@ -17,10 +17,17 @@ import { WORK_PREFERENCE_OPTIONS } from "@/data/profile-options";
  * optional and must never block completion.
  */
 
-const MINIMUM_SUBJECTS_RATED = 3;
-const MINIMUM_INTERESTS_SELECTED = 3;
-const MINIMUM_SKILLS_SELECTED = 2;
-const MINIMUM_PRIORITIES_RATED = 5;
+// UX10-P01 — exported (previously module-private) so
+// src/lib/profile/section-progress.ts can compute an honest, granular
+// per-section PROGRESS percentage (e.g. "2 of 3 subjects rated = 67%") for
+// the new /profile page's "Profile Readiness" card, built from the exact
+// same real thresholds this file already uses to decide pass/fail —
+// never a second, independently-invented number that could drift from
+// what "complete" actually means here.
+export const MINIMUM_SUBJECTS_RATED = 3;
+export const MINIMUM_INTERESTS_SELECTED = 3;
+export const MINIMUM_SKILLS_SELECTED = 2;
+export const MINIMUM_PRIORITIES_RATED = 5;
 
 export function calculateCompletion(snapshot: StudentProfileSnapshot): CompletionResult {
   const sections: CompletionSection[] = [

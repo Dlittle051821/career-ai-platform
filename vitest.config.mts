@@ -311,6 +311,13 @@ export default defineConfig({
       // Library/jsdom in this project" convention as
       // src/lib/graphics/graphics-source-audit.test.ts above.
       "src/lib/home/**/*.test.ts",
+      // UX10-P01 — Student Profile Exact Reference Implementation. The new
+      // section-progress calculation (src/lib/profile/section-progress.ts)
+      // and the reference/route-structure audit for the real `/profile`
+      // page (src/lib/profile/profile-reference-audit.test.ts) — same
+      // "pure, framework-free" + "static source-text audit" conventions as
+      // src/lib/dashboard/**/*.test.ts and src/lib/home/**/*.test.ts above.
+      "src/lib/profile/**/*.test.ts",
     ],
   },
 });
