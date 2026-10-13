@@ -225,7 +225,14 @@ export function CourseFilterBar({
         </fieldset>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-5">
+      {/* UX10-M01 — 5 real fields (currency/min/max tuition, duration unit,
+          scholarships) packed into one row at `sm:` (640px) left each
+          field too little room once real content is typed in — the same
+          "breakpoint fires before there's genuinely enough width" bug
+          class this project has hit repeatedly. Moved the 5-up tier to
+          `xl:` (1280px), with a comfortable `sm:grid-cols-2` 2-up step in
+          between. */}
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <input
           type="text"
           name="currency"

@@ -552,11 +552,18 @@
    file already centralizes every other cross-cutting visual constant.
 ------------------------------------------------------------------- */
 .orbit-stage {
-  --orbit-rx: 96px;
-  --orbit-squish: 0.52;
-  --orbit-unsquish: 1.92;
+  /* UX10-M01 — base tier widened/rounded and card width trimmed. At the
+     original 96px/0.52-squish/78px-card values, 6 cards spaced 60 degrees
+     apart genuinely overlapped and clipped each other's text at a real
+     390px viewport — confirmed not a transient animation artifact (it
+     reproduced identically with `prefers-reduced-motion` frozen on the
+     static, evenly-spaced layout). Found and fixed during this
+     milestone's own mobile visual-QA pass. */
+  --orbit-rx: 118px;
+  --orbit-squish: 0.62;
+  --orbit-unsquish: 1.6129;
   --orbit-duration: 30s;
-  --orbit-card-w: 78px;
+  --orbit-card-w: 68px;
   position: relative;
   width: 100%;
   min-height: calc(var(--orbit-rx) * 2 * var(--orbit-squish) + 150px);

@@ -70,7 +70,10 @@ export default async function RecommendationsPage() {
               Add at least a couple of subject strengths, interests, or skills to get started.
             </p>
           )}
-          <LinkButton href="/profile/onboarding" className="mt-2">
+          {/* UX10-M01 — the lone CTA in this empty state; LinkButton shrinks
+              to its text by default, so make it a full-width, easy-to-tap
+              primary action on mobile only. */}
+          <LinkButton href="/profile/onboarding" className="mt-2 w-full sm:w-auto">
             Continue your profile
           </LinkButton>
         </Card>

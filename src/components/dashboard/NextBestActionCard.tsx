@@ -34,7 +34,15 @@ export function NextBestActionCard({ action }: { action: NextBestAction }) {
             {action.title}
           </h2>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">{action.description}</p>
-          <LinkButton href={action.href} size="md" className="mt-5" trailingIcon={<ArrowRight aria-hidden="true" className="h-4 w-4" />}>
+          {/* UX10-M01 — the dashboard's single most-prominent CTA; LinkButton
+              shrinks to its text by default, so make it a full-width,
+              thumb-friendly primary action on mobile only. */}
+          <LinkButton
+            href={action.href}
+            size="md"
+            className="mt-5 w-full sm:w-auto"
+            trailingIcon={<ArrowRight aria-hidden="true" className="h-4 w-4" />}
+          >
             {action.cta}
           </LinkButton>
         </div>

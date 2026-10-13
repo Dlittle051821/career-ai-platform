@@ -226,7 +226,17 @@ export function WhyNextwise() {
             small-caption visual format as the reference's tiles; only the
             first tile is a genuine number, and it's the one this repo can
             actually prove (LAUNCH_COUNTRY_PRIMARY_SOURCES.length). */}
-        <ul className="flex min-w-0 flex-row gap-3 lg:flex-col lg:justify-center lg:gap-3.5">
+        {/* UX10-M01 — real mobile bug found and fixed: at the old
+            `flex-row` (every breakpoint) layout, two of the three real
+            values here are full words ("Independent", "Personalised"),
+            not short numbers — in the ~115px-wide slot a 3-across row
+            leaves at 390px, `truncate` was cutting both down to a single
+            letter + ellipsis ("I…", "P…"). Stacking to one column below
+            `sm:` (640px) gives each tile the full container width, so
+            every real value renders in full; `sm:flex-row` restores the
+            original 3-across row once there's genuinely enough width, and
+            `lg:flex-col` is unchanged. */}
+        <ul className="flex min-w-0 flex-col gap-3 sm:flex-row lg:flex-col lg:justify-center lg:gap-3.5">
           {PROOF_TILES.map(({ icon: Icon, value, label }) => (
             <li
               key={label}
@@ -239,7 +249,7 @@ export function WhyNextwise() {
                 <Icon aria-hidden="true" className="h-5 w-5" />
               </span>
               <div className="min-w-0">
-                <p className="truncate text-base font-bold leading-tight text-primary">{value}</p>
+                <p className="text-base font-bold leading-tight text-primary">{value}</p>
                 <p className="text-[11px] leading-snug text-muted">{label}</p>
               </div>
             </li>

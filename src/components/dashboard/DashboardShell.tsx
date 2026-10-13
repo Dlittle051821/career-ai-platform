@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Logo } from "@/components/navigation/Logo";
+import { MobileTabBar } from "@/components/dashboard/MobileTabBar";
 import { logout } from "@/lib/supabase/actions";
 import { cn } from "@/lib/utils";
 
@@ -298,9 +299,14 @@ export function DashboardShell({
         </header>
 
         <main id="main-content" className="min-w-0 flex-1 overflow-x-hidden">
-          <div className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-10 lg:py-8">{children}</div>
+          {/* UX10-M01 — pb-24 (plus the tab bar's own safe-area padding)
+              clears the new fixed MobileTabBar below `lg:`, so the last
+              real card on every app-style page never sits underneath it. */}
+          <div className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-24 sm:px-6 lg:px-10 lg:py-8 lg:pb-8">{children}</div>
         </main>
       </div>
+
+      <MobileTabBar />
     </div>
   );
 }

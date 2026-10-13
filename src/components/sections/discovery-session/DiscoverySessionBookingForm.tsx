@@ -167,9 +167,15 @@ export function DiscoverySessionBookingForm() {
         anything.
       </div>
 
+      {/* UX10-M01 — the Button component is `inline-flex` by default (shrinks
+          to its text), so this primary submit CTA sat as a short pill on
+          mobile rather than the full-width "easy to tap" primary action the
+          reference mockups show throughout. Scoped to below `sm:` so the
+          desktop/tablet inline button is unchanged. */}
       <Button
         type="submit"
         disabled={submitting}
+        className="w-full sm:w-auto"
         trailingIcon={submitting ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <CalendarCheck aria-hidden="true" className="h-4 w-4" />}
       >
         {submitting ? "Booking…" : "Book my free Discovery Session"}

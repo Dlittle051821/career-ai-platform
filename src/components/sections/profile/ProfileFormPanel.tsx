@@ -75,12 +75,18 @@ export function ProfileFormPanel({ wizard }: { wizard: ProfileWizardState }) {
           <Button type="button" variant="ghost" onClick={handleSaveAndExit} disabled={isPending}>
             Save & Exit
           </Button>
+          {/* UX10-M01 — the primary action in this row (Save & Continue /
+              Complete My Profile) is the busiest page's most consequential
+              button; Button shrinks to its text by default, so make it
+              full-width on mobile only so it reads as clearly primary next
+              to the secondary Back/Save & Exit buttons above it in the
+              column-reversed mobile stack. */}
           {step < TOTAL_STEPS ? (
-            <Button type="button" onClick={handleContinue} disabled={isPending}>
+            <Button type="button" onClick={handleContinue} disabled={isPending} className="w-full sm:w-auto">
               {isPending ? "Saving…" : "Save & Continue"}
             </Button>
           ) : (
-            <Button type="button" onClick={handleCompleteProfile} disabled={isPending}>
+            <Button type="button" onClick={handleCompleteProfile} disabled={isPending} className="w-full sm:w-auto">
               {isPending ? "Saving…" : "Complete My Profile"}
             </Button>
           )}

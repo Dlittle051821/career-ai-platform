@@ -156,8 +156,15 @@ describe("hero composition — the orbit's position may change, but nothing abou
     expect(GLOBALS_CSS).toContain("--orbit-duration: 30s;");
     expect(GLOBALS_CSS).toContain("--orbit-duration: 26s;");
     expect(GLOBALS_CSS).toContain("--orbit-duration: 22s;");
-    // Radius per tier (unchanged from UX10-H01):
-    expect(GLOBALS_CSS).toContain("--orbit-rx: 96px;");
+    // Radius per tier: the two larger (tablet/desktop) tiers are unchanged
+    // from UX10-H01. The base (<769px, mobile) tier was deliberately
+    // widened by UX10-M01 — see globals.css's own comment on `.orbit-stage`
+    // — to fix a real, confirmed card-overlap bug at 390px (verified via a
+    // reduced-motion screenshot before this pinned value was touched).
+    // This is the one intentional exception to "nothing about its motion,
+    // sequence, or content does" above: only the mobile-tier radius changed,
+    // and only to fix a genuine mobile layout defect, not a redesign.
+    expect(GLOBALS_CSS).toContain("--orbit-rx: 118px;");
     expect(GLOBALS_CSS).toContain("--orbit-rx: 152px;");
     expect(GLOBALS_CSS).toContain("--orbit-rx: 212px;");
     // Linear travel + eased depth split, and the depth range itself:

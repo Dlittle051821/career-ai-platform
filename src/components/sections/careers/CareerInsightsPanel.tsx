@@ -27,7 +27,15 @@ interface CareerInsightsPanelProps {
  */
 export function CareerInsightsPanel({ total, familyCount, industryCount, hasActiveFilters }: CareerInsightsPanelProps) {
   return (
-    <Card className="sticky top-24 shadow-soft">
+    // UX10-M01 — `sticky` had no breakpoint guard, so it stayed sticky on
+    // mobile even though the panel is stacked BELOW the results list there
+    // (see page.tsx's `grid gap-8 lg:grid-cols-[1fr_300px]` — single column
+    // below `lg:`). A sticky element below other content just "catches" at
+    // the top of the viewport as the user scrolls past it, which reads as
+    // a layout glitch rather than the intentional "stays visible beside
+    // results" behavior it only makes sense for in the real two-column
+    // desktop layout. Scoped to `lg:` to match.
+    <Card className="shadow-soft lg:sticky lg:top-24">
       <p className="text-xs font-semibold uppercase tracking-wide text-secondary">Career Library</p>
       <h2 className="mt-2 font-sans text-xl font-semibold text-text">Build career clarity</h2>
       <p className="mt-2 text-sm leading-relaxed text-muted">

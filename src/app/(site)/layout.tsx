@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Header } from "@/components/navigation/Header";
 import { Footer } from "@/components/navigation/Footer";
+import { AppMobileTabBarSlot } from "@/components/navigation/AppMobileTabBarSlot";
 import { BRAND_LOGO, BRAND_NAME, BRAND_SHORT_DESCRIPTION, BRAND_TAGLINE, SITE_URL } from "@/config/site";
 import { fontVariables } from "@/lib/fonts";
 import { getOrganizationJsonLd, getWebsiteJsonLd, toSafeJsonLdString } from "@/lib/seo/structured-data";
@@ -109,6 +110,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
         </a>
         <Header />
         <main id="main-content">{children}</main>
+        <AppMobileTabBarSlot />
         <Footer />
       </body>
     </html>
