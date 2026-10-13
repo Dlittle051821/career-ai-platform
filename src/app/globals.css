@@ -994,3 +994,89 @@
     box-shadow: 0 1px 2px rgba(20, 24, 38, 0.04), 0 8px 24px -12px rgba(20, 24, 38, 0.12);
   }
 }
+
+/* ------------------------------------------------------------------
+   UX10-C01 — "Career Explorer Exact Reference Implementation" hero.
+   Reuses the exact real `/hero/nextwise-student-cutout.png` and
+   `/hero/annotation-*.png` assets HomeHero.tsx's hero already uses
+   (see that file's own docblock for how they were approved), but with
+   its OWN scoped class names (`.careers-hero-*`, not `.hero-*`) rather
+   than sharing HomeHero.tsx's classes outright — the two hero stages
+   sit in different grid columns at different widths, and coupling this
+   page's layout to the homepage's own tuned absolute-position/min-height
+   values would risk subtly breaking either one on a future edit to
+   either file. Same mask-free `object-fit: contain` treatment as the
+   homepage's real cutout (already a pre-separated transparent PNG, so a
+   fade mask would just clip real pixels of her silhouette).
+------------------------------------------------------------------- */
+.careers-hero-stage {
+  position: relative;
+  min-height: 420px;
+}
+
+.careers-hero-atmosphere {
+  position: absolute;
+  inset: -8% -10% 0 -10%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(45% 50% at 78% 12%, color-mix(in srgb, var(--brand-intelligence) 14%, transparent) 0%, transparent 72%),
+    radial-gradient(50% 50% at 20% 90%, color-mix(in srgb, var(--brand-primary) 9%, transparent) 0%, transparent 72%);
+  filter: blur(32px);
+}
+
+.careers-hero-portrait {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 62%;
+  max-width: 300px;
+}
+
+.careers-hero-portrait-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1086 / 1448;
+  object-fit: contain;
+  object-position: 50% 100%;
+  filter: drop-shadow(0 20px 26px rgba(11, 31, 58, 0.16));
+}
+
+.careers-hero-annotation {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  height: auto;
+  filter: drop-shadow(0 2px 4px rgba(11, 31, 58, 0.1));
+}
+
+.careers-hero-annotation-left {
+  top: 2%;
+  left: 0;
+  width: 30%;
+  max-width: 96px;
+}
+
+.careers-hero-annotation-right {
+  top: 0;
+  right: 0;
+  width: 34%;
+  max-width: 118px;
+}
+
+@media (min-width: 769px) {
+  .careers-hero-stage {
+    min-height: 480px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .careers-hero-stage,
+  .careers-hero-portrait,
+  .careers-hero-annotation {
+    transition: none;
+  }
+}

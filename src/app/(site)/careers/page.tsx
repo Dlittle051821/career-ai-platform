@@ -6,13 +6,14 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
 import { CareerCard } from "@/components/sections/careers/CareerCard";
 import { CareerFilterBar } from "@/components/sections/careers/CareerFilterBar";
+import { CareersHero } from "@/components/sections/careers/CareersHero";
+import { JourneyMiniMap } from "@/components/sections/careers/JourneyMiniMap";
+import { CareerInsightsPanel } from "@/components/sections/careers/CareerInsightsPanel";
 import { Pagination } from "@/components/sections/careers/Pagination";
 import { searchCareers, getCareerFamilies, getIndustries, getCareerTags } from "@/lib/supabase/careers";
 import { resolveListEmptyState } from "@/lib/ui/list-state";
 import { BRAND_NAME } from "@/config/site";
 import { GeometricBackdrop } from "@/components/graphics/GeometricBackdrop";
-import { FADE_UP_CLASSES } from "@/lib/ui/motion";
-import { cn } from "@/lib/utils";
 
 // M17A Step 5 — canonical is deliberately static and points at the clean
 // list URL regardless of any q/family/industry/tag/page query params this
@@ -73,68 +74,96 @@ export default async function CareersPage({ searchParams }: CareersPageProps) {
   const emptyState = resolveListEmptyState({ itemCount: results.careers.length, hasActiveFilters: Boolean(hasActiveFilters), error: results.error });
 
   return (
-    <Section tone="muted" className="relative overflow-hidden pt-10 sm:pt-14">
-      {/* UX09 Part B — a faint geometric texture only (no color wash and
-          no illustration here) for page identity, matching the same
-          restrained treatment on /courses and /universities. */}
-      <GeometricBackdrop variant="grid" />
-      <div className={cn("mb-6", FADE_UP_CLASSES)}>
-        <p className="text-sm font-semibold uppercase tracking-wide text-secondary">Career Explorer</p>
-        <h1 className="mt-2 text-3xl font-semibold text-primary balance sm:text-4xl">Browse careers</h1>
-        <p className="mt-2 max-w-2xl text-muted">
-          Search and filter a structured library of careers — what each one involves, the subjects and skills it
-          draws on, and common routes in. This is a browsing tool, not a personalised recommendation.
-        </p>
-      </div>
+    <>
+      <CareersHero />
 
-      <Card className="mb-8">
-        <CareerFilterBar query={query} familyKey={familyKey} industryKey={industryKey} tagKey={tagKey} families={families} industries={industries} tags={tags} />
-      </Card>
+      <Section id="career-results" tone="muted" className="relative overflow-hidden pt-10 sm:pt-14">
+        {/* UX09 Part B — a faint geometric texture only (no color wash and
+            no illustration here) for page identity, matching the same
+            restrained treatment on /courses and /universities. */}
+        <GeometricBackdrop variant="grid" />
 
-      {emptyState !== "has_results" ? (
-        <EmptyState
-          tone={emptyState === "error" ? "error" : emptyState === "filtered_empty" ? "filtered" : "empty"}
-          title={
-            emptyState === "error"
-              ? "We couldn't load careers right now"
-              : emptyState === "filtered_empty"
-                ? "No careers match these filters"
-                : "We're still expanding this career library"
-          }
-          description={
-            emptyState === "error"
-              ? "Something went wrong loading the career library. Please try again in a moment."
-              : emptyState === "filtered_empty"
-                ? "Try a broader search term, or clear a filter — the library covers around a hundred careers across engineering, technology, business, healthcare, and more."
-                : "New careers are added over time — check back soon."
-          }
-          action={
-            emptyState === "filtered_empty" ? (
-              <Link href="/careers" className="text-sm font-semibold text-secondary-dark hover:text-primary">
-                Clear all filters
-              </Link>
-            ) : undefined
-          }
-        />
-      ) : (
-        <>
-          <p className="mb-4 text-sm text-muted">
-            {results.total} career{results.total === 1 ? "" : "s"} found
-          </p>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {results.careers.map((career) => (
-              <CareerCard key={career.id} career={career} />
-            ))}
+        <Card className="relative -mt-16 shadow-lifted sm:-mt-20">
+          <CareerFilterBar query={query} familyKey={familyKey} industryKey={industryKey} tagKey={tagKey} families={families} industries={industries} tags={tags} />
+          <JourneyMiniMap />
+        </Card>
+
+        {/* UX10-C01 — plain DOM-order auto-placement, deliberately with NO
+            explicit grid-row/-column on either child. An earlier draft set
+            `lg:row-start-1` on the insights `<div>` (meaning only to pin
+            it, defensively, to the first row) and it silently swapped the
+            two columns: the CSS Grid placement algorithm places items with
+            an explicit row (auto column) in an EARLIER pass than fully-
+            auto items, regardless of DOM order — so the insights panel
+            claimed the first (1fr, wide) track before the results div
+            ever got a turn. With both children left fully auto, normal
+            row-fill placement puts them in DOM order (results -> 1fr,
+            insights -> 300px) exactly as intended — found and fixed during
+            this milestone's own visual-QA pass (see completion notes). */}
+        <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_300px]">
+          <div>
+            {emptyState !== "has_results" ? (
+              <EmptyState
+                tone={emptyState === "error" ? "error" : emptyState === "filtered_empty" ? "filtered" : "empty"}
+                title={
+                  emptyState === "error"
+                    ? "We couldn't load careers right now"
+                    : emptyState === "filtered_empty"
+                      ? "No careers match these filters"
+                      : "We're still expanding this career library"
+                }
+                description={
+                  emptyState === "error"
+                    ? "Something went wrong loading the career library. Please try again in a moment."
+                    : emptyState === "filtered_empty"
+                      ? "Try a broader search term, or clear a filter — the library covers around a hundred careers across engineering, technology, business, healthcare, and more."
+                      : "New careers are added over time — check back soon."
+                }
+                action={
+                  emptyState === "filtered_empty" ? (
+                    <Link href="/careers" className="text-sm font-semibold text-secondary-dark hover:text-primary">
+                      Clear all filters
+                    </Link>
+                  ) : undefined
+                }
+              />
+            ) : (
+              <>
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-secondary">Careers for you</p>
+                    <h2 className="mt-1 font-sans text-2xl font-semibold text-text">Popular career paths</h2>
+                  </div>
+                  <p className="hidden text-sm text-muted sm:block">
+                    {results.total} career{results.total === 1 ? "" : "s"} found
+                  </p>
+                </div>
+                <p className="mb-4 text-sm text-muted sm:hidden">
+                  {results.total} career{results.total === 1 ? "" : "s"} found
+                </p>
+                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                  {results.careers.map((career) => (
+                    <CareerCard key={career.id} career={career} />
+                  ))}
+                </div>
+                <Pagination page={results.page} pageSize={results.pageSize} total={results.total} searchParams={activeFiltersForPagination} />
+              </>
+            )}
+
+            <GuidanceNotice className="mt-8">
+              Careers shown here are structured profile data — this is a browsing tool, not a personalised ranking.
+              Sign in and complete your Student Digital Profile to see personalised, explained matches at{" "}
+              <Link href="/recommendations" className="font-medium underline underline-offset-2">/recommendations</Link>.
+            </GuidanceNotice>
           </div>
-          <Pagination page={results.page} pageSize={results.pageSize} total={results.total} searchParams={activeFiltersForPagination} />
-        </>
-      )}
 
-      <GuidanceNotice className="mt-8">
-        Careers shown here are structured profile data — this is a browsing tool, not a personalised ranking. Sign
-        in and complete your Student Digital Profile to see personalised, explained matches at{" "}
-        <Link href="/recommendations" className="font-medium underline underline-offset-2">/recommendations</Link>.
-      </GuidanceNotice>
-    </Section>
+          {/* No explicit grid-row/-column here on purpose — see
+              CareerInsightsPanel's own usage note below. */}
+          <div>
+            <CareerInsightsPanel total={results.total} familyCount={families.length} industryCount={industries.length} hasActiveFilters={Boolean(hasActiveFilters)} />
+          </div>
+        </div>
+      </Section>
+    </>
   );
 }
