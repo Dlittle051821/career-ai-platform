@@ -86,8 +86,19 @@ describe("UX10-M01 — every responsive fix this milestone stays mobile-scoped (
     expect(GLOBALS_CSS).toMatch(/@media \(min-width: 1280px\)/);
   });
 
-  it("WhyNextwise proof tiles revert to the original lg:flex-col desktop layout", () => {
-    expect(WHY_NEXTWISE).toMatch(/flex-col gap-3 sm:flex-row lg:flex-col/);
+  it("UX10-EU02 — WhyNextwise's content changed (now 'Why Study in Europe?', reusing EU01's WhyEuropeSection grid) but stays mobile-safe", () => {
+    // Originally asserted the UX10-M01 mobile-bug-fix class string
+    // (`flex-col gap-3 sm:flex-row lg:flex-col`) on the old three-column
+    // layout's right-hand PROOF_TILES list. UX10-EU02 replaces that whole
+    // layout with a heading plus UX10-EU01's own `WhyEuropeSection` value-
+    // prop grid (see WhyNextwise.tsx's own UX10-EU02 docblock entry) — the
+    // PROOF_TILES markup this assertion protected no longer exists. The
+    // real invariant (this section stays responsive, not a fixed
+    // desktop-only layout) is re-asserted against the new grid instead;
+    // WhyEuropeSection's own grid was already visually QA'd mobile-safe as
+    // part of UX10-EU01.
+    expect(WHY_NEXTWISE).toContain("Why Study in Europe?");
+    expect(WHY_NEXTWISE).toContain('from "@/components/sections/europe-explorer/WhyEuropeSection"');
   });
 
   it("CareerInsightsPanel's sticky positioning is gated behind lg: (was unconditional before this milestone's fix)", () => {

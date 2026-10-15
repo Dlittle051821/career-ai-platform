@@ -1,10 +1,9 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { ArrowRight, Calendar, ShieldCheck, Sparkles, UserCheck } from "lucide-react";
+import { ArrowRight, Globe2, ShieldCheck, Sparkles, UserCheck } from "lucide-react";
 import { Container } from "@/components/layout/Container";
 import { LinkButton } from "@/components/ui/Button";
 import { FADE_UP_CLASSES, HOVER_LIFT_CLASSES } from "@/lib/ui/motion";
-import { BRAND_NAME } from "@/config/site";
 import { HOMEPAGE_WIDE_CONTAINER_CLASSNAME } from "./homepage-layout";
 import { OrbitJourney } from "./OrbitJourney";
 import { getGraphicAriaProps } from "@/lib/graphics/accessible-graphic";
@@ -281,6 +280,41 @@ import { cn } from "@/lib/utils";
  *    anchor point has moved, without changing OrbitJourney.tsx itself (its
  *    six stages/motion/timing/icons/routes remain byte-for-byte
  *    unchanged, re-verified this pass).
+ *
+ * UX10-EU02 "HOMEPAGE EUROPE ALIGNMENT" — a content-only pass: the hero
+ * orbit is explicitly "sacred" per this milestone's own brief (do not
+ * remove/replace/flatten/re-geometry it), so `.hero-visual-stage`,
+ * `OrbitJourney`, the student cutout, the campus backdrop, the two
+ * annotation crops, and the `lg:grid-cols-[0.82fr_1.18fr]` column split are
+ * completely untouched below this point in the file. Only the left
+ * column's COPY changes, to align public positioning from "global" to
+ * this milestone's India + Europe launch strategy:
+ *  - Headline: "Your future has possibilities. Find the right one." ->
+ *    "Make smarter education decisions in India and Europe." (the brief's
+ *    own preferred headline direction), keeping the same two-tone
+ *    treatment (ink first line, primary-blue second line) and the same
+ *    decorative scribble accent, now placed after "Europe." instead of
+ *    "possibilities."
+ *  - Body copy updated to the brief's own supporting copy, dropping the
+ *    old "possibilities" framing's implicit worldwide promise.
+ *  - Primary CTA stays the real `/career-discovery` route (this
+ *    milestone's own brief: "Primary CTA: Explore Careers") — only the
+ *    label changes, from "Explore Your Future — Free" to "Explore
+ *    Careers". Secondary CTA moves from "Book a Free Discovery Session"
+ *    (-> /book-counselling) to "Study in Europe" (-> /study-europe), per
+ *    the brief's own explicit instruction to replace the hero's generic/
+ *    global-destination secondary CTA with the Europe launch route.
+ *    Counselling remains one click away via the main nav's "Counselling"
+ *    link and the Final CTA's own secondary "Talk to an Expert" button, so
+ *    this is a relocation, not a removal, of that path.
+ *  - Trust cues move from "Trusted study sources / Personalised guidance /
+ *    Student-first approach" to the brief's own exact four-item list:
+ *    "Trusted information / Personalised guidance / Focused on India &
+ *    Europe / Support at every step" — still no invented statistics, same
+ *    icon-plus-label treatment, just one more item.
+ * See hero-composition-audit.test.ts's own UX10-EU02 update for the
+ * regression-guard side of this change (the same file that has guarded
+ * every prior hero copy revision since UX10-H01B).
  */
 const HERO_CAMPUS_BACKDROP_SRC = "/hero/campus-sky-backdrop.png";
 const HERO_STUDENT_IMAGE_SRC = "/hero/nextwise-student-cutout.png";
@@ -288,10 +322,14 @@ const HERO_STUDENT_IMAGE_EXISTS = existsSync(path.join(process.cwd(), "public", 
 const HERO_ANNOTATION_LEFT_SRC = "/hero/annotation-clearer-brighter.png";
 const HERO_ANNOTATION_RIGHT_SRC = "/hero/annotation-curiosity-global.png";
 
+// UX10-EU02 — the brief's own exact four-item trust row for the India +
+// Europe launch positioning (replacing the three-item "Trusted study
+// sources / Personalised guidance / Student-first approach" set).
 const TRUST_CUES = [
-  { icon: ShieldCheck, label: "Trusted study sources" },
+  { icon: ShieldCheck, label: "Trusted information" },
   { icon: UserCheck, label: "Personalised guidance" },
-  { icon: Sparkles, label: "Student-first approach" },
+  { icon: Globe2, label: "Focused on India & Europe" },
+  { icon: Sparkles, label: "Support at every step" },
 ];
 
 export function HomeHero() {
@@ -328,12 +366,15 @@ export function HomeHero() {
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-secondary">Explore · Plan · Learn · Grow</p>
 
             <h1 className="mt-5 font-sans text-[2.5rem] font-bold leading-[1.08] tracking-tight balance sm:text-[2.75rem] lg:text-[3.25rem] lg:leading-[1.05]">
-              <span className="text-text">
-                Your future has possibilities.
+              <span className="text-text">Make smarter education decisions</span>{" "}
+              <span className="text-primary">
+                in India and Europe.
                 {/* Small decorative scribble accent, matching the H06
                     reference's own flourish beside "possibilities." —
-                    purely decorative, no new copy. See this file's
-                    UX10-H06 docblock, item 4. */}
+                    purely decorative, no new copy. Moved to sit after the
+                    new headline's own final word for UX10-EU02. See this
+                    file's UX10-H06 docblock, item 4, and the UX10-EU02
+                    docblock above. */}
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 40 22"
@@ -342,8 +383,7 @@ export function HomeHero() {
                   <path d="M2 17 L24 5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" fill="none" />
                   <path d="M6 21 L32 8" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" fill="none" />
                 </svg>
-              </span>{" "}
-              <span className="text-primary">Find the right one.</span>
+              </span>
             </h1>
 
             {/* UX10A VISUAL POLISH PASS (correction pass #3, section 4) —
@@ -351,10 +391,11 @@ export function HomeHero() {
                 text-text-soft (#333c4d) token for "hero body copy darker".
                 UX10-H02 narrows the measure (max-w-xl -> max-w-lg) for
                 better reading rhythm, per this pass's own instruction —
-                same copy, same color, just a tighter line length. */}
+                same copy, same color, just a tighter line length. UX10-EU02
+                updates the copy itself to the brief's own India+Europe
+                supporting line, same color/measure. */}
             <p className="mt-6 max-w-lg text-lg leading-relaxed text-text-soft">
-              {BRAND_NAME} helps students explore career options, discover relevant courses and universities, and get
-              personalised guidance so they can make confident decisions about their future.
+              Explore careers, compare courses and universities, and get personalised guidance for your future.
             </p>
 
             {/* flex-wrap rather than a breakpoint-based flex-col/flex-row
@@ -366,6 +407,9 @@ export function HomeHero() {
                 where it's needed, at any viewport, not just below one
                 guessed breakpoint. */}
             <div className="mt-8 flex flex-row flex-wrap gap-3">
+              {/* UX10-EU02 — label changes from "Explore Your Future —
+                  Free" to the brief's own "Explore Careers"; the real
+                  route (/career-discovery) is unchanged. */}
               <LinkButton
                 href="/career-discovery"
                 size="lg"
@@ -377,13 +421,19 @@ export function HomeHero() {
                 }
                 className={`group ${HOVER_LIFT_CLASSES}`}
               >
-                Explore Your Future — Free
+                Explore Careers
               </LinkButton>
+              {/* UX10-EU02 — secondary CTA moves from "Book a Free Discovery
+                  Session" (-> /book-counselling) to the brief's own "Study
+                  in Europe" (-> /study-europe), the new dedicated Europe
+                  launch route. Counselling remains reachable via the main
+                  nav's "Counselling" link and the Final CTA's own secondary
+                  "Talk to an Expert" button. */}
               <LinkButton
-                href="/book-counselling"
+                href="/study-europe"
                 size="lg"
                 variant="outline"
-                icon={<Calendar aria-hidden="true" className="h-4 w-4" />}
+                icon={<Globe2 aria-hidden="true" className="h-4 w-4" />}
                 // UX10-H05B — the shared `outline` Button variant is
                 // `bg-transparent` (sitewide, used in 40+ other places,
                 // deliberately not touched). Now that this button sits
@@ -396,7 +446,7 @@ export function HomeHero() {
                 // only, without touching VARIANT_CLASSES.outline itself.
                 className={cn(HOVER_LIFT_CLASSES, "!bg-white/90 backdrop-blur-sm")}
               >
-                Book a Free Discovery Session
+                Study in Europe
               </LinkButton>
             </div>
 

@@ -49,60 +49,91 @@ describe("homepage — exactly one semantic H1 across the new section compositio
 });
 
 describe("homepage — CTAs use real, pre-existing routes only", () => {
-  it("HomeHero.tsx and HomeFinalCTA.tsx both link to the real /career-discovery and /book-counselling routes, never a fabricated destination", () => {
-    for (const file of ["HomeHero.tsx", "HomeFinalCTA.tsx"]) {
-      const source = readSection(file);
-      expect(source).toContain('href="/career-discovery"');
-      expect(source).toContain('href="/book-counselling"');
-    }
+  // UX10-EU02 "HOMEPAGE EUROPE ALIGNMENT" — the hero's secondary CTA moves
+  // from /book-counselling to /study-europe, and the Final CTA's primary
+  // moves from /career-discovery to /study-europe, per that milestone's
+  // own explicit brief. /career-discovery stays the Hero's primary route;
+  // /book-counselling stays the Final CTA's secondary route — so each real
+  // route is still linked from somewhere on the homepage, just not
+  // identically from both sections as before.
+  it("HomeHero.tsx links to /career-discovery and /study-europe; HomeFinalCTA.tsx links to /study-europe and /book-counselling — never a fabricated destination", () => {
+    const hero = readSection("HomeHero.tsx");
+    expect(hero).toContain('href="/career-discovery"');
+    expect(hero).toContain('href="/study-europe"');
+
+    const finalCta = readSection("HomeFinalCTA.tsx");
+    expect(finalCta).toContain('href="/study-europe"');
+    expect(finalCta).toContain('href="/book-counselling"');
   });
 
   it("every DiscoveryPillars href points at one of the site's real existing routes", () => {
     const source = readSection("DiscoveryPillars.tsx");
     const hrefs = [...source.matchAll(/href:\s*"([^"]+)"/g)].map((m) => m[1]);
     expect(hrefs.length).toBeGreaterThan(0);
-    const allowed = new Set(["/careers", "/courses", "/universities", "/book-counselling"]);
+    // UX10-EU02 — this section is now exactly three cards (Build Your
+    // Career / Study in India / Study in Europe); /courses, /universities,
+    // and /book-counselling are no longer linked from this specific
+    // section (all three remain reachable via the main nav) — see
+    // DiscoveryPillars.tsx's own UX10-EU02 docblock entry.
+    const allowed = new Set(["/careers", "/study-options", "/study-europe"]);
     for (const href of hrefs) {
       expect(allowed.has(href), `unexpected DiscoveryPillars href: ${href}`).toBe(true);
     }
   });
 
   it("accessible CTA names are real, visible text, not icon-only controls", () => {
-    expect(readSection("HomeHero.tsx")).toContain("Explore Your Future — Free");
-    expect(readSection("HomeHero.tsx")).toContain("Book a Free Discovery Session");
-    // UX10-H08 "FINAL CTA EXACT REFERENCE MATCH" gives the Final CTA its
-    // own reference-matched copy ("Get started for free" / "Book a Free
-    // Session"), deliberately diverging from the Hero's own CTA labels for
-    // this one section — see HomeFinalCTA.tsx's own UX10-H08 docblock,
-    // item 4. The real invariant this test protects (visible text, not an
-    // icon-only control) still holds for both.
-    expect(readSection("HomeFinalCTA.tsx")).toContain("Get started for free");
-    expect(readSection("HomeFinalCTA.tsx")).toContain("Book a Free Session");
+    // UX10-EU02 updates both sections' CTA copy to the brief's own labels
+    // — see HomeHero.tsx's and HomeFinalCTA.tsx's own UX10-EU02 docblock
+    // entries. The real invariant this test protects (visible text, not
+    // an icon-only control) still holds for both.
+    expect(readSection("HomeHero.tsx")).toContain("Explore Careers");
+    expect(readSection("HomeHero.tsx")).toContain("Study in Europe");
+    expect(readSection("HomeFinalCTA.tsx")).toContain("Explore Europe");
+    expect(readSection("HomeFinalCTA.tsx")).toContain("Talk to an Expert");
   });
 });
 
-describe("homepage — Trusted Study Explorer uses the real M20 registry only", () => {
+describe("homepage — Trusted Study Explorer uses the EU01 Europe registry only (UX10-EU02)", () => {
+  // UX10-EU02 — this section is repointed from the M20 GLOBAL six-country
+  // registry (DE/GB/US/CA/AU/IE) to UX10-EU01's Europe-only registry
+  // (DE/IE/NL/FR/SE/DK), reusing that canonical data rather than defining
+  // a second one. See TrustedStudyExplorer.tsx's own UX10-EU02 docblock
+  // entry for the full reasoning, including why every link is now a
+  // plain, directly-verified external link instead of the M20 DB-backed
+  // redirect. The M20 registry itself is untouched and still powers
+  // /courses, /universities, and /go/course-search/** exactly as before.
   const source = readSection("TrustedStudyExplorer.tsx");
   const codeOnly = stripComments(source);
 
-  it("imports LAUNCH_COUNTRY_PRIMARY_SOURCES rather than hardcoding a second provider registry", () => {
-    expect(source).toContain('from "@/lib/education/external-search/launch-country-sources"');
-    expect(source).toContain("LAUNCH_COUNTRY_PRIMARY_SOURCES");
+  it("imports EUROPE_COUNTRIES from the EU01 registry rather than hardcoding a second country list", () => {
+    expect(source).toContain('from "@/data/europe-explorer"');
+    expect(source).toContain("EUROPE_COUNTRIES");
   });
 
-  it("never reproduces the reference image's non-launch-country providers (Finland/Netherlands/Sweden) in actual rendered content — comments explaining the exclusion are allowed to name them", () => {
-    for (const forbidden of ["Finland", "Netherlands", "Sweden", "Studyinfo", "UniversityAdmissions", "Study in NL"]) {
+  it("never renders a non-approved launch country (UK/USA/Canada/Australia) anywhere in actual rendered content — comments explaining the change are allowed to name them", () => {
+    for (const forbidden of ["United Kingdom", "United States", "EducationUSA", "Study Australia", "Government of Canada"]) {
       expect(codeOnly).not.toContain(forbidden);
     }
   });
 
-  it("every outbound source link goes through the safe /go/course-search/provider/ redirect route, never a raw provider domain/URL", () => {
-    expect(source).toContain("/go/course-search/provider/");
-    expect(source).not.toMatch(/href=\{.*(provider\.baseUrl|provider\.officialDomain|source\.primaryDomain)/);
+  it("every outbound source link is a safe, directly-verified external link (https, noopener/noreferrer), never the M20 provider redirect", () => {
+    expect(source).toMatch(/href=\{officialSource\.url\}/);
+    expect(source).toContain('target="_blank"');
+    expect(source).toContain('rel="noopener noreferrer"');
+    // Checked against comment-stripped source: this component's own
+    // docblock legitimately names the old M20 provider-redirect route in
+    // prose while explaining why it's superseded — the same false-positive
+    // trap this test suite's other files already guard against.
+    expect(codeOnly).not.toContain("/go/course-search/provider/");
   });
 
-  it("missing or inactive providers fail honestly rather than linking nowhere or being silently hidden", () => {
-    expect(source).toContain("Currently unavailable");
+  it("Germany is visibly marked Recommended First", () => {
+    expect(source).toContain("Recommended First");
+    expect(source).toMatch(/country\.recommended/);
+  });
+
+  it("discloses no affiliation with the official portals", () => {
+    expect(codeOnly).toMatch(/not affiliated with or endorsed by/i);
   });
 });
 

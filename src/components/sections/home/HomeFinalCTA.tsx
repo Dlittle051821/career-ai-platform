@@ -117,6 +117,27 @@ import { HOMEPAGE_CONTAINER_CLASSNAME } from "./homepage-layout";
  *    content instead of disappearing, so below `lg:` the photo now
  *    renders as a full-width band under the text/buttons/trust row, with
  *    its own (vertical, top-edge) fade into the navy above it.
+ *
+ * UX10-EU02 "HOMEPAGE EUROPE ALIGNMENT" — a content-only pass, same
+ * discipline as HomeHero.tsx's own UX10-EU02 entry: the photo, navy
+ * gradient, decorative pattern/glow layers, and overall layout are
+ * completely untouched. Only the copy and one route change:
+ *  - Heading: "Take the first step towards a brighter future." -> "Let's
+ *    find the right country for you" (this milestone's own preferred
+ *    heading), same two-tone treatment (on-primary first line, intelligence
+ *    accent on the key phrase).
+ *  - Body copy -> this milestone's own supporting line, dropping the old
+ *    "global opportunities" framing.
+ *  - Primary CTA: "Get started for free" (-> /career-discovery) becomes
+ *    "Explore Europe" (-> /study-europe), per the brief's own explicit
+ *    instruction. Secondary CTA keeps its real route (/book-counselling)
+ *    with an updated label, "Talk to an Expert" (was "Book a Free
+ *    Session") — the brief's own preferred secondary-CTA wording, reusing
+ *    the existing counselling route rather than inventing a new one.
+ *  - Trust items unchanged (none of the three contradict the new India +
+ *    Europe positioning).
+ * See premium-refinement-audit.test.ts's own UX10-EU02 update for the
+ * regression-guard side of this change.
  */
 const TRUST_ITEMS: { icon: typeof CreditCard; label: string }[] = [
   { icon: CreditCard, label: "No credit card required" },
@@ -157,23 +178,22 @@ export function HomeFinalCTA() {
             </p>
 
             <h2 className="text-[2rem] font-semibold leading-[1.1] text-on-primary balance sm:text-[2.5rem] lg:text-[2.75rem]">
-              Take the first step towards a{" "}
-              <span className="text-intelligence">brighter future.</span>
+              Let&rsquo;s find the <span className="text-intelligence">right country</span> for you
             </h2>
 
             <p className="max-w-md text-sm leading-relaxed text-on-primary-muted sm:text-base">
-              Explore careers, courses, universities and global opportunities with Nextwise.
+              Get personalised guidance, compare your options, and take the first step with confidence.
             </p>
 
             <div className="flex w-full min-w-0 flex-col flex-wrap gap-3 sm:w-auto sm:flex-row">
               <LinkButton
-                href="/career-discovery"
+                href="/study-europe"
                 variant="primary"
                 size="lg"
                 trailingIcon={<ArrowRight aria-hidden="true" className="h-4 w-4" />}
                 className="justify-center"
               >
-                Get started for free
+                Explore Europe
               </LinkButton>
               <LinkButton
                 href="/book-counselling"
@@ -182,7 +202,7 @@ export function HomeFinalCTA() {
                 icon={<Calendar aria-hidden="true" className="h-4 w-4" />}
                 className="justify-center border-white/30 text-on-primary hover:bg-white/10"
               >
-                Book a Free Session
+                Talk to an Expert
               </LinkButton>
             </div>
 

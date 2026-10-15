@@ -85,14 +85,26 @@ describe("hero composition — right column rebalanced to the UX10-H03 reference
     expect(rightShare).toBeLessThanOrEqual(0.65);
   });
 
-  it("the left column's headline, both CTAs, and all three trust cues are untouched", () => {
-    expect(HERO_SOURCE).toContain("Your future has possibilities.");
-    expect(HERO_SOURCE).toContain("Find the right one.");
-    expect(HERO_SOURCE).toContain("Explore Your Future — Free");
-    expect(HERO_SOURCE).toContain("Book a Free Discovery Session");
-    expect(HERO_SOURCE).toContain("Trusted study sources");
+  it("UX10-EU02 — the left column's headline, both CTAs, and all four trust cues carry this milestone's India+Europe copy; the grid split, orbit, and photo are otherwise untouched", () => {
+    // Originally asserted the UX10-H01B/H03 "Your future has possibilities.
+    // Find the right one." headline, "Explore Your Future — Free" /
+    // "Book a Free Discovery Session" CTAs, and a three-item trust row
+    // ("Trusted study sources" / "Personalised guidance" / "Student-first
+    // approach"). UX10-EU02's own brief explicitly instructs a content-only
+    // copy change to India+Europe positioning — the same kind of
+    // deliberate, documented reversal this file has already recorded for
+    // every prior hero milestone (see the annotation-images describe block
+    // above). See HomeHero.tsx's own UX10-EU02 docblock entry for the full
+    // reasoning. The right-column grid split, the student photo, and the
+    // orbit (covered by the describe blocks below) are unaffected.
+    expect(HERO_SOURCE).toContain("Make smarter education decisions");
+    expect(HERO_SOURCE).toContain("in India and Europe.");
+    expect(HERO_SOURCE).toContain("Explore Careers");
+    expect(HERO_SOURCE).toContain("Study in Europe");
+    expect(HERO_SOURCE).toContain("Trusted information");
     expect(HERO_SOURCE).toContain("Personalised guidance");
-    expect(HERO_SOURCE).toContain("Student-first approach");
+    expect(HERO_SOURCE).toContain("Focused on India & Europe");
+    expect(HERO_SOURCE).toContain("Support at every step");
   });
 });
 

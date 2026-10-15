@@ -1,97 +1,85 @@
-import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
-import { Section } from "@/components/layout/Section";
-import { COUNTRY_FLAGS } from "@/components/graphics/CountryFlags";
-import { LAUNCH_COUNTRY_PRIMARY_SOURCES, type LaunchCountryPrimarySource } from "@/lib/education/external-search/launch-country-sources";
-import { TRUSTED_NATIONAL_SOURCE_LABEL } from "@/lib/education/external-search/attribution";
-import { getLaunchCountryPrimaryProviders } from "@/lib/supabase/education/external-search";
+import { ExternalLink } from "lucide-react";
+import { EUROPE_COUNTRIES } from "@/data/europe-explorer";
+import { EUROPE_EXPLORER_FLAGS } from "@/components/graphics/EuropeExplorerFlags";
 import { HOMEPAGE_WIDE_CONTAINER_CLASSNAME } from "./homepage-layout";
-import { cn } from "@/lib/utils";
+import { Section } from "@/components/layout/Section";
+import {
+  EXTERNAL_LINK_BADGE_LABEL,
+  TRUSTED_NATIONAL_SOURCE_LABEL,
+} from "@/lib/education/external-search/attribution";
 
 /**
  * UX10A — Homepage Section 3, "Trusted Study Explorer".
  *
- * [... history preserved from UX10A through UX10-H05B: see git history /
- * prior package docs for the full UX10A -> H02 -> H03 -> H05B narrative.
- * Summary of what's carried forward unchanged: every tile renders from
- * LAUNCH_COUNTRY_PRIMARY_SOURCES (src/lib/education/external-search/
- * launch-country-sources.ts) — the real six-country M20 registry — and
- * nothing else; the reference image's own Finland/Netherlands/Sweden
- * providers are intentionally NOT reproduced, per the standing "use the
- * M20 registry as source of truth" rule; each tile's real database row is
- * fetched server-side via getLaunchCountryPrimaryProviders for its safe
- * `/go/course-search/provider/[id]` redirect id, and a country whose row
- * is missing/inactive renders an honest "Currently unavailable" state. ]
+ * [... history preserved from UX10A through UX10-H06: see git history /
+ * prior package docs for the full UX10A -> H02 -> H03 -> H05B -> H06
+ * narrative. Summary of what was true through UX10-H06: every tile
+ * rendered from LAUNCH_COUNTRY_PRIMARY_SOURCES, the real M20 six-country
+ * GLOBAL registry (DE/GB/US/CA/AU/IE), each routed through the safe
+ * `/go/course-search/provider/[id]` DB-backed redirect. That architecture
+ * is superseded below by UX10-EU02 — see that entry for why. ]
  *
- * UX10-H06 "FINAL TOP-HOMEPAGE VISUAL CORRECTION PASS" — sections 9-12.
- * The new authoritative reference (IMAGE #2) shows a visibly different,
- * cleaner strip than H05B's own per-tile-tinted version: one uniform pale
- * panel background (not six separately-tinted segments), a simplified
- * intro block (eyebrow + heading + one short paragraph, no "Explore all
- * countries" link), a real circular flag badge per tile (see
- * CountryFlags.tsx), a bold blue source-name treatment, and a circular
- * arrow control at the BOTTOM of each tile (not top-right, as H05B had
- * it). Four scoped changes, same data/trust-model rules as every prior
- * pass:
+ * UX10-EU02 "HOMEPAGE EUROPE ALIGNMENT" — Nextwise's public launch
+ * positioning moves from a global six-country set (including the UK, USA,
+ * Canada, Australia — none of which are approved Europe launch countries)
+ * to India + Europe, with exactly six approved European launch countries:
+ * Germany, Ireland, Netherlands, France, Sweden, Denmark. This section is
+ * repointed accordingly, and this milestone's brief explicitly asks for it
+ * under a new heading, "Trusted Official Sources" — the same conceptual
+ * section the brief's own reference separately calls "Popular Study
+ * Destinations" plus "Trusted Partners & Sources" combined. This codebase's
+ * homepage architecture already merged those two concepts into ONE compact
+ * section back in UX10A/H06 (each tile already carries a flag, country
+ * name, AND an official-source name/purpose together) — per this
+ * milestone's own "do not recreate the homepage from scratch" / "preserve
+ * current approved composition" rules, that one-section architecture is
+ * kept rather than split into two new sections; see
+ * UX10-EU02_REFERENCE_AUDIT.md for the full reasoning.
  *
- * 1. INTRO BLOCK — the "Explore all countries" link is removed (not shown
- *    in the reference; `/courses` itself is still reachable from the
- *    header search icon and the Course Explorer card, so no navigation
- *    path is lost). A small, very low-opacity decorative globe + dashed
- *    flight-path + paper-airplane flourish (original inline SVG, same
- *    "no external image" convention as every other graphics/ file) sits
- *    bottom-left of the intro text, echoing the reference without
- *    pretending to be a functional element.
+ * DATA SOURCE CHANGE: this component now imports `EUROPE_COUNTRIES` from
+ * `src/data/europe-explorer.ts` (built for UX10-EU01's `/study-europe`
+ * page) instead of the M20 `LAUNCH_COUNTRY_PRIMARY_SOURCES` registry —
+ * reusing that canonical EU01 data rather than defining a second,
+ * duplicate Europe country list, per this milestone's own "reuse EU01
+ * data where sensible... avoid duplicate truth sources" instruction. The
+ * M20 registry itself is completely untouched and still powers
+ * `/courses`, `/universities`, and `/go/course-search/**` exactly as
+ * before — nothing there was modified, migrated, or deleted.
  *
- * 2. FLAGS — `countryCodeToFlagEmoji()` (a Unicode regional-indicator
- *    emoji) is replaced by CountryFlags.tsx's six original, locally-
- *    authored inline-SVG flags, rendered as circular badges. Emoji flags
- *    render inconsistently (or fall back to raw two-letter codes) across
- *    operating systems/browsers — exactly the "broken emoji rendering"
- *    this milestone's brief calls out. The underlying data read is
- *    unchanged (still `source.countryCode`, the same real ISO code every
- *    prior milestone used); only the rendering changed.
+ * ARCHITECTURE CHANGE: every link here is now a plain, directly-verified
+ * external link (`target="_blank" rel="noopener noreferrer"`, HTTPS-only,
+ * domain-checked — the same `officialSource.url` EU01's own
+ * `EuropeOfficialSourcesSection.tsx` uses), not the M20 DB-backed
+ * `/go/course-search/provider/[id]` redirect. That redirect resolves a
+ * real Supabase `external_search_providers` row id, which exists today for
+ * only two of these six countries (Germany, Ireland) — this milestone
+ * forbids any migration/seed to add the other four, and giving two
+ * countries a different, richer link mechanism than the other four would
+ * be inconsistent for no real benefit. This also means this component no
+ * longer needs to be an async server component querying Supabase at all —
+ * it is now a plain, synchronous, DB-free component, which incidentally
+ * also means the old "Currently unavailable — check back soon" fallback
+ * state (needed only because a provider row could be missing/inactive) no
+ * longer applies: every one of these six countries always has a real,
+ * directly-verified URL, so every tile is always "available." See
+ * `src/data/europe-explorer.ts`'s own docblock for the full source-
+ * verification record for all six countries.
  *
- * 3. TILE COPY — each tile's displayed authority name and one-line
- *    "purpose" sentence are tightened to the brief's own exact shorter
- *    copy (section 11), via the two local DISPLAY_* maps below, for the
- *    compact tile design the reference calls for. This does NOT touch
- *    LAUNCH_COUNTRY_PRIMARY_SOURCES itself (the registry's own `purpose`
- *    field — a longer, fuller sentence — remains the real data source of
- *    truth; the maps below are presentation-only paraphrases of it, not a
- *    new or fabricated data source). ONE deliberate, documented exception:
- *    the reference's Canada tile is branded "EduCanada," but the real
- *    LAUNCH_COUNTRY_PRIMARY_SOURCES registry's actual Canada entry is
- *    `authority: "Government of Canada"` (the real seeded provider — see
- *    launch-country-sources.ts). There is no "EduCanada" provider row in
- *    this project's real data. Per this milestone's own section 11
- *    instruction — "KEEP existing real routes/source data; DO NOT invent
- *    partnerships" — the REAL authority name is kept for Canada rather
- *    than displaying an invented partner name the registry doesn't back.
- *    This is the one tile where the reference's cosmetic label and this
- *    project's real data diverge; documented here and in the H06 audit.
+ * GERMANY "RECOMMENDED FIRST": matching EU01's own country-card treatment,
+ * Germany's tile gets a small visible badge plus a slightly stronger ring
+ * around its flag — positioned as the best starting point for most
+ * students, not a guarantee of the best outcome for everyone.
  *
- * 4. DENSITY / CONTROL POSITION — the outer panel moves from six
- *    individually-tinted segments to one uniform, pale, flat panel
- *    background (matching the reference), each tile's circular arrow
- *    control moves from top-right (next to the flag) to the bottom of the
- *    tile (below the purpose text, matching the reference), and the
- *    per-tile `ShieldCheck` / "Trusted national source" badge chip —
- *    visible in every prior milestone's own screenshot, but NOT shown
- *    anywhere in this milestone's authoritative reference — moves from a
- *    visible `Badge` pill to an `sr-only` (visually hidden, screen-reader
- *    only) element. The trust signal itself is NOT deleted: assistive-
- *    technology users still hear "Trusted national source" announced for
- *    every tile (via the sr-only span below, and it's additionally folded
- *    into each tile's own `aria-label`); sighted users get the reference's
- *    cleaner, chip-free tile design. This is a visual-only change — same
- *    real badge label text, same real trust claim, just no longer a
- *    rendered pixel, per this milestone's own "THE REFERENCE WINS" rule
- *    for visual composition. A faint per-country tone ring behind each
- *    flag badge (`color-mix` against each tile's existing
- *    `BADGE_TONE_CYCLE` color) keeps a subtle, barely-visible echo of the
- *    established per-country color system without reproducing H05B's
- *    more saturated full-tile tint, which the reference no longer shows.
+ * NO-AFFILIATION DISCLOSURE: a compact, visible disclosure line below the
+ * tile row states plainly that Nextwise is not affiliated with or
+ * endorsed by these official portals — reusing the same wording
+ * discipline as EU01's own official-sources section rather than inventing
+ * new copy.
+ *
+ * Everything else about this section's established visual language is
+ * preserved: the single uniform pale panel, the intro block's decorative
+ * globe/flight-path flourish, the circular flag badges, the bold blue
+ * source-name treatment, and the bottom-of-tile circular arrow control.
  */
 const BADGE_TONE_CYCLE = [
   { bg: "var(--surface-soft-blue)", fg: "var(--surface-soft-blue-strong)" },
@@ -102,61 +90,28 @@ const BADGE_TONE_CYCLE = [
   { bg: "var(--surface-soft-pink)", fg: "var(--surface-soft-pink-strong)" },
 ];
 
-/**
- * Tightened display copy for the compact H06 tile design — see this
- * file's own docblock, item 3. Presentation-only; the registry's own
- * `purpose` field (a fuller sentence) remains the real data source of
- * truth and is still what a11y tooling / other call sites would read.
- */
-const DISPLAY_AUTHORITY: Record<LaunchCountryPrimarySource["countryCode"], string> = {
-  DE: "DAAD",
-  GB: "Study UK",
-  US: "EducationUSA",
-  // Real registry authority is "Government of Canada" — kept as-is rather
-  // than the reference's "EduCanada" (not a real provider in this
-  // project's data). See this file's docblock, item 3.
-  CA: "Government of Canada",
-  AU: "Study Australia",
-  IE: "Education in Ireland",
-};
-
-const DISPLAY_PURPOSE: Record<LaunchCountryPrimarySource["countryCode"], string> = {
-  DE: "Official programmes and guidance",
-  GB: "Official information for international students",
-  US: "Explore study options and requirements",
-  CA: "Find programmes and plan your study",
-  AU: "Courses and visas for international students",
-  IE: "Discover study opportunities",
-};
-
-export async function TrustedStudyExplorer() {
-  const providers = await getLaunchCountryPrimaryProviders();
-  const providerBySlug = new Map(providers.map((p) => [p.slug, p]));
-
+export function TrustedStudyExplorer() {
   return (
     <Section tone="surface" containerClassName={HOMEPAGE_WIDE_CONTAINER_CLASSNAME} className="!py-8 sm:!py-10 lg:!py-12">
       {/* One connected, uniformly-tinted horizontal panel —
-          [INTRO][DE][UK][US][CA][AU][IE] — matching the H06 reference's
-          compact, flat-panel strip (not H05B's six separately-tinted
-          segments). See this file's own docblock, item 4. */}
+          [INTRO][DE][IE][NL][FR][SE][DK] — same compact, flat-panel strip
+          convention as UX10-H06, now showing the six Europe launch
+          countries instead of the six global M20 countries. */}
       <div
         className="overflow-hidden rounded-[1.25rem] border border-border/50 shadow-soft"
         style={{ backgroundColor: "color-mix(in srgb, var(--surface-soft-lavender) 22%, var(--color-surface))" }}
       >
         <div className="flex flex-col lg:flex-row lg:divide-x lg:divide-border/50">
           <div className="relative shrink-0 overflow-hidden border-b border-border/50 p-6 lg:w-[22%] lg:border-b-0 lg:p-7">
-            <p className="text-xs font-semibold uppercase tracking-wide text-secondary">
-              Explore programmes from official sources
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold text-primary sm:text-[1.7rem]">Trusted Study Explorer</h2>
+            <p className="text-xs font-semibold uppercase tracking-wide text-secondary">Explore European sources</p>
+            <h2 className="mt-2 text-2xl font-semibold text-primary sm:text-[1.7rem]">Trusted Official Sources</h2>
             <p className="mt-2.5 text-sm leading-relaxed text-muted">
-              Search programmes directly from official higher-education sources around the world.
+              Go directly to official government and education sources for our six European launch countries.
             </p>
 
             {/* Small, low-opacity decorative flourish (globe + dashed
                 flight path + paper airplane) — original inline SVG, purely
-                decorative, matching the reference's bottom-left accent.
-                See this file's own docblock, item 1. */}
+                decorative, unchanged from UX10-H06. */}
             <svg
               aria-hidden="true"
               viewBox="0 0 160 90"
@@ -170,74 +125,70 @@ export async function TrustedStudyExplorer() {
           </div>
 
           <ul className="grid flex-1 divide-y divide-border/50 sm:grid-cols-3 sm:divide-x sm:divide-y-0 xl:grid-cols-6">
-            {LAUNCH_COUNTRY_PRIMARY_SOURCES.map((source, index) => {
-              const provider = providerBySlug.get(source.providerSlug);
+            {EUROPE_COUNTRIES.map((country, index) => {
               const tone = BADGE_TONE_CYCLE[index % BADGE_TONE_CYCLE.length];
-              const available = Boolean(provider);
-              const Flag = COUNTRY_FLAGS[source.countryCode];
-
-              const tileBody = (
-                <>
-                  <span
-                    className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white"
-                    style={{ boxShadow: `0 0 0 3px color-mix(in srgb, ${tone.bg} 55%, transparent)` }}
-                  >
-                    <Flag aria-hidden="true" className="h-10 w-10" />
-                  </span>
-
-                  <p className="mt-3 text-sm font-semibold text-text">{source.countryName}</p>
-                  <p className="mt-0.5 text-sm font-semibold leading-snug text-primary">{DISPLAY_AUTHORITY[source.countryCode]}</p>
-                  <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-text-soft">{DISPLAY_PURPOSE[source.countryCode]}</p>
-
-                  {!available ? (
-                    <p className="mt-1.5 text-[11px] font-medium text-muted">Currently unavailable — check back soon.</p>
-                  ) : null}
-
-                  {/* Trust signal kept for assistive technology, matching
-                      the reference's chip-free visual design — see this
-                      file's own docblock, item 4. */}
-                  <span className="sr-only">
-                    <ShieldCheck aria-hidden="true" className="inline h-3 w-3" />
-                    {TRUSTED_NATIONAL_SOURCE_LABEL}
-                  </span>
-
-                  <span
-                    aria-hidden="true"
-                    className="mt-3 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-white text-primary transition-all duration-200 group-hover:-translate-y-0.5 motion-reduce:transition-none"
-                  >
-                    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none">
-                      <path d="M3 8h10M8.5 3.5 13 8l-4.5 4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </span>
-                </>
-              );
-
-              const tileClassName = cn(
-                "group flex h-full flex-col p-4 transition-colors duration-200",
-                !available && "opacity-70"
-              );
+              const Flag = EUROPE_EXPLORER_FLAGS[country.code];
+              const { officialSource } = country;
 
               return (
-                <li key={source.countryCode}>
-                  {available ? (
-                    <Link
-                      href={`/go/course-search/provider/${provider!.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={tileClassName}
-                      aria-label={`${DISPLAY_AUTHORITY[source.countryCode]} — ${TRUSTED_NATIONAL_SOURCE_LABEL.toLowerCase()} for studying in ${source.countryName}. Opens in a new tab.`}
+                <li key={country.code}>
+                  <a
+                    href={officialSource.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex h-full flex-col p-4 transition-colors duration-200"
+                    aria-label={`${officialSource.authority} — ${TRUSTED_NATIONAL_SOURCE_LABEL.toLowerCase()} for studying in ${country.name}${country.recommended ? ", recommended first" : ""}. Opens in a new tab.`}
+                  >
+                    <span
+                      className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white"
+                      style={{
+                        boxShadow: country.recommended
+                          ? "0 0 0 3px var(--color-primary)"
+                          : `0 0 0 3px color-mix(in srgb, ${tone.bg} 55%, transparent)`,
+                      }}
                     >
-                      {tileBody}
-                    </Link>
-                  ) : (
-                    <div className={tileClassName}>{tileBody}</div>
-                  )}
+                      <Flag aria-hidden="true" className="h-10 w-10" />
+                    </span>
+
+                    <p className="mt-3 text-sm font-semibold text-text">{country.name}</p>
+                    {country.recommended ? (
+                      <span className="mt-1 inline-flex w-fit items-center rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-on-primary">
+                        Recommended First
+                      </span>
+                    ) : null}
+                    <p className="mt-1.5 text-sm font-semibold leading-snug text-primary">{officialSource.authority}</p>
+                    <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-text-soft">{officialSource.purpose}</p>
+
+                    <span className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-muted">
+                      <ExternalLink aria-hidden="true" className="h-3 w-3" />
+                      {EXTERNAL_LINK_BADGE_LABEL} · {officialSource.primaryDomain}
+                    </span>
+
+                    {/* Trust signal kept for assistive technology, matching
+                        the H06 reference's chip-free visual design. */}
+                    <span className="sr-only">{TRUSTED_NATIONAL_SOURCE_LABEL}</span>
+
+                    <span
+                      aria-hidden="true"
+                      className="mt-3 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-white text-primary transition-all duration-200 group-hover:-translate-y-0.5 motion-reduce:transition-none"
+                    >
+                      <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none">
+                        <path d="M3 8h10M8.5 3.5 13 8l-4.5 4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
+                  </a>
                 </li>
               );
             })}
           </ul>
         </div>
       </div>
+
+      {/* No-affiliation disclosure — same wording discipline as EU01's own
+          official-sources section, reused rather than re-invented. */}
+      <p className="mt-4 text-xs leading-relaxed text-muted">
+        Nextwise is not affiliated with or endorsed by these official portals.
+      </p>
     </Section>
   );
 }

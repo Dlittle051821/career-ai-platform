@@ -30,10 +30,18 @@ const WHY_NEXTWISE_SOURCE = readSection("WhyNextwise.tsx");
 const FINAL_CTA_SOURCE = readSection("HomeFinalCTA.tsx");
 
 describe("premium refinement — Discovery Pillars keep their four real categories/routes, only the surface treatment changed", () => {
-  it("still exactly four pillars, same titles, in the same order", () => {
+  it("UX10-EU02 — now exactly three pillars (Build Your Career / Study in India / Study in Europe), per that milestone's own explicit brief and reference", () => {
+    // Originally asserted the four UX10A pillars ["Career Explorer",
+    // "Course Explorer", "University Explorer", "Trusted Guidance"].
+    // UX10-EU02's own brief and attached reference are explicit and
+    // repeated that this section becomes exactly three cards — see
+    // DiscoveryPillars.tsx's own UX10-EU02 docblock entry for the full
+    // reasoning, including why Course/University Explorer and Trusted
+    // Guidance are no longer dedicated homepage pillars (all three remain
+    // reachable via the main nav).
     const codeOnly = stripComments(DISCOVERY_SOURCE);
     const titles = [...codeOnly.matchAll(/title:\s*"([^"]+)"/g)].map((m) => m[1]);
-    expect(titles).toEqual(["Career Explorer", "Course Explorer", "University Explorer", "Trusted Guidance"]);
+    expect(titles).toEqual(["Build Your Career", "Study in India", "Study in Europe"]);
   });
 
   it("every card's main surface is a two-stop pastel gradient fill, matching the UX10-H04 final reference (not H02's neutral-white-plus-corner-glow treatment)", () => {
@@ -52,22 +60,24 @@ describe("premium refinement — Discovery Pillars keep their four real categori
     expect(codeOnly).toContain("#DDEBFF");
   });
 
-  it("UX10-H05B — the large card illustration is now the brief's own real supplied image asset, not DiscoveryIllustrations.tsx's inline SVG stand-in", () => {
+  it("UX10-H05B/EU02 — the surviving card illustration is the brief's own real supplied image asset, not an inline SVG stand-in; the two new EU02 cards intentionally carry none", () => {
     const codeOnly = stripComments(DISCOVERY_SOURCE);
     // DiscoveryIllustrations.tsx was H04's own stand-in, built when no
     // such asset existed in the repo. H05B's brief supplies the real
     // compass/books/globe/guidance-character PNGs directly and explicitly
     // forbids substituting them with simpler CSS/SVG icons — see this
-    // component's own docblock.
+    // component's own docblock. UX10-EU02 replaces the Course/University/
+    // Guidance cards (and their course-books.png/university-globe.png/
+    // guidance-character.png illustrations) with Study in India/Europe
+    // cards that deliberately carry no illustration at all, rather than a
+    // mismatched stock image — see DiscoveryPillars.tsx's own UX10-EU02
+    // docblock entry. Only the surviving Career card's illustration still
+    // applies.
     expect(codeOnly).not.toMatch(/from ["']@\/components\/graphics\/DiscoveryIllustrations["']/);
     expect(codeOnly).not.toMatch(/from ["']next\/image["']/);
-    for (const assetPath of [
-      "/cards/career-compass.png",
-      "/cards/course-books.png",
-      "/cards/university-globe.png",
-      "/cards/guidance-character.png",
-    ]) {
-      expect(codeOnly).toContain(assetPath);
+    expect(codeOnly).toContain("/cards/career-compass.png");
+    for (const retiredAsset of ["/cards/course-books.png", "/cards/university-globe.png", "/cards/guidance-character.png"]) {
+      expect(codeOnly).not.toContain(retiredAsset);
     }
     expect(codeOnly).toMatch(/<img\s/);
   });
@@ -77,25 +87,43 @@ describe("premium refinement — Discovery Pillars keep their four real categori
   });
 });
 
-describe("premium refinement — Trusted Study Explorer keeps the real M20 registry, redirect route, and trust badge untouched", () => {
-  it("still imports LAUNCH_COUNTRY_PRIMARY_SOURCES, never a second hardcoded registry", () => {
-    expect(TRUSTED_SOURCE).toContain("LAUNCH_COUNTRY_PRIMARY_SOURCES");
+describe("premium refinement — Trusted Study Explorer (UX10-EU02: now the EU01 Europe registry, plain verified links)", () => {
+  // UX10-EU02 repoints this section from the M20 global registry to
+  // UX10-EU01's Europe-only registry and from the DB-backed provider
+  // redirect to plain, directly-verified external links — see
+  // TrustedStudyExplorer.tsx's own UX10-EU02 docblock entry for the full
+  // reasoning. The panel's visual language (one connected strip, tinted
+  // tiles, sr-only trust label) is preserved; the assertions below are
+  // updated to match the new data source and link architecture.
+  it("still imports EUROPE_COUNTRIES, never a second hardcoded registry", () => {
+    expect(TRUSTED_SOURCE).toContain("EUROPE_COUNTRIES");
   });
 
-  it("still routes every outbound link through the safe provider redirect, never a raw domain", () => {
-    expect(TRUSTED_SOURCE).toContain("/go/course-search/provider/");
+  it("every outbound link is a plain, directly-verified external link (never the M20 provider redirect)", () => {
+    // Checked against comment-stripped source: this component's own
+    // docblock legitimately names the old M20 provider-redirect route in
+    // prose while explaining why it's superseded (see homepage-source-audit.test.ts's
+    // stripComments docblock for the same convention).
+    expect(stripComments(TRUSTED_SOURCE)).not.toContain("/go/course-search/provider/");
+    expect(TRUSTED_SOURCE).toContain('target="_blank"');
+    expect(TRUSTED_SOURCE).toContain('rel="noopener noreferrer"');
   });
 
-  it("still carries the ShieldCheck trusted-source signal (now sr-only, matching the H06 reference's chip-free tile design) and the honest 'Currently unavailable' fallback", () => {
+  it("still carries the trusted-source signal (sr-only, matching the H06 reference's chip-free tile design); no DB-dependent 'unavailable' state remains, since every country now always has a verified direct link", () => {
     // UX10-H06 — the H06 reference shows no visible badge chip on any
     // tile. The trust label itself is not deleted: it moves to an
-    // sr-only span (still announced to assistive technology) and is
-    // folded into each tile's aria-label. See TrustedStudyExplorer.tsx's
-    // own docblock, item 4.
-    expect(TRUSTED_SOURCE).toContain("ShieldCheck");
+    // sr-only span (still announced to assistive technology). UX10-EU02 —
+    // the old "Currently unavailable" fallback existed only because a
+    // Supabase provider row could be missing/inactive; since this section
+    // no longer depends on that table at all (see this component's own
+    // UX10-EU02 docblock entry), that fallback state can no longer occur
+    // and is correctly absent now, not silently dropped.
     expect(TRUSTED_SOURCE).toContain("TRUSTED_NATIONAL_SOURCE_LABEL");
     expect(TRUSTED_SOURCE).toMatch(/sr-only/);
-    expect(TRUSTED_SOURCE).toContain("Currently unavailable");
+    // Checked against comment-stripped source: this component's own
+    // docblock legitimately quotes the old "Currently unavailable" fallback
+    // phrase in prose while explaining why it can no longer occur.
+    expect(stripComments(TRUSTED_SOURCE)).not.toContain("Currently unavailable");
   });
 
   it("UX10-H06 — the intro block's 'Explore all countries' link is removed, matching the H06 reference's simplified intro (not shown there)", () => {
@@ -105,19 +133,17 @@ describe("premium refinement — Trusted Study Explorer keeps the real M20 regis
     expect(stripComments(TRUSTED_SOURCE)).not.toMatch(/Explore all countries/);
   });
 
-  it("UX10-H06 — Canada's displayed authority stays the real registry value ('Government of Canada'), not the reference's unbacked 'EduCanada' label", () => {
-    // The H06 reference's Canada tile is branded "EduCanada," but there is
-    // no such provider in LAUNCH_COUNTRY_PRIMARY_SOURCES — the real seeded
-    // row is "Government of Canada." Per the brief's own "do not invent
-    // partnerships" instruction, the real data wins here. See
-    // TrustedStudyExplorer.tsx's own docblock, item 3.
-    // Checked against comment-stripped source for the negative half of
-    // this assertion — this file's own docblock legitimately names
-    // "EduCanada" in prose while explaining why it's NOT used; the real
-    // invariant is that no CODE line renders it. Same false-positive
-    // pattern as the flag-emoji check above.
-    expect(TRUSTED_SOURCE).toContain("Government of Canada");
-    expect(stripComments(TRUSTED_SOURCE)).not.toMatch(/EduCanada/);
+  it("UX10-EU02 — never renders a non-approved launch country (UK/USA/Canada/Australia), including the old 'Government of Canada'/'EduCanada' tile this section no longer shows", () => {
+    // UX10-H06's own Canada-naming regression guard no longer applies:
+    // Canada is not one of UX10-EU01's six approved Europe launch
+    // countries, so neither "Government of Canada" (the real M20 value)
+    // nor "EduCanada" (the reference's unbacked label) should appear here
+    // at all. Checked against comment-stripped source since this file's
+    // own docblock may still name these in prose while explaining the
+    // change.
+    const codeOnly = stripComments(TRUSTED_SOURCE);
+    expect(codeOnly).not.toMatch(/EduCanada/);
+    expect(codeOnly).not.toMatch(/Government of Canada/);
   });
 
   it("tiles use a lighter tinted surface (color-mix against the page surface) rather than a flat bg-surface + border-border block", () => {
@@ -164,7 +190,7 @@ describe("premium refinement — How It Works keeps its five steps and connectin
   });
 });
 
-describe("premium refinement — Why Nextwise stays free of fabricated testimonials/stats, and its new supporting graphic is decorative-only", () => {
+describe("premium refinement — Why Nextwise (UX10-EU02: now 'Why Study in Europe?', reusing EU01's value-prop cards)", () => {
   it("'partner in your journey' line is still present", () => {
     expect(WHY_NEXTWISE_SOURCE).toMatch(/partner in your journey/i);
   });
@@ -175,24 +201,29 @@ describe("premium refinement — Why Nextwise stays free of fabricated testimoni
     expect(codeOnly).not.toMatch(/500,000/);
   });
 
-  it("the new NetworkGraphic supporting visual is explicitly decorative, not animated, and never claims to depict real data", () => {
-    expect(WHY_NEXTWISE_SOURCE).toContain("NetworkGraphic");
-    expect(WHY_NEXTWISE_SOURCE).toMatch(/accessibility=\{\{\s*kind:\s*"decorative"\s*\}\}/);
-    expect(WHY_NEXTWISE_SOURCE).toMatch(/animate=\{false\}/);
+  it("UX10-EU02 — reuses UX10-EU01's own honesty-audited WhyEuropeSection component rather than re-authoring new value-prop copy inline", () => {
+    // The old three-column layout (checklist + NetworkGraphic-backed photo
+    // card + stat tiles) is superseded — see WhyNextwise.tsx's own
+    // UX10-EU02 docblock entry. NetworkGraphic itself is untouched and
+    // still used elsewhere in this codebase; it simply isn't part of this
+    // section's new, simpler composition.
+    expect(WHY_NEXTWISE_SOURCE).toContain('from "@/components/sections/europe-explorer/WhyEuropeSection"');
+    expect(WHY_NEXTWISE_SOURCE).toContain("Why Study in Europe?");
   });
 });
 
-describe("premium refinement — Final CTA keeps both real routes; only the background/layering changed", () => {
-  // UX10-H08 "FINAL CTA EXACT REFERENCE MATCH" updates the two CTA labels
+describe("premium refinement — Final CTA (UX10-EU02: Europe-first copy and primary route); only the background/layering changed", () => {
+  // UX10-H08 "FINAL CTA EXACT REFERENCE MATCH" updated the two CTA labels
   // to that milestone's own reference copy ("Get started for free" / "Book
-  // a Free Session", replacing H02-H07's "Explore Your Future — Free" /
-  // "Book a Free Discovery Session") — see HomeFinalCTA.tsx's own
-  // UX10-H08 docblock, item 4. The routes themselves are unchanged, which
-  // is the actual invariant this test protects.
-  it("still both real routes, with the UX10-H08 reference's own CTA copy", () => {
-    expect(FINAL_CTA_SOURCE).toContain("Get started for free");
-    expect(FINAL_CTA_SOURCE).toContain("Book a Free Session");
-    expect(FINAL_CTA_SOURCE).toContain('href="/career-discovery"');
+  // a Free Session"). UX10-EU02 updates them again, per its own explicit
+  // brief: primary CTA moves to "Explore Europe" -> /study-europe;
+  // secondary becomes "Talk to an Expert", keeping the real
+  // /book-counselling route — see HomeFinalCTA.tsx's own UX10-EU02
+  // docblock entry.
+  it("real routes, with the UX10-EU02 brief's own CTA copy", () => {
+    expect(FINAL_CTA_SOURCE).toContain("Explore Europe");
+    expect(FINAL_CTA_SOURCE).toContain("Talk to an Expert");
+    expect(FINAL_CTA_SOURCE).toContain('href="/study-europe"');
     expect(FINAL_CTA_SOURCE).toContain('href="/book-counselling"');
   });
 
@@ -272,11 +303,14 @@ describe("UX10-H04 — final reference match: announcement bar, hero backdrop, H
     }
   });
 
-  it("UX10-H06 — Trusted Study Explorer renders real local SVG flags (CountryFlags.tsx), not the emoji helper the H06 reference calls unreliable", () => {
+  it("UX10-H06/EU02 — Trusted Study Explorer renders real local SVG flags, not the emoji helper the H06 reference calls unreliable", () => {
     // The H06 brief explicitly asks for real/local SVG flag assets rather
     // than Unicode flag emoji, which render inconsistently (or fall back
-    // to raw two-letter codes) across operating systems and browsers. See
-    // TrustedStudyExplorer.tsx's own docblock, item 2.
+    // to raw two-letter codes) across operating systems and browsers.
+    // UX10-EU02 repoints this from CountryFlags.tsx's six global flags to
+    // EuropeExplorerFlags.tsx's six Europe-launch flags (which itself
+    // reuses CountryFlags.tsx's FlagDE/FlagIE rather than redefining them)
+    // — see TrustedStudyExplorer.tsx's own UX10-EU02 docblock entry.
     // Checked against comment-stripped source: this file's own docblock
     // legitimately names the old helper in prose while explaining the
     // replacement — the same false-positive trap this test suite's other
@@ -284,13 +318,18 @@ describe("UX10-H04 — final reference match: announcement bar, hero backdrop, H
     // stripComments docblock). The real invariant is that no CODE line
     // calls it.
     expect(stripComments(TRUSTED_SOURCE)).not.toMatch(/countryCodeToFlagEmoji/);
-    expect(TRUSTED_SOURCE).toContain("COUNTRY_FLAGS");
-    expect(TRUSTED_SOURCE).toContain("@/components/graphics/CountryFlags");
+    expect(TRUSTED_SOURCE).toContain("EUROPE_EXPLORER_FLAGS");
+    expect(TRUSTED_SOURCE).toContain("@/components/graphics/EuropeExplorerFlags");
     const countryFlagsSource = readFileSync(path.join(GRAPHICS_DIR, "CountryFlags.tsx"), "utf8");
     for (const name of ["FlagDE", "FlagGB", "FlagUS", "FlagCA", "FlagAU", "FlagIE"]) {
       expect(countryFlagsSource).toContain(`export function ${name}`);
     }
     expect(countryFlagsSource).not.toMatch(/https?:\/\//);
+    const europeFlagsSource = readFileSync(path.join(GRAPHICS_DIR, "EuropeExplorerFlags.tsx"), "utf8");
+    for (const name of ["FlagNL", "FlagFR", "FlagSE", "FlagDK"]) {
+      expect(europeFlagsSource).toContain(`export function ${name}`);
+    }
+    expect(europeFlagsSource).not.toMatch(/https?:\/\//);
   });
 });
 
@@ -342,7 +381,7 @@ describe("UX10-H08 'FINAL CTA EXACT REFERENCE MATCH' — FinalCtaVista supersede
     expect(codeOnly).not.toMatch(/tomorrow starts today/i);
   });
 
-  it("no fabricated claim: the unverified 'thousands of students' / 'global community' reference copy is replaced with truthful, already-approved alternatives", () => {
+  it("no fabricated claim: the unverified 'thousands of students' / 'global community' reference copy stays replaced with truthful alternatives; UX10-EU02 updates the body copy again to its own Europe-first line", () => {
     // Checked against comment-stripped source — this file's own docblock
     // legitimately quotes both unverified reference phrases in prose while
     // explaining why they were replaced. Same stripComments convention as
@@ -350,10 +389,15 @@ describe("UX10-H08 'FINAL CTA EXACT REFERENCE MATCH' — FinalCtaVista supersede
     const codeOnly = stripComments(FINAL_CTA_SOURCE);
     expect(codeOnly).not.toMatch(/thousands of students/i);
     expect(codeOnly).not.toMatch(/global community/i);
-    expect(FINAL_CTA_SOURCE).toContain("Explore careers, courses, universities and global opportunities with Nextwise.");
-    // Reused verbatim from the Hero's own already-approved trust row, not
-    // invented for this pass — see this file's own UX10-H08 docblock,
-    // item 3, and HomeHero.tsx's own trust pills.
+    // UX10-EU02 — body copy updates from "Explore careers, courses,
+    // universities and global opportunities with Nextwise." to this
+    // milestone's own supporting line (see HomeFinalCTA.tsx's own
+    // UX10-EU02 docblock entry); no new unverified claim is introduced.
+    expect(FINAL_CTA_SOURCE).toContain(
+      "Get personalised guidance, compare your options, and take the first step with confidence."
+    );
+    // Trust items unchanged — still reused verbatim from the Hero's own
+    // already-approved trust row, not invented for this pass.
     expect(FINAL_CTA_SOURCE).toContain("Student-first approach");
     expect(FINAL_CTA_SOURCE).toContain("No credit card required");
     expect(FINAL_CTA_SOURCE).toContain("Free expert guidance");

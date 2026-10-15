@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Building2, Compass, GraduationCap, UserCheck } from "lucide-react";
+import { ArrowRight, Compass, Globe2, Landmark } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { HOMEPAGE_WIDE_CONTAINER_CLASSNAME } from "./homepage-layout";
@@ -142,16 +142,50 @@ import { cn } from "@/lib/utils";
  *    — while the illustration itself still occupies the right/bottom of
  *    the card behind it. Card `min-height` grows slightly to keep the
  *    now-larger illustrations from crowding the text at any breakpoint.
+ *
+ * UX10-EU02 "HOMEPAGE EUROPE ALIGNMENT" — this milestone's own brief and
+ * attached reference (both "before" and "after" panels) are explicit and
+ * repeated: this section becomes exactly three cards — Build Your Career /
+ * Study in India / Study in Europe — not four. The previous four pillars
+ * (Career Explorer / Course Explorer / University Explorer / Trusted
+ * Guidance) are reduced to three:
+ *  - Career Explorer is KEPT as-is (title updated to "Build Your Career"
+ *    per the brief's own card heading; same /careers route, same
+ *    career-compass.png illustration, same tone).
+ *  - The Course Explorer and University Explorer slots are replaced by
+ *    "Study in India" (-> /study-options, reusing the best existing India
+ *    route per the brief's own "do not invent a route if a working one
+ *    already exists" instruction) and "Study in Europe" (-> /study-europe,
+ *    this milestone's own new route).
+ *  - The Trusted Guidance pillar is removed from this section. This is a
+ *    real, deliberate reduction in homepage surface area, not an
+ *    oversight — flagged prominently in UX10-EU02_REFERENCE_AUDIT.md.
+ *    Course search, university search, and counselling all remain exactly
+ *    one click away via the main nav (Explore menu / Counselling link),
+ *    so no route is lost, only its dedicated homepage pillar.
+ *  - Per the brief's own "avoid stock-image drift if existing approved
+ *    assets can be reused" instruction, and because no approved India- or
+ *    Europe-specific illustration asset exists in this repo, the two new
+ *    cards intentionally carry NO large bottom-right illustration image —
+ *    rather than fabricate or reuse a mismatched stock visual, they rely
+ *    on the same tone/gradient/icon-badge/arrow-control system every
+ *    pillar already uses. `illustrationSrc` is optional on `Pillar` for
+ *    exactly this reason. The icons themselves (`Landmark` for India,
+ *    `Globe2` for Europe) are reused verbatim from UX10-HW01's
+ *    `StudyPathwaysSection.tsx`, which already established this exact
+ *    icon vocabulary for these two concepts.
+ *  - Grid moves from `lg:grid-cols-4` to `lg:grid-cols-3` to match the new
+ *    three-card count; `sm:grid-cols-2` intermediate tier is kept.
  */
 interface Pillar {
   icon: LucideIcon;
-  illustrationSrc: string;
-  illustrationAlt: string;
-  illustrationClassName: string;
+  illustrationSrc?: string;
+  illustrationAlt?: string;
+  illustrationClassName?: string;
   title: string;
   description: string;
   href: string;
-  tone: "soft-blue" | "soft-pink" | "soft-mint" | "soft-amber";
+  tone: "soft-blue" | "soft-amber" | "soft-mint";
 }
 
 /** Sizing for the three square (1254x1254) icon-style illustrations — roughly 40-45% of the card's own width at each breakpoint. See this file's docblock, item 1. */
@@ -168,40 +202,28 @@ const PILLARS: Pillar[] = [
     illustrationSrc: "/cards/career-compass.png",
     illustrationAlt: "",
     illustrationClassName: ICON_ILLUSTRATION_CLASSNAME,
-    title: "Career Explorer",
+    title: "Build Your Career",
     description: "Discover career options that match your interests, strengths, and goals.",
     href: "/careers",
     tone: "soft-blue",
   },
   {
-    icon: GraduationCap,
-    illustrationSrc: "/cards/course-books.png",
-    illustrationAlt: "",
-    illustrationClassName: ICON_ILLUSTRATION_CLASSNAME,
-    title: "Course Explorer",
-    description: "Find the right courses from universities and learn about entry requirements.",
-    href: "/courses",
-    tone: "soft-pink",
-  },
-  {
-    icon: Building2,
-    illustrationSrc: "/cards/university-globe.png",
-    illustrationAlt: "",
-    illustrationClassName: ICON_ILLUSTRATION_CLASSNAME,
-    title: "University Explorer",
-    description: "Compare universities and find the study destination that fits you.",
-    href: "/universities",
-    tone: "soft-mint",
-  },
-  {
-    icon: UserCheck,
-    illustrationSrc: "/cards/guidance-character.png",
-    illustrationAlt: "",
-    illustrationClassName: PORTRAIT_ILLUSTRATION_CLASSNAME,
-    title: "Trusted Guidance",
-    description: "Get expert advice and personalised insights and resources you can trust.",
-    href: "/book-counselling",
+    // UX10-EU02 — reuses /study-options, the best existing India study
+    // route (per the brief's own "do not invent a route if a working one
+    // already exists" instruction), rather than a new page.
+    icon: Landmark,
+    title: "Study in India",
+    description: "Explore career-aligned courses and universities across India.",
+    href: "/study-options",
     tone: "soft-amber",
+  },
+  {
+    // UX10-EU02 — the new Europe Country Explorer route from UX10-EU01.
+    icon: Globe2,
+    title: "Study in Europe",
+    description: "Discover 6 leading European study destinations and trusted official sources.",
+    href: "/study-europe",
+    tone: "soft-mint",
   },
 ];
 
@@ -211,12 +233,6 @@ const TONE_STYLE: Record<Pillar["tone"], { bg: string; fg: string; gradientFrom:
     fg: "var(--surface-soft-blue-strong)",
     gradientFrom: "#EAF3FF",
     gradientTo: "#DDEBFF",
-  },
-  "soft-pink": {
-    bg: "var(--surface-soft-pink)",
-    fg: "var(--surface-soft-pink-strong)",
-    gradientFrom: "#FDECF5",
-    gradientTo: "#FBE2EF",
   },
   "soft-mint": {
     bg: "var(--surface-soft-mint)",
@@ -235,7 +251,10 @@ const TONE_STYLE: Record<Pillar["tone"], { bg: string; fg: string; gradientFrom:
 export function DiscoveryPillars() {
   return (
     <Section tone="default" containerClassName={HOMEPAGE_WIDE_CONTAINER_CLASSNAME} className="!pt-0 !pb-8 sm:!pb-10 lg:!pb-12">
-      <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      {/* UX10-EU02 — grid narrows from lg:grid-cols-4 to lg:grid-cols-3 to
+          match the new three-card count (Build Your Career / Study in
+          India / Study in Europe). sm:grid-cols-2 intermediate tier kept. */}
+      <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {PILLARS.map(({ icon: Icon, illustrationSrc, illustrationAlt, illustrationClassName, title, description, href, tone }) => {
           const style = TONE_STYLE[tone];
           return (
@@ -268,8 +287,14 @@ export function DiscoveryPillars() {
                     the card at every breakpoint (portrait character sized
                     by height instead). See this file's own docblock,
                     item 1, for the DiscoveryIllustrations.tsx ->
-                    real-asset swap and the H06 size increase. */}
-                <img src={illustrationSrc} alt={illustrationAlt} aria-hidden="true" loading="lazy" className={illustrationClassName} />
+                    real-asset swap and the H06 size increase. UX10-EU02 —
+                    now optional: the two new India/Europe cards carry no
+                    illustration (see this file's own UX10-EU02 docblock
+                    entry for why), so this renders nothing for them rather
+                    than an <img> with an empty src. */}
+                {illustrationSrc ? (
+                  <img src={illustrationSrc} alt={illustrationAlt} aria-hidden="true" loading="lazy" className={illustrationClassName} />
+                ) : null}
 
                 <div className="relative flex h-full flex-col">
                   <span
