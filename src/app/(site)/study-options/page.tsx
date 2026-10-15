@@ -4,6 +4,7 @@ import { Section } from "@/components/layout/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { LinkButton } from "@/components/ui/Button";
 import { PageHero } from "@/components/sections/PageHero";
 import { CTASection } from "@/components/sections/CTASection";
 import { DemoNotice } from "@/components/ui/DemoNotice";
@@ -59,6 +60,15 @@ export default function StudyOptionsPage() {
                   </li>
                 ))}
               </ul>
+              {pathway.id === "europe" ? (
+                // UX10-EU01: this pathway card now links to the dedicated
+                // Europe Country Explorer route instead of only summarising
+                // Europe inline. See /study-europe/page.tsx's own docblock
+                // for the full route-decision reasoning.
+                <LinkButton href="/study-europe" variant="outline" size="md" className="mt-5 w-full justify-center">
+                  Explore the full Europe guide
+                </LinkButton>
+              ) : null}
             </Card>
           ))}
         </div>

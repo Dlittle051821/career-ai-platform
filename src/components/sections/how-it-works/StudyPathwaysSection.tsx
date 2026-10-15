@@ -13,10 +13,15 @@ import { PATHWAY_CARDS } from "@/data/study-options";
  * "india" and "europe" cards the `/study-options` page already renders.
  * No new statistics, partnerships, or outcomes are introduced.
  *
- * CTAs link to `/study-options#europe` / `/study-options#india` — real
- * anchors added to that page's own pathway cards in this same pass (see
- * that file's docblock) so the links land on the matching real card
- * instead of just the top of the page.
+ * CTAs link to `/study-options#india` and (as of UX10-EU01) `/study-europe`
+ * — real anchors/routes on those pages' own pathway content. The Europe CTA
+ * originally pointed at `/study-options#europe` (the anchor added to that
+ * page's own pathway card in the UX10-HW01 pass); UX10-EU01 repoints it to
+ * the new dedicated `/study-europe` Country Explorer route instead, since
+ * that page is now the richer, more specific Europe destination — see
+ * `/study-europe/page.tsx`'s own docblock for the full route-decision
+ * reasoning. This is a deliberate, documented post-HW01 update to this
+ * shared file, made as part of the UX10-EU01 milestone.
  */
 const EUROPE = PATHWAY_CARDS.find((pathway) => pathway.id === "europe");
 const INDIA = PATHWAY_CARDS.find((pathway) => pathway.id === "india");
@@ -25,7 +30,7 @@ const PATHWAY_PRESENTATION = [
   {
     pathway: EUROPE,
     icon: Globe2,
-    href: "/study-options#europe",
+    href: "/study-europe",
     cta: "Explore Europe options",
     pale: "var(--surface-soft-blue)",
     strong: "var(--surface-soft-blue-strong)",
