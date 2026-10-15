@@ -14,11 +14,19 @@ interface CardProps {
    * attribute (i.e. no change) as before this prop existed.
    */
   style?: CSSProperties;
+  /**
+   * UX10-HW01 — optional DOM id, e.g. so a card can be a same-page anchor
+   * target (`/study-options#europe`, linked from the new How It Works
+   * dual-pathway section). Purely additive: every existing caller omits
+   * it and gets the exact same `undefined` id (i.e. no change) as before.
+   */
+  id?: string;
 }
 
-export function Card({ as: Tag = "div", children, className, padded = true, style }: CardProps) {
+export function Card({ as: Tag = "div", children, className, padded = true, style, id }: CardProps) {
   return (
     <Tag
+      id={id}
       className={cn(
         "rounded-[var(--radius-card)] border border-border bg-surface",
         padded && "p-6 sm:p-7",

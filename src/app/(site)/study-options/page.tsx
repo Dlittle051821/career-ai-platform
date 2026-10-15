@@ -48,7 +48,7 @@ export default function StudyOptionsPage() {
         <SectionHeading eyebrow="Pathways" title="Where students in Odisha typically look" />
         <div className="mt-10 grid gap-6 lg:grid-cols-3">
           {PATHWAY_CARDS.map((pathway) => (
-            <Card key={pathway.id} className="flex h-full flex-col">
+            <Card key={pathway.id} id={pathway.id} className="flex h-full flex-col scroll-mt-24">
               <h3 className="text-lg font-semibold text-primary">{pathway.title}</h3>
               <p className="mt-2 text-sm text-muted">{pathway.summary}</p>
               <ul className="mt-4 flex-1 space-y-2">

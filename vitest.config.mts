@@ -318,6 +318,16 @@ export default defineConfig({
       // "pure, framework-free" + "static source-text audit" conventions as
       // src/lib/dashboard/**/*.test.ts and src/lib/home/**/*.test.ts above.
       "src/lib/profile/**/*.test.ts",
+      // UX10-HW01 "How It Works Redesign" — the curated 5-step journey
+      // data's stage-coverage invariant (src/data/how-it-works-steps.ts),
+      // the new How It Works presentational components' no-fabricated-
+      // claims regression tripwire (src/lib/how-it-works/), and
+      // CTASection.tsx's additive `background` prop contract check (same
+      // "pure, framework-free / source-text, no React Testing Library"
+      // convention as every directory above).
+      "src/data/**/*.test.ts",
+      "src/lib/how-it-works/**/*.test.ts",
+      "src/components/sections/**/*.test.ts",
     ],
   },
 });
