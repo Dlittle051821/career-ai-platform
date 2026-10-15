@@ -3,30 +3,21 @@ import { CircleCheck, ShieldAlert } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Card } from "@/components/ui/Card";
-import { PageHero } from "@/components/sections/PageHero";
+import { PricingHero } from "@/components/sections/pricing/PricingHero";
 import { CTASection } from "@/components/sections/CTASection";
-import { PublicPricingPlanCard } from "@/components/sections/pricing/PublicPricingPlanCard";
-import { PricingTabs, type PricingTab } from "@/components/sections/pricing/PricingTabs";
-import { PricingComparisonTable } from "@/components/sections/pricing/PricingComparisonTable";
+import { PricingPlansSection } from "@/components/sections/pricing/PricingPlansSection";
 import { FaqAccordion } from "@/components/sections/FaqAccordion";
 import { listPublicPricingPlans } from "@/lib/supabase/pricing/public-plans";
 import { recordPricingAnalyticsEvent } from "@/lib/supabase/pricing/analytics";
 import { isVersionCurrentlyEffective } from "@/lib/pricing/plan-versions";
-import { PRICING_CATEGORY_LABELS, type PricingCategory, type PricingPlanWithVersion } from "@/types/pricing";
 import { PRICING_FAQS } from "@/data/faqs";
 import { BRAND_NAME } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Pricing",
-  description: `Official ${BRAND_NAME} pricing for school and college counselling, and Bachelor's/Master's abroad guidance — one-time payment, no subscriptions.`,
+  description: `Official ${BRAND_NAME} pricing — from free career exploration through fully-coordinated Bachelor's/Master's abroad guidance. One-time payment, no subscriptions.`,
   alternates: { canonical: "/pricing" },
 };
-
-const TAB_GROUPS: { id: string; label: string; categories: PricingCategory[] }[] = [
-  { id: "india-guidance", label: "India Guidance", categories: ["school_counselling", "class_11_counselling", "class_12_counselling"] },
-  { id: "bachelor-abroad", label: "Bachelor Abroad", categories: ["bachelor_abroad"] },
-  { id: "master-abroad", label: "Master Abroad", categories: ["master_abroad"] },
-];
 
 const MANDATORY_TERMS = [
   "University application fees, visa fees, examination fees, translations, courier costs, credential evaluations, insurance, deposits and other third-party charges are not included.",
@@ -37,76 +28,22 @@ const MANDATORY_TERMS = [
   "Appointment cancellation and rescheduling follow the published appointment policy.",
 ];
 
-function planCard(item: PricingPlanWithVersion) {
-  const { plan, version, offer, inclusions } = item;
-  return <PublicPricingPlanCard key={plan.id} plan={plan} version={version} offer={offer} inclusions={inclusions} highlight={plan.isRecommended} />;
-}
-
 export default async function PricingPage() {
   const plans = await listPublicPricingPlans();
-  const hasAnyPlans = plans.some((p) => p.plan.isActive);
 
   const visibleLivePlanIds = plans.filter((p) => p.plan.isActive && p.version && isVersionCurrentlyEffective(p.version)).map((p) => p.plan.id);
   await Promise.allSettled(visibleLivePlanIds.map((planId) => recordPricingAnalyticsEvent({ eventType: "plan_view", planId })));
 
-  const tabs: PricingTab[] = TAB_GROUPS.map((group) => {
-    const items = plans.filter((p) => p.plan.isActive && group.categories.includes(p.plan.category)).sort((a, b) => a.plan.displayOrder - b.plan.displayOrder);
-    const comparisonItems = items.filter((i): i is PricingPlanWithVersion & { version: NonNullable<PricingPlanWithVersion["version"]> } => i.version !== null && isVersionCurrentlyEffective(i.version));
-
-    return {
-      id: group.id,
-      label: group.label,
-      panel: (
-        <div className="space-y-10">
-          {group.categories.length > 1 ? (
-            group.categories.map((category) => {
-              const categoryItems = items.filter((i) => i.plan.category === category);
-              if (categoryItems.length === 0) return null;
-              return (
-                <div key={category}>
-                  <h3 className="mb-4 text-lg font-semibold text-primary">{PRICING_CATEGORY_LABELS[category]}</h3>
-                  <div className={`grid gap-6 ${categoryItems.length > 1 ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:max-w-md"}`}>{categoryItems.map(planCard)}</div>
-                </div>
-              );
-            })
-          ) : items.length === 0 ? (
-            <p className="text-sm text-muted">Pricing for this category isn&rsquo;t published yet.</p>
-          ) : (
-            <div className={`grid gap-6 ${items.length > 1 ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:max-w-md"}`}>{items.map(planCard)}</div>
-          )}
-
-          {group.categories.length === 1 && comparisonItems.length > 1 ? (
-            <div>
-              <h3 className="mb-4 text-lg font-semibold text-primary">Compare Essential, Plus and Premium</h3>
-              <PricingComparisonTable categoryLabel={group.label} items={comparisonItems.map((i) => ({ plan: i.plan, version: i.version }))} />
-            </div>
-          ) : null}
-        </div>
-      ),
-    };
-  });
-
   return (
     <>
-      <PageHero
-        eyebrow="Pricing"
-        title="Official NextWise pricing"
-        description="A one-time payment, no subscriptions, no recurring charges. Every price below is exactly what you'll be charged — we never add fees you weren't shown first, and every session allowance and limit is stated up front, not buried in a tooltip."
-        breadcrumbs={[{ label: "Home", href: "/" }, { label: "Pricing" }]}
-      />
+      <PricingHero />
 
-      <Section tone="surface">
-        {!hasAnyPlans ? (
-          <Card className="py-14 text-center">
-            <p className="text-sm text-muted">Pricing isn&rsquo;t published yet. Please check back shortly, or contact NextWise directly.</p>
-          </Card>
-        ) : (
-          <PricingTabs tabs={tabs} />
-        )}
+      <Section tone="surface" containerClassName="max-w-[1500px]">
+        <PricingPlansSection plans={plans} />
       </Section>
 
       <Section tone="muted">
-        <SectionHeading eyebrow="Please read" title="Terms that apply to every package" />
+        <SectionHeading eyebrow="Please read" title="Terms that apply to every package" titleClassName="font-sans text-text" />
         <Card className="mt-8">
           <ul className="space-y-3 text-sm text-text-soft">
             {MANDATORY_TERMS.map((term) => (
@@ -124,7 +61,7 @@ export default async function PricingPage() {
       </Section>
 
       <Section tone="surface">
-        <SectionHeading eyebrow="Questions" title="Pricing FAQ" align="center" className="mx-auto" />
+        <SectionHeading eyebrow="Questions" title="Pricing FAQ" align="center" className="mx-auto" titleClassName="font-sans text-text" />
         <div className="mx-auto mt-10 max-w-2xl">
           <FaqAccordion items={PRICING_FAQS} />
         </div>

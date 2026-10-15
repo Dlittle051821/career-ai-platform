@@ -9,6 +9,15 @@ interface SectionHeadingProps {
   className?: string;
   as?: "h1" | "h2" | "h3";
   light?: boolean;
+  /**
+   * UX10-PR01B — optional extra classes appended to the heading `<Tag>`
+   * itself (e.g. `font-sans text-text` to opt a specific page's heading out
+   * of the sitewide serif `h1,h2,h3,h4` rule in globals.css, the same local
+   * override technique HomeHero.tsx/CareersHero.tsx already use on their
+   * own hand-rolled `<h1>`s). Purely additive: every existing caller omits
+   * it and renders byte-identical to before this prop existed.
+   */
+  titleClassName?: string;
 }
 
 export function SectionHeading({
@@ -19,6 +28,7 @@ export function SectionHeading({
   className,
   as: Tag = "h2",
   light = false,
+  titleClassName,
 }: SectionHeadingProps) {
   return (
     <div className={cn("max-w-2xl", align === "center" && "mx-auto text-center", className)}>
@@ -32,7 +42,7 @@ export function SectionHeading({
           {eyebrow}
         </p>
       ) : null}
-      <Tag className={cn("text-3xl sm:text-4xl font-semibold balance", light ? "text-on-primary" : "text-primary")}>
+      <Tag className={cn("text-3xl sm:text-4xl font-semibold balance", light ? "text-on-primary" : "text-primary", titleClassName)}>
         {title}
       </Tag>
       {description ? (

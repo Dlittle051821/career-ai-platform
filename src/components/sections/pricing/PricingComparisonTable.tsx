@@ -8,17 +8,39 @@ import type { PricingPlan, PricingPlanVersion } from "@/types/pricing";
  * div-grid faking a table"). A null/not-configured field renders as an em
  * dash via formatComparisonCell — never a fabricated number.
  */
+/** Every real, structured comparison metric this table can show — the exhaustive list `metricLabels` (see below) filters against. */
+export const PRICING_COMPARISON_METRIC_LABELS = [
+  "Counselling sessions",
+  "University shortlisting limit",
+  "Application-support limit",
+  "SOP review rounds",
+  "Scholarship support",
+  "Mock interviews",
+  "Dedicated or senior counsellor",
+  "Support duration",
+] as const;
+
 export function PricingComparisonTable({
   categoryLabel,
   items,
+  metricLabels,
 }: {
   categoryLabel: string;
   items: { plan: PricingPlan; version: PricingPlanVersion }[];
+  /**
+   * UX10-PR01B — optional subset of `PRICING_COMPARISON_METRIC_LABELS` to
+   * render, in the given order (used by `PricingComparisonTabs.tsx` to
+   * group these same 8 real, already-structured metrics into themed tabs
+   * — "Key Features", "Applications", etc. — without inventing any new
+   * comparison data). Omitting it (every pre-existing call site) renders
+   * all 8 rows exactly as before this prop existed.
+   */
+  metricLabels?: readonly string[];
 }) {
   if (items.length === 0) return null;
   const rows = items.map(({ plan, version }) => buildComparisonRow(plan.id, version));
 
-  const metrics: { label: string; render: (row: (typeof rows)[number]) => string }[] = [
+  const allMetrics: { label: string; render: (row: (typeof rows)[number]) => string }[] = [
     { label: "Counselling sessions", render: (r) => formatComparisonCell(r.sessionCount) },
     { label: "University shortlisting limit", render: (r) => formatComparisonCell(r.universityShortlistLimit) },
     { label: "Application-support limit", render: (r) => formatComparisonCell(r.applicationSupportLimit) },
@@ -28,6 +50,7 @@ export function PricingComparisonTable({
     { label: "Dedicated or senior counsellor", render: (r) => formatComparisonCell(r.counsellorTier) },
     { label: "Support duration", render: (r) => formatComparisonCell(r.supportDurationNote) },
   ];
+  const metrics = metricLabels ? allMetrics.filter((m) => metricLabels.includes(m.label)) : allMetrics;
 
   return (
     <div className="overflow-x-auto rounded-[var(--radius-card)] border border-border bg-surface">
