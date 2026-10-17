@@ -328,6 +328,13 @@ export default defineConfig({
       "src/data/**/*.test.ts",
       "src/lib/how-it-works/**/*.test.ts",
       "src/components/sections/**/*.test.ts",
+      // UX10-DS02 "Public Discovery Entry & Auth Flow" — the shared
+      // internal-redirect validator (src/lib/auth/safe-redirect.ts) that
+      // replaced two previously-inline, insufficient `next.startsWith("/")`
+      // checks (the auth callback route and LoginForm). Same "pure,
+      // framework-free" convention as every directory above; it imports
+      // nothing from Supabase or Next.js.
+      "src/lib/auth/**/*.test.ts",
     ],
   },
 });

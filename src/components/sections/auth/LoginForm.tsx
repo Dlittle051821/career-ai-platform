@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
 import { friendlyAuthError } from "@/lib/supabase/auth-errors";
 import { isRequired, isValidEmail } from "@/lib/validation";
+import { getSafeRedirectPath } from "@/lib/auth/safe-redirect";
 
 interface FormState {
   email: string;
@@ -30,6 +31,15 @@ export function LoginForm() {
       ? "That confirmation link is invalid or has expired. Please register again, or log in below if you've already confirmed your email."
       : null
   );
+
+  // UX10-DS02 — preserve a safe `next` across the "Create an account"
+  // link so a visitor who arrived here with a return destination (e.g.
+  // from the public Discovery Session landing) doesn't lose it just
+  // because they switch to registering instead of logging in.
+  const safeNextForLink = getSafeRedirectPath(searchParams.get("next"), "");
+  const registerHref = safeNextForLink
+    ? `/register?next=${encodeURIComponent(safeNextForLink)}`
+    : "/register";
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -64,8 +74,15 @@ export function LoginForm() {
         return;
       }
 
-      const next = searchParams.get("next");
-      router.push(next && next.startsWith("/") ? next : "/dashboard");
+      // UX10-DS02 — routed through the shared getSafeRedirectPath()
+      // validator (src/lib/auth/safe-redirect.ts) instead of this
+      // component's own inline check, which accepted unsafe
+      // protocol-relative values like `//evil.example`. Behavior for
+      // every already-safe `next` (e.g. `/discovery-session/book`,
+      // which is how this already supported returning a signed-in
+      // visitor to the real Discovery Session booking page) is
+      // unchanged.
+      router.push(getSafeRedirectPath(searchParams.get("next"), "/dashboard"));
       router.refresh();
     } catch (err) {
       setFormError(friendlyAuthError(err));
@@ -143,7 +160,10 @@ export function LoginForm() {
 
       <p className="text-center text-sm text-muted">
         New here?{" "}
-        <Link href="/register" className="font-medium text-secondary-dark underline underline-offset-2">
+        <Link
+          href={registerHref}
+          className="font-medium text-secondary-dark underline underline-offset-2"
+        >
           Create an account
         </Link>
       </p>

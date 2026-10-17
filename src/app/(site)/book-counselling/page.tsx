@@ -1,54 +1,56 @@
 import type { Metadata } from "next";
-import { ShieldCheck } from "lucide-react";
-import { Section } from "@/components/layout/Section";
-import { SectionHeading } from "@/components/ui/SectionHeading";
-import { Card } from "@/components/ui/Card";
-import { PageHero } from "@/components/sections/PageHero";
-import { BookingForm } from "@/components/sections/book-counselling/BookingForm";
+import { DiscoveryEntryHero } from "@/components/sections/book-counselling/DiscoveryEntryHero";
+import { DiscoveryEntryExplainerCards } from "@/components/sections/book-counselling/DiscoveryEntryExplainerCards";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Book Free Counselling",
-  description: "Request a free, no-obligation counselling conversation about your career and education goals.",
+  title: "Free Discovery Session | Nextwise",
+  description:
+    "Start with a free Nextwise Discovery Session to discuss your career and study options in India and Europe.",
   alternates: { canonical: "/book-counselling" },
 };
 
-export default function BookCounsellingPage() {
+/**
+ * UX10-DS02 "Public Discovery Entry & Auth Flow" — `/book-counselling`
+ * rebuilt as a genuine public Discovery Session entry page, replacing the
+ * Milestone-1 demo form that used to live here (BookingForm.tsx — its own
+ * success state told visitors their submission "was not transmitted,
+ * booked, or stored anywhere," which this milestone's own non-negotiable
+ * rules explicitly forbid continuing to ship).
+ *
+ * ROUTE STRATEGY (see UX10-DS02_REFERENCE_AUDIT.md for the full audit):
+ * this page is the public landing; the real, database-backed booking
+ * workflow stays exactly where UX10-DS01 left it, at
+ * /discovery-session/book. This page never renders a booking form of its
+ * own — it only explains the session and sends a visitor to Create Free
+ * Account / Sign In (both carrying `next=/discovery-session/book`, so a
+ * successful sign-in returns them straight to the real booking page — see
+ * LoginForm.tsx) or, if they're already signed in, straight to the real
+ * booking page directly.
+ *
+ * WHY BookingForm.tsx WAS NOT DELETED: src/config/site.test.ts's rebrand
+ * regression suite asserts that file still exists on disk (it's on the
+ * "must never mention the old brand name" list). Deleting it would break
+ * an unrelated, pre-existing test for no functional benefit — leaving it
+ * in place, simply no longer imported by this page, is the safe choice
+ * (brief section 17's own "remove them only if safe" instruction).
+ *
+ * AUTH STATE: this is a Server Component, so the real signed-in/signed-out
+ * state is read once, server-side, via the same `createClient()` +
+ * `supabase.auth.getUser()` pattern UX10-DS01's own page.tsx uses — no
+ * client-side flash of the wrong CTA state, and no private profile data is
+ * fetched (only the boolean fact of whether a user session exists).
+ */
+export default async function BookCounsellingPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <>
-      <PageHero
-        eyebrow="Book free counselling"
-        title="Tell us about your goals — we'll take it from there"
-        description="This first conversation is free and comes with no obligation to purchase anything. Share a few details so we can prepare for a useful conversation."
-        breadcrumbs={[{ label: "Home", href: "/" }, { label: "Book Counselling" }]}
-      />
-
-      <Section tone="surface">
-        <div className="grid gap-10 lg:grid-cols-[1.3fr_1fr]">
-          <div>
-            <SectionHeading eyebrow="Request a conversation" title="Your details" className="max-w-none" />
-            <div className="mt-6">
-              <BookingForm />
-            </div>
-          </div>
-          <div className="space-y-5">
-            <Card className="flex items-start gap-3">
-              <ShieldCheck aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-secondary" />
-              <p className="text-sm leading-relaxed text-text-soft">
-                Your details stay private and are used only to prepare for and follow up on this conversation. No
-                obligation, no pressure to buy a package.
-              </p>
-            </Card>
-            <Card>
-              <p className="text-sm font-semibold text-primary">What happens next</p>
-              <ol className="mt-3 space-y-2 text-sm text-text-soft">
-                <li>1. We review your goals and interest area.</li>
-                <li>2. A counsellor reaches out to confirm a time that works.</li>
-                <li>3. You have a free, no-obligation conversation.</li>
-              </ol>
-            </Card>
-          </div>
-        </div>
-      </Section>
+      <DiscoveryEntryHero isAuthenticated={Boolean(user)} />
+      <DiscoveryEntryExplainerCards />
     </>
   );
 }

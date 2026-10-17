@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Loader2, MailCheck, UserPlus } from "lucide-react";
 import { FormField } from "@/components/forms/FormField";
 import { Input } from "@/components/forms/Input";
@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/client";
 import { friendlyAuthError } from "@/lib/supabase/auth-errors";
 import { isRequired, isValidEmail, isValidIndianPhone, isValidPassword } from "@/lib/validation";
 import { trackEventClient } from "@/lib/supabase/analytics/track-client";
+import { getSafeRedirectPath } from "@/lib/auth/safe-redirect";
 
 interface FormState {
   fullName: string;
@@ -35,12 +36,23 @@ type FormErrors = Partial<Record<keyof FormState, string>>;
 
 export function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [values, setValues] = useState<FormState>(INITIAL_STATE);
   const [errors, setErrors] = useState<FormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [checkEmail, setCheckEmail] = useState(false);
+
+  // UX10-DS02 — preserve a safe `next` across the "Log in" link so a
+  // visitor who arrived here with a return destination (e.g. from the
+  // public Discovery Session landing) doesn't lose it just because they
+  // already have an account and switch to logging in instead. This does
+  // NOT change where a successful registration itself redirects to (see
+  // handleSubmit below and UX10-DS02_REFERENCE_AUDIT.md section 3 for why
+  // that redirect target is deliberately left untouched).
+  const safeNextForLink = getSafeRedirectPath(searchParams.get("next"), "");
+  const loginHref = safeNextForLink ? `/login?next=${encodeURIComponent(safeNextForLink)}` : "/login";
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -268,7 +280,7 @@ export function RegisterForm() {
 
       <p className="text-center text-sm text-muted">
         Already have an account?{" "}
-        <Link href="/login" className="font-medium text-secondary-dark underline underline-offset-2">
+        <Link href={loginHref} className="font-medium text-secondary-dark underline underline-offset-2">
           Log in
         </Link>
       </p>
