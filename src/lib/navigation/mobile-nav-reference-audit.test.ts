@@ -29,7 +29,12 @@ const WHY_NEXTWISE = read("components/sections/home/WhyNextwise.tsx");
 const CAREER_INSIGHTS_PANEL = read("components/sections/careers/CareerInsightsPanel.tsx");
 const COURSE_FILTER_BAR = read("components/sections/education/CourseFilterBar.tsx");
 const DISCOVERY_BOOKING_FORM = read("components/sections/discovery-session/DiscoverySessionBookingForm.tsx");
-const RECOMMENDATIONS_PAGE = read("app/(site)/recommendations/page.tsx");
+// UX10-REC01 moved /recommendations out of the `(site)` route group into
+// its own DashboardShell-wrapped layout (same precedented move UX10-D01/
+// UX10-P01 made for /dashboard and /profile) — this reference updates to
+// that new, real file location; the mobile full-width-CTA invariant this
+// test enforces is otherwise unchanged (see UX10-REC01_REFERENCE_AUDIT.md).
+const RECOMMENDATIONS_PAGE = read("app/recommendations/page.tsx");
 const NEXT_BEST_ACTION_CARD = read("components/dashboard/NextBestActionCard.tsx");
 const PROFILE_FORM_PANEL = read("components/sections/profile/ProfileFormPanel.tsx");
 
