@@ -8,7 +8,33 @@ import { Badge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
 import { PageHero } from "@/components/sections/PageHero";
 import { CTASection } from "@/components/sections/CTASection";
-import { EUROPE_COUNTRIES } from "@/data/europe-explorer";
+import { ProductSubNav } from "@/components/sections/ProductSubNav";
+import { EUROPE_COUNTRIES, type EuropeCountryCode } from "@/data/europe-explorer";
+
+// NW04.4 — purely decorative, next to each country's own real name from
+// EUROPE_COUNTRIES. Standard Unicode regional-indicator flag emoji for
+// each of the six real countries already in that registry — not an
+// external image, not fabricated data, just a visual aid.
+const FLAG_EMOJI: Record<EuropeCountryCode, string> = {
+  DE: "🇩🇪",
+  IE: "🇮🇪",
+  NL: "🇳🇱",
+  FR: "🇫🇷",
+  SE: "🇸🇪",
+  DK: "🇩🇰",
+};
+
+// NW04.4 — the in-product quick-nav row (see ProductSubNav.tsx's own
+// docblock). Every href is a real, pre-existing route except the last,
+// which anchors to this page's own "destinations" grid below.
+const ABROAD_SUBNAV = [
+  { label: "Overview", href: "/abroad" },
+  { label: "Destinations", href: "/study-europe" },
+  { label: "Programs", href: "/courses" },
+  { label: "Universities", href: "/universities" },
+  { label: "Guidance", href: "/book-counselling" },
+  { label: "Resources", href: "/abroad#explore" },
+] as const;
 
 /**
  * NW03.2 — Abroad product landing page.
@@ -22,7 +48,7 @@ import { EUROPE_COUNTRIES } from "@/data/europe-explorer";
  * stays on /study-europe; this page only teases the list and links out.
  */
 export const metadata: Metadata = {
-  title: "Study Abroad",
+  title: "Nextwise Abroad",
   description:
     "Research and plan studying abroad across six European countries — Germany, Ireland, Netherlands, France, Sweden, and Denmark — without needing a career assessment first.",
   alternates: { canonical: "/abroad" },
@@ -31,11 +57,12 @@ export const metadata: Metadata = {
 export default function AbroadProductPage() {
   return (
     <>
+      <ProductSubNav items={ABROAD_SUBNAV} activeHref="/abroad" />
       <PageHero
-        eyebrow="Study Abroad"
-        title="Research study-abroad options, starting right away"
-        description="Abroad is the study-abroad half of Nextwise: compare countries, universities, and courses across six European destinations — usable fully on its own, with no career assessment required first."
-        breadcrumbs={[{ label: "Home", href: "/" }, { label: "Study Abroad" }]}
+        eyebrow="Nextwise Abroad"
+        title="Your global education journey, simplified"
+        description="Explore top study destinations, programmes and universities with expert guidance at every step — usable fully on its own, with no career assessment required first."
+        breadcrumbs={[{ label: "Home", href: "/" }, { label: "Nextwise Abroad" }]}
       >
         <Badge tone="info">
           <Sparkles aria-hidden="true" className="h-3.5 w-3.5" />
@@ -43,10 +70,10 @@ export default function AbroadProductPage() {
         </Badge>
       </PageHero>
 
-      <Section tone="surface">
+      <Section tone="surface" id="explore">
         <SectionHeading
           eyebrow="Six launch destinations"
-          title="Compare countries at a glance"
+          title="Explore study destinations"
           description="Every country below is one of the six Nextwise currently supports in depth. Open the full Country Explorer to compare tuition, English-taught programmes, admissions, and post-study options, then go straight to each country's official source."
           align="center"
           className="mx-auto max-w-2xl"
@@ -54,7 +81,12 @@ export default function AbroadProductPage() {
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {EUROPE_COUNTRIES.map((country) => (
             <Card key={country.code} className="flex items-center justify-between gap-3">
-              <span className="text-base font-semibold text-primary">{country.name}</span>
+              <span className="flex items-center gap-2.5 text-base font-semibold text-primary">
+                <span aria-hidden="true" className="text-xl leading-none">
+                  {FLAG_EMOJI[country.code]}
+                </span>
+                {country.name}
+              </span>
               {country.recommended ? <Badge tone="accent">Popular</Badge> : null}
             </Card>
           ))}
@@ -68,7 +100,7 @@ export default function AbroadProductPage() {
 
       <Section tone="muted">
         <SectionHeading
-          eyebrow="Also available"
+          eyebrow="Everything you need to go abroad"
           title="Keep researching across every destination"
           align="center"
           className="mx-auto max-w-2xl"

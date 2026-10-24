@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { ChevronDown, Compass, LayoutDashboard, LogIn, LogOut, Menu, UserPlus, X } from "lucide-react";
+import { ChevronDown, Compass, GraduationCap, LayoutDashboard, LogIn, LogOut, Menu, UserPlus, X } from "lucide-react";
 import { EXPLORE_NAV, HOME_NAV_LINK, PRIMARY_NAV, PRODUCT_NAV } from "@/config/site";
 import { LinkButton } from "@/components/ui/Button";
 import { logout } from "@/lib/supabase/actions";
@@ -17,12 +17,20 @@ import { cn } from "@/lib/utils";
  * UX03-04 — mobile public navigation.
  *
  * Rebuilt around an intentional hierarchy rather than the desktop nav
- * simply compressed into a list: Explore (expandable, matching the
- * desktop dropdown's four entries) → the same short top-level row shown
- * on desktop (How It Works / Counselling / Pricing / About) → Account
- * (Sign In / Get Started, or Dashboard / Log out when signed in) →
- * Language. The drawer mechanics (native <dialog>, body-scroll lock,
- * close on Escape/outside/route-change) are unchanged from the prior
+ * simply compressed into a list: Home → the two product entry points
+ * (Career Intelligence / Nextwise Abroad, kept flat here rather than
+ * tucked into a collapsible "Products" section — the brief's own mobile
+ * IA spec asks for these as direct links) → For Students (added in
+ * NW04.5, mirrors Header.tsx's new desktop link to /studio) → Resources
+ * (expandable, matching the desktop dropdown's four entries; labelled
+ * "Explore" before NW04.5 — see ExploreMenu.tsx's docblock) → the same
+ * short top-level row shown on desktop (How It Works / Counselling /
+ * Pricing / About, kept flat on mobile rather than mirroring the desktop
+ * "About" dropdown — mobile doesn't have the same horizontal-space
+ * pressure a dropdown exists to relieve) → Account (Sign In / Get
+ * Started, or Dashboard / Log out when signed in) → Language. The drawer
+ * mechanics (native <dialog>, body-scroll lock, close on
+ * Escape/outside/route-change) are unchanged from the prior
  * implementation — only the content structure inside it changed.
  */
 export function MobileNav() {
@@ -140,6 +148,21 @@ export function MobileNav() {
                   </li>
                 );
               })}
+              {/* NW04.5 — "For Students" points at the Studio hub (/studio),
+                  mirroring the new desktop link in Header.tsx. */}
+              <li>
+                <Link
+                  href="/studio"
+                  aria-current={isNavLinkActive(pathname, "/studio") ? "page" : undefined}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-md px-3 py-3 text-base font-medium hover:bg-surface-alt",
+                    isNavLinkActive(pathname, "/studio") ? "bg-surface-alt text-primary font-semibold" : "text-text"
+                  )}
+                >
+                  <GraduationCap aria-hidden="true" className="h-4 w-4 text-secondary" />
+                  For Students
+                </Link>
+              </li>
               <li>
                 <button
                   type="button"
@@ -153,7 +176,7 @@ export function MobileNav() {
                 >
                   <span className="flex items-center gap-2.5">
                     <Compass aria-hidden="true" className="h-4 w-4 text-secondary" />
-                    Explore
+                    Resources
                   </span>
                   <ChevronDown aria-hidden="true" className={cn("h-4 w-4 transition-transform", exploreOpen && "rotate-180")} />
                 </button>

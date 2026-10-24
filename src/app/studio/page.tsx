@@ -69,7 +69,7 @@ export default async function StudioHubPage() {
               <Globe2 aria-hidden="true" className="h-5 w-5" />
             </span>
             <div className="mt-4 flex items-center gap-2">
-              <h2 className="text-lg font-semibold text-primary">Study Abroad</h2>
+              <h2 className="text-lg font-semibold text-primary">Nextwise Abroad</h2>
               {entitlements.hasAbroadEntitlement ? <Badge tone="success">Active plan</Badge> : null}
             </div>
             <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">

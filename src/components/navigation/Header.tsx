@@ -10,6 +10,7 @@ import { isNavLinkActive } from "@/lib/navigation/active-nav";
 import { LanguageSelector } from "./LanguageSelector";
 import { AccountMenu } from "./AccountMenu";
 import { ExploreMenu } from "./ExploreMenu";
+import { NavDropdown } from "./NavDropdown";
 import { MobileNav } from "./MobileNav";
 import { Logo } from "./Logo";
 import { cn } from "@/lib/utils";
@@ -97,44 +98,46 @@ export function Header() {
                 <NavUnderline active={isNavLinkActive(pathname, HOME_NAV_LINK.href)} />
               </Link>
             </li>
-            {/* NW03.2 — the two product entry points (Career Intelligence,
-                Abroad), rendered the same quiet-underline way as the rest
-                of the primary nav, right after Home and before Explore so
-                they read as top-level destinations rather than buried in
-                the Explore dropdown. */}
-            {PRODUCT_NAV.map((link) => {
-              const active = isNavLinkActive(pathname, link.href);
-              return (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    aria-current={active ? "page" : undefined}
-                    className={cn(NAV_LINK_BASE, active ? "font-semibold text-primary" : "font-medium text-text-soft hover:text-primary")}
-                  >
-                    {link.label}
-                    <NavUnderline active={active} />
-                  </Link>
-                </li>
-              );
-            })}
+            {/* NW04.5 — nav-IA restructuring per the brief's target desktop
+                IA: Logo | Products | For Students | Resources | About |
+                search | Sign in | Get Started. PRODUCT_NAV's two entries
+                (previously a flat row right after Home) now live in a
+                "Products" dropdown, backed by the same generic NavDropdown
+                that already powers Resources (formerly "Explore" — see
+                ExploreMenu.tsx). A new plain "For Students" link points at
+                the Studio hub (/studio — the one shared signed-in landing
+                point between the two product workspaces; see
+                src/app/studio/page.tsx). PRIMARY_NAV's four entries (How It
+                Works / Counselling / Pricing / About) now consolidate into
+                an "About" dropdown rather than four separate top-level
+                slots. No href is removed, renamed, or made unreachable —
+                every one of these six destinations was already reachable
+                before this change; only the grouping changed (see
+                NW04_05_NAVIGATION_CONVERSION.md for the full rationale). */}
+            <li>
+              <NavDropdown id="products" label="Products" items={PRODUCT_NAV} />
+            </li>
+            <li>
+              <Link
+                href="/studio"
+                aria-current={isNavLinkActive(pathname, "/studio") ? "page" : undefined}
+                className={cn(
+                  NAV_LINK_BASE,
+                  isNavLinkActive(pathname, "/studio")
+                    ? "font-semibold text-primary"
+                    : "font-medium text-text-soft hover:text-primary"
+                )}
+              >
+                For Students
+                <NavUnderline active={isNavLinkActive(pathname, "/studio")} />
+              </Link>
+            </li>
             <li>
               <ExploreMenu />
             </li>
-            {PRIMARY_NAV.map((link) => {
-              const active = isNavLinkActive(pathname, link.href);
-              return (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    aria-current={active ? "page" : undefined}
-                    className={cn(NAV_LINK_BASE, active ? "font-semibold text-primary" : "font-medium text-text-soft hover:text-primary")}
-                  >
-                    {link.label}
-                    <NavUnderline active={active} />
-                  </Link>
-                </li>
-              );
-            })}
+            <li>
+              <NavDropdown id="about" label="About" items={PRIMARY_NAV} />
+            </li>
           </ul>
         </nav>
 

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Compass, GraduationCap, MessageCircle, Sparkles } from "lucide-react";
+import { ArrowRight, Compass, GraduationCap, MessageCircle, Sparkles, Target } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Card } from "@/components/ui/Card";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
 import { PageHero } from "@/components/sections/PageHero";
 import { CTASection } from "@/components/sections/CTASection";
+import { ProductSubNav } from "@/components/sections/ProductSubNav";
 
 /**
  * NW03.2 — Career Intelligence product landing page.
@@ -57,6 +58,13 @@ const CAREER_LINKS = [
     linkLabel: "Find courses",
   },
   {
+    icon: Target,
+    title: "Personalised recommendations",
+    description: "Get recommendation readiness and guidance tailored to your profile, once you've built one.",
+    href: "/recommendations",
+    linkLabel: "View recommendations",
+  },
+  {
     icon: MessageCircle,
     title: "Talk to a counsellor",
     description: "Book a free counselling conversation about your goals — no pressure, no obligation to buy anything.",
@@ -65,13 +73,27 @@ const CAREER_LINKS = [
   },
 ] as const;
 
+// NW04.3 — the in-product quick-nav row (see ProductSubNav.tsx's own
+// docblock). Every href is a real, pre-existing route except the last,
+// which anchors to this page's own "Where to start" grid below — never a
+// fabricated /resources route.
+const CAREER_SUBNAV = [
+  { label: "Overview", href: "/career" },
+  { label: "Careers", href: "/careers" },
+  { label: "Courses", href: "/courses" },
+  { label: "Colleges", href: "/universities" },
+  { label: "Assessments", href: "/career-discovery" },
+  { label: "Resources", href: "/career#explore" },
+] as const;
+
 export default function CareerProductPage() {
   return (
     <>
+      <ProductSubNav items={CAREER_SUBNAV} activeHref="/career" />
       <PageHero
         eyebrow="Career Intelligence"
-        title="Figure out your career direction, on your own terms"
-        description="Career Intelligence is the India-focused half of Nextwise: career discovery, course and university research, and counselling — usable fully on its own, with no study-abroad purchase required."
+        title="Discover multiple possibilities for your future"
+        description="Explore careers, courses and colleges, and get recommendations tailored to your profile — usable fully on its own, with no study-abroad purchase required."
         breadcrumbs={[{ label: "Home", href: "/" }, { label: "Career Intelligence" }]}
       >
         <Badge tone="info">
@@ -80,15 +102,15 @@ export default function CareerProductPage() {
         </Badge>
       </PageHero>
 
-      <Section tone="surface">
+      <Section tone="surface" id="explore">
         <SectionHeading
-          eyebrow="Where to start"
+          eyebrow="Explore your path"
           title="Everything you need for your career direction"
           description="Each of these already exists on Nextwise today — this page just brings them together under Career Intelligence."
           align="center"
           className="mx-auto max-w-2xl"
         />
-        <div className="mt-10 grid gap-5 sm:grid-cols-2">
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {CAREER_LINKS.map(({ icon: Icon, title, description, href, linkLabel }) => (
             <Card key={href} className="flex flex-col">
               <span className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">

@@ -11,6 +11,7 @@ import {
   ClipboardList,
   GraduationCap,
   LayoutDashboard,
+  LayoutGrid,
   LogOut,
   Menu,
   Receipt,
@@ -44,8 +45,14 @@ interface NavItem {
  *    index page today, only per-id detail pages — see
  *    src/app/(site)/agreements/[id]/page.tsx)
  */
+/**
+ * NW03.3 — "Studio" added ahead of "Dashboard" as the entry point back to
+ * the shared hub where a student picks between the two independent product
+ * workspaces (Career Intelligence / Nextwise Abroad). Every other item below
+ * is unchanged from UX10-D01's original eight.
+ */
 const NAV_ITEMS: NavItem[] = [
-  { label: "Studio", href: "/studio", icon: LayoutDashboard },
+  { label: "Studio", href: "/studio", icon: LayoutGrid },
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "My Profile", href: "/profile", icon: UserRound },
   { label: "Recommendations", href: "/recommendations", icon: Sparkles },

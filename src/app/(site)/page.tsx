@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { HomeHero } from "@/components/sections/home/HomeHero";
+import { ProductEntryCards } from "@/components/sections/home/ProductEntryCards";
+import { StudioIntro } from "@/components/sections/home/StudioIntro";
 import { DiscoveryPillars } from "@/components/sections/home/DiscoveryPillars";
 import { TrustedStudyExplorer } from "@/components/sections/home/TrustedStudyExplorer";
 import { HowItWorks } from "@/components/sections/home/HowItWorks";
@@ -49,6 +51,11 @@ export default function HomePage() {
   return (
     <>
       <HomeHero />
+      {/* NW04.2 — the two-product "choose where to start" entry section
+          and the Student Studio introduction, both new and additive.
+          See ProductEntryCards.tsx's and StudioIntro.tsx's own docblocks. */}
+      <ProductEntryCards />
+      <StudioIntro />
       <DiscoveryPillars />
       <TrustedStudyExplorer />
       <HowItWorks />

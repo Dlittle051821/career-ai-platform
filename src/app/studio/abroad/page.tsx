@@ -6,7 +6,7 @@ import { ComingSoon } from "@/components/ui/ComingSoon";
 import { DemoNotice } from "@/components/ui/DemoNotice";
 
 export const metadata: Metadata = {
-  title: "Study Abroad Workspace",
+  title: "Nextwise Abroad Workspace",
   robots: { index: false, follow: false },
 };
 
@@ -33,7 +33,7 @@ export default function StudioAbroadPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-primary sm:text-3xl">Study Abroad</h1>
+        <h1 className="text-2xl font-semibold text-primary sm:text-3xl">Nextwise Abroad</h1>
         <p className="mt-2 text-base text-muted">
           Research and plan your study-abroad journey across six European countries — fully usable on its own.
         </p>

@@ -71,6 +71,14 @@ interface StaticEntry {
 const STATIC_ENTRIES: StaticEntry[] = [
   { path: "/", changeFrequency: "weekly", priority: 1.0 },
 
+  // NW04.6 — the two top-level product front doors (NW03.2/NW04.2-04),
+  // each with its own `alternates.canonical` and no `robots` override (see
+  // docs/milestones/NW04/NW04_01_UX_AUDIT.md §6) — genuinely indexable,
+  // genuinely public, and missing from this file until now. Same priority
+  // tier as the other primary discovery/service entry points below.
+  { path: "/career", changeFrequency: "weekly", priority: 0.8 },
+  { path: "/abroad", changeFrequency: "weekly", priority: 0.8 },
+
   // Primary discovery/service entry points.
   { path: "/career-discovery", changeFrequency: "weekly", priority: 0.8 },
   { path: "/careers", changeFrequency: "weekly", priority: 0.8 },

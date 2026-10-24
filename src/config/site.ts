@@ -112,7 +112,7 @@ export const EXPLORE_NAV: NavLink[] = [
  */
 export const PRODUCT_NAV: NavLink[] = [
   { label: "Career Intelligence", href: "/career", description: "Career discovery, courses, and counselling in India." },
-  { label: "Study Abroad", href: "/abroad", description: "Research and plan studying abroad across six countries." },
+  { label: "Nextwise Abroad", href: "/abroad", description: "Research and plan studying abroad across six countries." },
 ];
 
 export const PRIMARY_NAV: NavLink[] = [
@@ -139,7 +139,7 @@ export const HOME_NAV_LINK: NavLink = { label: "Home", href: "/" };
 export const FOOTER_NAV: Record<string, NavLink[]> = {
   Products: [
     { label: "Career Intelligence", href: "/career" },
-    { label: "Study Abroad", href: "/abroad" },
+    { label: "Nextwise Abroad", href: "/abroad" },
   ],
   Explore: [
     { label: "Careers", href: "/careers" },
