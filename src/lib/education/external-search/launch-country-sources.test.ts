@@ -11,8 +11,8 @@ import {
 } from "./launch-country-sources";
 
 describe("LAUNCH_COUNTRY_PRIMARY_SOURCES — exactly one primary source per launch country", () => {
-  it("has exactly six entries, one per Tier 1 launch country", () => {
-    expect(LAUNCH_COUNTRY_PRIMARY_SOURCES.length).toBe(6);
+  it("has exactly seven entries, one per NW02 launch destination", () => {
+    expect(LAUNCH_COUNTRY_PRIMARY_SOURCES.length).toBe(7);
   });
 
   it("has no duplicate countryCode (the task's own 'no competing primary sources' rule)", () => {
@@ -35,36 +35,47 @@ describe("LAUNCH_COUNTRY_PRIMARY_SOURCES — exactly one primary source per laun
   it("matches the task-specified authority and primary domain for each country exactly", () => {
     const bySlug = (slug: string) => LAUNCH_COUNTRY_PRIMARY_SOURCES.find((s) => s.providerSlug === slug);
 
+    expect(bySlug("study-in-india")).toMatchObject({
+      countryCode: "IN",
+      authority: "Study in India — Government of India",
+      primaryDomain: "studyinindia.gov.in",
+    });
     expect(bySlug("daad-international-programmes")).toMatchObject({
       countryCode: "DE",
       authority: "DAAD — German Academic Exchange Service",
       primaryDomain: "daad.de",
-    });
-    expect(bySlug("study-uk-british-council")).toMatchObject({
-      countryCode: "GB",
-      authority: "Study UK — British Council",
-      primaryDomain: "study-uk.britishcouncil.org",
-    });
-    expect(bySlug("educationusa")).toMatchObject({
-      countryCode: "US",
-      authority: "EducationUSA",
-      primaryDomain: "educationusa.state.gov",
-    });
-    expect(bySlug("government-of-canada-study")).toMatchObject({
-      countryCode: "CA",
-      authority: "Government of Canada",
-      primaryDomain: "canada.ca",
-    });
-    expect(bySlug("study-australia")).toMatchObject({
-      countryCode: "AU",
-      authority: "Study Australia — Australian Government",
-      primaryDomain: "studyaustralia.gov.au",
     });
     expect(bySlug("education-in-ireland")).toMatchObject({
       countryCode: "IE",
       authority: "Education in Ireland",
       primaryDomain: "educationinireland.com",
     });
+    expect(bySlug("study-in-nl")).toMatchObject({
+      countryCode: "NL",
+      authority: "Study in NL — Nuffic",
+      primaryDomain: "studyinnl.org",
+    });
+    expect(bySlug("campus-france")).toMatchObject({
+      countryCode: "FR",
+      authority: "Campus France",
+      primaryDomain: "campusfrance.org",
+    });
+    expect(bySlug("universityadmissions-se")).toMatchObject({
+      countryCode: "SE",
+      primaryDomain: "universityadmissions.se",
+    });
+    expect(bySlug("study-in-denmark")).toMatchObject({
+      countryCode: "DK",
+      authority: "Study in Denmark — Danish Ministry of Higher Education and Science",
+      primaryDomain: "studyindenmark.dk",
+    });
+  });
+
+  it("no longer names GB/US/CA/AU as any country's launch-primary (removed from this registry, their provider rows untouched in the database)", () => {
+    const codes = LAUNCH_COUNTRY_PRIMARY_SOURCES.map((s) => s.countryCode);
+    for (const removed of ["GB", "US", "CA", "AU"]) {
+      expect(codes).not.toContain(removed);
+    }
   });
 
   it("every entry's countryName matches its countryCode's LAUNCH_COUNTRY_NAMES value", () => {
@@ -81,7 +92,7 @@ describe("getLaunchCountryPrimarySource", () => {
   });
 
   it("returns null for a country that is not a Tier 1 launch country", () => {
-    expect(getLaunchCountryPrimarySource("FR")).toBeNull();
+    expect(getLaunchCountryPrimarySource("GB")).toBeNull();
     expect(getLaunchCountryPrimarySource(null)).toBeNull();
     expect(getLaunchCountryPrimarySource("")).toBeNull();
   });
@@ -125,31 +136,51 @@ describe("no unsupported partnership language in this registry's own copy", () =
 });
 
 describe("seed-file consistency (static source-text audit — no DB connection in this test environment)", () => {
-  const seedPath = path.join(__dirname, "..", "..", "..", "..", "supabase", "seed", "0008_m20a_launch_country_sources_seed.sql");
-  const seedText = readFileSync(seedPath, "utf8");
+  // NW02 — every launch-primary provider now comes from one of two seed
+  // files: 0006 (the original global registry — carries India/Netherlands/
+  // France/Sweden/Denmark, each seeded `active = false` pending admin
+  // verification) and 0008 (M20A's own seed — carries Germany's pre-
+  // existing active row's sibling activations for the ORIGINAL UK/US/CA/
+  // AU/IE set; Ireland's launch-primary, `education-in-ireland`, still
+  // lives there, active). Checking BOTH files (rather than only 0008, as
+  // the pre-NW02 version of this test did) keeps the invariant this test
+  // exists for — "the TypeScript registry and the SQL seed cannot silently
+  // drift apart" — true for the revised seven-country launch set.
+  const seed0006Path = path.join(__dirname, "..", "..", "..", "..", "supabase", "seed", "0006_trusted_course_search_seed.sql");
+  const seed0008Path = path.join(__dirname, "..", "..", "..", "..", "supabase", "seed", "0008_m20a_launch_country_sources_seed.sql");
+  const seed0006Text = readFileSync(seed0006Path, "utf8");
+  const seed0008Text = readFileSync(seed0008Path, "utf8");
+  const combinedSeedText = `${seed0006Text}\n${seed0008Text}`;
 
-  it("the seed file exists and inserts into the EXISTING external_search_providers table, never a new table", () => {
-    expect(seedText).toContain("insert into public.external_search_providers");
-    expect(seedText).not.toMatch(/create table/i);
+  it("both seed files exist and insert into the EXISTING external_search_providers table, never a new table", () => {
+    expect(seed0006Text).toContain("insert into public.external_search_providers");
+    expect(seed0008Text).toContain("insert into public.external_search_providers");
+    expect(seed0006Text).not.toMatch(/create table/i);
+    expect(seed0008Text).not.toMatch(/create table/i);
   });
 
-  it("the seed file contains every non-Germany launch-primary providerSlug and primaryDomain, so the TypeScript registry and the SQL seed cannot silently drift apart", () => {
+  it("one of the two seed files contains every launch-primary providerSlug and primaryDomain, so the TypeScript registry and the SQL seeds cannot silently drift apart", () => {
     for (const entry of LAUNCH_COUNTRY_PRIMARY_SOURCES) {
-      if (entry.countryCode === "DE") continue; // Germany's source was seeded by the pre-existing 0006 seed, not this file.
-      expect(seedText).toContain(`'${entry.providerSlug}'`);
-      expect(seedText).toContain(entry.primaryDomain);
+      expect(combinedSeedText).toContain(`'${entry.providerSlug}'`);
+      expect(combinedSeedText).toContain(entry.primaryDomain);
     }
   });
 
-  it("the seed file is idempotent (uses ON CONFLICT DO NOTHING, same convention as 0006's seed)", () => {
-    expect(seedText).toMatch(/on conflict \(slug\) do nothing/i);
+  it("India/Netherlands/France/Sweden/Denmark's provider rows are seeded inactive (active = false) — pending admin verification, never auto-activated by this milestone", () => {
+    for (const slug of ["study-in-india", "study-in-nl", "campus-france", "universityadmissions-se", "study-in-denmark"]) {
+      const rowMatch = seed0006Text.match(new RegExp(`'${slug}'[\\s\\S]{0,400}`));
+      expect(rowMatch, `expected to find the ${slug} row in 0006's seed`).not.toBeNull();
+      expect(rowMatch?.[0]).toMatch(/'[a-z]{2}',\s*false,\s*null/);
+    }
   });
 
-  it("the seed file never fabricates a verified subject/degree deep-link mapping for these five providers", () => {
-    expect(seedText).not.toContain("insert into public.external_search_mappings");
+  it("both seed files are idempotent (use ON CONFLICT DO NOTHING)", () => {
+    expect(seed0006Text).toMatch(/on conflict \(slug\) do nothing/i);
+    expect(seed0008Text).toMatch(/on conflict \(slug\) do nothing/i);
   });
 
-  it("the seed file's own prose contains no unsupported partnership language", () => {
-    expect(containsUnsupportedPartnershipLanguage(seedText)).toBe(false);
+  it("neither seed file's prose contains unsupported partnership language", () => {
+    expect(containsUnsupportedPartnershipLanguage(seed0006Text)).toBe(false);
+    expect(containsUnsupportedPartnershipLanguage(seed0008Text)).toBe(false);
   });
 });

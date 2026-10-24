@@ -12,6 +12,29 @@ import type { CompletionResult } from "@/types/student-profile";
  * `getStudentProfileSnapshot()` returned null), a locked/empty state is
  * shown instead of a fabricated 0%-complete checklist.
  */
+/**
+ * NW01 Part C — pure, directly-testable "what does this percent honestly
+ * say?" logic, pulled out of the JSX below so a unit test can cover every
+ * boundary (0 / partial / >=75 / 100) without needing a React rendering
+ * harness (this repo has none today — see journey-progress.ts/
+ * next-best-action.ts for the same "pure logic, thin UI on top" pattern).
+ * The confirmed defect this replaces: `percent >= 75 ? "Almost there!" :
+ * ...` kept showing "Almost there!" even once percent genuinely reached
+ * 100.
+ */
+export function profileCompletenessMessage(percent: number): { heading: string; subcopy: string } {
+  if (percent >= 100) {
+    return {
+      heading: "Your profile is complete!",
+      subcopy: "Every required section is filled in — your recommendations reflect your full profile.",
+    };
+  }
+  return {
+    heading: percent >= 75 ? "Almost there!" : percent > 0 ? "Keep going — every section helps." : "Let's get started.",
+    subcopy: "Complete the remaining sections for more accurate recommendations.",
+  };
+}
+
 export function ProfileCompletenessCard({ completion }: { completion: CompletionResult }) {
   const { percent, sections, status } = completion;
   const requiredSections = sections.filter((s) => s.required);
@@ -71,8 +94,17 @@ export function ProfileCompletenessCard({ completion }: { completion: Completion
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-text">{percent >= 75 ? "Almost there!" : percent > 0 ? "Keep going — every section helps." : "Let's get started."}</p>
-          <p className="mt-1 text-xs text-muted">Complete the remaining sections for more accurate recommendations.</p>
+          {/*
+            NW01 Part C — see profileCompletenessMessage() above:
+            `calculateCompletion()` (src/lib/profile/completion.ts) only
+            ever derives `percent` from REQUIRED sections — the optional
+            "Experience" section (weight 0) can never hold it below 100, so
+            percent === 100 here always means every required section is
+            genuinely done; no second completion calculator was introduced,
+            this is still the one real percent.
+          */}
+          <p className="text-sm font-semibold text-text">{profileCompletenessMessage(percent).heading}</p>
+          <p className="mt-1 text-xs text-muted">{profileCompletenessMessage(percent).subcopy}</p>
           <ul className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
             {requiredSections.map((section) => (
               <li key={section.key} className="flex items-center gap-2 text-sm">

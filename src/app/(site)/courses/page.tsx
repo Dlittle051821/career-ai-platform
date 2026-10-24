@@ -139,7 +139,7 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
   if (subjectRaw) activeFiltersForPagination.subject = subjectRaw;
   if (degreeRaw) activeFiltersForPagination.degree = degreeRaw;
 
-  // M20C — LaunchCountryDiscovery's quick-select strip for the six Tier 1
+  // M20C — LaunchCountryDiscovery's quick-select strip for the Tier 1
   // launch countries. Reuses the page's EXISTING `destination` param
   // (already independent of the internal `country` checkbox filter, see
   // the comment on CourseFilterBar's own `destination` prop above) —

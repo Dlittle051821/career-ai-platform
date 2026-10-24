@@ -31,15 +31,15 @@ describe("LaunchCountryDiscovery — single source of truth, no re-derived count
     expect(componentSource).toContain("LAUNCH_COUNTRY_NAMES[code]");
   });
 
-  it("never hardcodes a literal six-country-code array of its own, in the component or in either page", () => {
-    const literalArrayPattern = /\[\s*["']DE["']\s*,\s*["']GB["']\s*,\s*["']US["']\s*,\s*["']CA["']\s*,\s*["']AU["']\s*,\s*["']IE["']\s*\]/;
+  it("never hardcodes a literal seven-country-code array of its own, in the component or in either page", () => {
+    const literalArrayPattern = /\[\s*["']IN["']\s*,\s*["']DE["']\s*,\s*["']IE["']\s*,\s*["']NL["']\s*,\s*["']FR["']\s*,\s*["']SE["']\s*,\s*["']DK["']\s*\]/;
     expect(componentSource).not.toMatch(literalArrayPattern);
     expect(coursesPageSource).not.toMatch(literalArrayPattern);
     expect(universitiesPageSource).not.toMatch(literalArrayPattern);
   });
 
-  it("renders every launch country's display name from LAUNCH_COUNTRY_NAMES, never a literal 'UK' abbreviation for the United Kingdom", () => {
-    expect(LAUNCH_COUNTRY_NAMES.GB).toBe("United Kingdom");
+  it("renders every launch country's display name from LAUNCH_COUNTRY_NAMES, never a literal abbreviation", () => {
+    expect(LAUNCH_COUNTRY_NAMES.IN).toBe("India");
     expect(componentSource).not.toMatch(/>\s*UK\s*</);
     expect(componentSource).not.toContain('"UK"');
   });
@@ -136,9 +136,9 @@ describe("LaunchCountryDiscovery — specialist-vs-primary non-replacement and D
   });
 
   it("isLaunchCountryCode rejects a non-launch country and a garbage value the same way the pages rely on for `selectedLaunchCode`/`unavailableLaunchCodes`", () => {
-    expect(isLaunchCountryCode("FR")).toBe(false);
+    expect(isLaunchCountryCode("GB")).toBe(false);
     expect(isLaunchCountryCode("ZZ")).toBe(false);
-    expect(isLaunchCountryCode("GB")).toBe(true);
+    expect(isLaunchCountryCode("IN")).toBe(true);
   });
 });
 

@@ -10,6 +10,7 @@ import { getDiscoverySessionById } from "@/lib/supabase/admin/discovery-sessions
 import { getDiscoverySessionWorkspace } from "@/lib/supabase/admin/discovery-session-workspace";
 import { listCounsellorOptions } from "@/lib/supabase/admin/counsellors";
 import { DISCOVERY_SESSION_STATUS_LABELS } from "@/types/discovery-session";
+import { formatDiscoverySessionDateTime } from "@/lib/discovery-sessions/format";
 import { updateDiscoverySessionAction } from "../actions";
 
 interface DiscoverySessionDetailPageProps {
@@ -40,7 +41,7 @@ export default async function DiscoverySessionDetailPage({ params }: DiscoverySe
           <p className="text-sm font-semibold uppercase tracking-wide text-secondary">Discovery Session</p>
           <h1 className="mt-2 text-2xl font-semibold text-primary sm:text-3xl">{session.studentName ?? "Unnamed student"}</h1>
           <p className="mt-2 text-sm text-muted">
-            {session.studentEmail ?? "No email on file"} · Requested {new Date(session.createdAt).toLocaleString("en-IN")}
+            {session.studentEmail ?? "No email on file"} · Requested {formatDiscoverySessionDateTime(session.createdAt)}
           </p>
         </div>
         <StatusBadge status={session.status} labelOverride={DISCOVERY_SESSION_STATUS_LABELS[session.status]} />
@@ -80,7 +81,7 @@ export default async function DiscoverySessionDetailPage({ params }: DiscoverySe
           <div>
             <h2 className="text-base font-semibold text-primary">Counsellor Workspace</h2>
             <p className="mt-1 text-sm text-muted">
-              {workspace ? `Started — last updated ${new Date(workspace.updatedAt).toLocaleString("en-IN")}.` : "Not started yet — sections A-J."}
+              {workspace ? `Started — last updated ${formatDiscoverySessionDateTime(workspace.updatedAt)}.` : "Not started yet — sections A-J."}
             </p>
           </div>
         </div>

@@ -81,15 +81,6 @@ export default async function RecommendationsPage() {
     ...savedCourses.map((c) => ({ key: `course-${c.id}`, label: c.name, logoUrl: null })),
   ];
 
-  const nextBestAction = getNextBestAction({
-    profileStatus: completion.status,
-    profilePercent: completion.percent,
-    payableInvoiceCount: payableInvoices.length,
-    pendingSignatureAgreement: agreements.find((a) => a.signatureStatus === "pending_signature"),
-    careerReadiness,
-    hasActiveDiscoverySession: Boolean(activeDiscoverySession),
-  });
-
   const nextActionsByType = RECOMMENDATION_TYPES.map((type) => ({
     typeLabel: `${RECOMMENDATION_TYPE_LABELS[type]} next steps`,
     actions: allReadiness?.[type]?.nextActions.slice(0, 3) ?? [],
@@ -150,6 +141,24 @@ export default async function RecommendationsPage() {
   }
 
   const { results, totalCareersConsidered } = getRecommendations(snapshot, careers);
+
+  // NW01 Part D/F — moved below `results` (was computed earlier, before
+  // the catalogue-availability check above) specifically so it can pass
+  // the same real `hasUsableCareerRecommendations` signal
+  // `src/app/dashboard/page.tsx` now also passes — both pages' Next Best
+  // Action can never disagree about whether recommendations are
+  // genuinely ready, because both derive it from this exact
+  // `getRecommendations()` call's own result, not from readiness level
+  // alone.
+  const nextBestAction = getNextBestAction({
+    profileStatus: completion.status,
+    profilePercent: completion.percent,
+    payableInvoiceCount: payableInvoices.length,
+    pendingSignatureAgreement: agreements.find((a) => a.signatureStatus === "pending_signature"),
+    careerReadiness,
+    hasUsableCareerRecommendations: results.length > 0,
+    hasActiveDiscoverySession: Boolean(activeDiscoverySession),
+  });
 
   void trackEvent({
     eventName: "career_recommendations_generated",

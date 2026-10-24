@@ -9,7 +9,7 @@ import { LinkButton } from "@/components/ui/Button";
 import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
 import { CareerCard } from "@/components/sections/careers/CareerCard";
 import { getCareerBySlug, getRelatedCareers } from "@/lib/supabase/careers";
-import { subjectLabel, interestLabel, skillLabel, educationLevelLabel, fieldLabel, SKILL_LEVEL_LABELS, RELEVANCE_LABELS } from "@/lib/careers/labels";
+import { subjectLabel, interestLabel, skillLabel, educationLevelLabel, fieldLabel, educationLevelToCourseSearchDegree, SKILL_LEVEL_LABELS, RELEVANCE_LABELS } from "@/lib/careers/labels";
 import { deriveCareerCharacteristics } from "@/lib/careers/characteristics";
 import { trackEvent } from "@/lib/supabase/analytics/track";
 import { BRAND_NAME } from "@/config/site";
@@ -193,19 +193,45 @@ export default async function CareerDetailPage({ params }: CareerDetailPageProps
             <Card>
               <h2 className="text-lg font-semibold text-primary">Common education routes</h2>
               <div className="mt-3 space-y-2">
-                {career.educationRoutes.map((route, i) => (
-                  <div key={i} className="flex flex-wrap items-center gap-2 rounded-[var(--radius-control)] border border-border px-3 py-2 text-sm">
-                    <span className="font-medium text-text">{educationLevelLabel(route.educationLevel)}</span>
-                    <span className="text-muted">—</span>
-                    <span className="text-text-soft">{fieldLabel(route.fieldKey)}</span>
-                    <Badge tone={route.relevance === "primary" ? "success" : route.relevance === "common" ? "info" : "neutral"} className="ml-auto text-[11px]">
-                      {RELEVANCE_LABELS[route.relevance] ?? route.relevance}
-                    </Badge>
-                  </div>
-                ))}
+                {career.educationRoutes.map((route, i) => {
+                  // NW02 §7 — a direct, honest transition from this career's
+                  // own real education-route data into the Course Explorer's
+                  // existing destination/subject/degree search, reusing the
+                  // same `subject`/`degree` taxonomy params `/courses` already
+                  // soft-matches (an unrecognized subject simply falls back to
+                  // free-text search there — see taxonomy.ts's resolveSubject
+                  // — so this link can never claim a false exact match). Never
+                  // rendered for a route whose educationLevel has no confident
+                  // Course Explorer equivalent (see
+                  // educationLevelToCourseSearchDegree's own docblock).
+                  const canonicalDegree = educationLevelToCourseSearchDegree(route.educationLevel);
+                  const courseSearchHref = canonicalDegree
+                    ? `/courses?subject=${encodeURIComponent(fieldLabel(route.fieldKey))}&degree=${canonicalDegree}`
+                    : null;
+                  return (
+                    <div key={i} className="flex flex-wrap items-center gap-2 rounded-[var(--radius-control)] border border-border px-3 py-2 text-sm">
+                      <span className="font-medium text-text">{educationLevelLabel(route.educationLevel)}</span>
+                      <span className="text-muted">—</span>
+                      <span className="text-text-soft">{fieldLabel(route.fieldKey)}</span>
+                      <span className="ml-auto flex items-center gap-2">
+                        <Badge tone={route.relevance === "primary" ? "success" : route.relevance === "common" ? "info" : "neutral"} className="text-[11px]">
+                          {RELEVANCE_LABELS[route.relevance] ?? route.relevance}
+                        </Badge>
+                        {courseSearchHref ? (
+                          <Link href={courseSearchHref} className="text-xs font-semibold text-secondary-dark hover:text-primary">
+                            Search courses &rarr;
+                          </Link>
+                        ) : null}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
               <p className="mt-3 text-xs text-muted">
-                These are common routes in, not the only path — and not a university or course recommendation.
+                These are common routes in, not the only path — not a university or course recommendation, and not a
+                guarantee that any specific programme leads to this career. &ldquo;Search courses&rdquo; opens the
+                Course Explorer pre-filtered on this route&apos;s subject and degree level so you can continue
+                researching real programmes yourself.
               </p>
             </Card>
           ) : null}

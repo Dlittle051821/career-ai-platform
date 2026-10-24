@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/client";
 import { friendlyAuthError } from "@/lib/supabase/auth-errors";
 import { isRequired, isValidEmail } from "@/lib/validation";
 import { getSafeRedirectPath } from "@/lib/auth/safe-redirect";
+import { resolveMyDefaultWorkspace } from "@/lib/supabase/actions";
 
 interface FormState {
   email: string;
@@ -82,7 +83,18 @@ export function LoginForm() {
       // which is how this already supported returning a signed-in
       // visitor to the real Discovery Session booking page) is
       // unchanged.
-      router.push(getSafeRedirectPath(searchParams.get("next"), "/dashboard"));
+      //
+      // NW01 Part B — the fallback (used only when there is no explicit,
+      // safe `next`) used to be hardcoded to "/dashboard" regardless of
+      // role, which sent a signed-in admin/finance/counsellor/etc. account
+      // straight to the student dashboard. `resolveMyDefaultWorkspace()`
+      // (a Server Action, src/lib/supabase/actions.ts) now resolves the
+      // real, server-side `admin_roles` row for the account that just
+      // signed in and returns "/admin" or "/dashboard" accordingly. An
+      // explicit `next` still always wins — this only changes the
+      // fallback a plain login (no `next`) lands on.
+      const fallback = await resolveMyDefaultWorkspace();
+      router.push(getSafeRedirectPath(searchParams.get("next"), fallback));
       router.refresh();
     } catch (err) {
       setFormError(friendlyAuthError(err));

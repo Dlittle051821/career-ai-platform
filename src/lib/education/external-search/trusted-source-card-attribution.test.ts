@@ -72,7 +72,7 @@ describe("TrustedExternalSearchCard — M20C discovery-UX refinement", () => {
     // Every registry purpose string is already asserted non-partnership by
     // launch-country-sources.test.ts; this just confirms the card surfaces
     // that exact field rather than a hand-written string of its own.
-    for (const code of ["DE", "GB", "US", "CA", "AU", "IE"] as const) {
+    for (const code of ["IN", "DE", "IE", "NL", "FR", "SE", "DK"] as const) {
       const primary = getLaunchCountryPrimarySource(code);
       expect(primary).not.toBeNull();
       expect(containsUnsupportedPartnershipLanguage(primary?.purpose)).toBe(false);

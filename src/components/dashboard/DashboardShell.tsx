@@ -45,6 +45,7 @@ interface NavItem {
  *    src/app/(site)/agreements/[id]/page.tsx)
  */
 const NAV_ITEMS: NavItem[] = [
+  { label: "Studio", href: "/studio", icon: LayoutDashboard },
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "My Profile", href: "/profile", icon: UserRound },
   { label: "Recommendations", href: "/recommendations", icon: Sparkles },

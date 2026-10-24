@@ -23,37 +23,47 @@
  * world. "Launch country" is a narrower, product-level concept (M20's own
  * term): the small set of destinations Nextwise is prepared to offer a
  * trusted national fallback source for AT LAUNCH. Every launch-country
- * code below is expected to already exist as a public.countries row (it
- * does — DE/GB/US/CA/AU/IE are all already referenced by existing
- * external_search_providers rows seeded in
- * supabase/seed/0006_trusted_course_search_seed.sql), but this list is not
- * generated from that table — it is a deliberate, hand-curated product
- * decision, reviewed the same way SUBJECT_TAXONOMY is (see taxonomy.ts's
- * own docblock for why hand-curated data is preferred here over deriving
- * membership from a larger table).
+ * code below is expected to already exist as a public.countries row, but
+ * this list is not generated from that table — it is a deliberate,
+ * hand-curated product decision, reviewed the same way SUBJECT_TAXONOMY is
+ * (see taxonomy.ts's own docblock for why hand-curated data is preferred
+ * here over deriving membership from a larger table).
+ *
+ * NW02 — LAUNCH SET REVISED: the original M20 launch set (DE/GB/US/CA/AU/IE)
+ * is replaced by NW02's approved launch destinations — India plus the same
+ * six European countries UX10-EU01's `/study-europe` explorer already
+ * covers (`src/data/europe-explorer.ts`'s `EUROPE_COUNTRIES`): Germany,
+ * Ireland, Netherlands, France, Sweden, Denmark. GB/US/CA/AU are REMOVED
+ * from this launch-facing registry — this never deletes their historical
+ * `public.countries` rows or their existing `external_search_providers`
+ * rows (UCAS/EducationUSA/EduCanada/CRICOS/etc. all remain in the
+ * database, untouched, simply no longer surfaced through this launch-
+ * country registry). India's primary source
+ * (`study-in-india` / studyinindia.gov.in) and the four newly-added
+ * European primary sources (Netherlands/France/Sweden/Denmark) were already
+ * seeded, inactive, by `supabase/seed/0006_trusted_course_search_seed.sql`
+ * — see `launch-country-sources.ts` for how that inactive state is
+ * surfaced honestly rather than treated as verified/active.
  */
 
-export const LAUNCH_COUNTRY_CODES = ["DE", "GB", "US", "CA", "AU", "IE"] as const;
+export const LAUNCH_COUNTRY_CODES = ["IN", "DE", "IE", "NL", "FR", "SE", "DK"] as const;
 
 export type LaunchCountryCode = (typeof LAUNCH_COUNTRY_CODES)[number];
 
 /**
  * The one public display name every UI/report must use for each launch
- * country — never "USA"/"US"/"United States of America" interchangeably
- * (the task's own "Country Labels" rule: consistent public names, no
- * casual mixing, unless existing product copy conventions require it; this
- * codebase's existing copy already says "United States" wherever it names
- * a country in a sentence, e.g. src/lib/education/duplicates.ts comments
- * and public.countries seed data, so this list matches that convention
- * rather than introducing a new one).
+ * country — never a casual abbreviation mixed in (the task's own "Country
+ * Labels" rule: consistent public names, matching this codebase's existing
+ * copy convention, e.g. public.countries seed data).
  */
 export const LAUNCH_COUNTRY_NAMES: Readonly<Record<LaunchCountryCode, string>> = {
+  IN: "India",
   DE: "Germany",
-  GB: "United Kingdom",
-  US: "United States",
-  CA: "Canada",
-  AU: "Australia",
   IE: "Ireland",
+  NL: "Netherlands",
+  FR: "France",
+  SE: "Sweden",
+  DK: "Denmark",
 };
 
 const LAUNCH_COUNTRY_CODE_SET: ReadonlySet<string> = new Set(LAUNCH_COUNTRY_CODES);
@@ -65,7 +75,7 @@ export function isLaunchCountryCode(value: string): value is LaunchCountryCode {
 
 /**
  * Normalizes a raw country-code-shaped string (uppercases, trims) and
- * returns it ONLY if the result is one of the six Tier 1 launch countries
+ * returns it ONLY if the result is one of the Tier 1 launch countries
  * — otherwise null. Mirrors the trim/case-fold shape of this codebase's
  * existing normalize helpers (src/lib/education/normalize.ts's
  * normalizeWhitespace/extractDomain: pure, never throws, null for

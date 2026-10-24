@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ChevronDown, Compass, LayoutDashboard, LogIn, LogOut, Menu, UserPlus, X } from "lucide-react";
-import { EXPLORE_NAV, HOME_NAV_LINK, PRIMARY_NAV } from "@/config/site";
+import { EXPLORE_NAV, HOME_NAV_LINK, PRIMARY_NAV, PRODUCT_NAV } from "@/config/site";
 import { LinkButton } from "@/components/ui/Button";
 import { logout } from "@/lib/supabase/actions";
 import { firstNameOf, useAuthUser } from "@/lib/supabase/use-auth-user";
@@ -117,6 +117,29 @@ export function MobileNav() {
                   {HOME_NAV_LINK.label}
                 </Link>
               </li>
+              {/* NW03.2 — the two product entry points, shown right after
+                  Home and before Explore, matching the desktop ordering in
+                  Header.tsx. */}
+              {PRODUCT_NAV.map((link) => {
+                const active = isNavLinkActive(pathname, link.href);
+                return (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "block rounded-md px-3 py-3 text-base font-medium hover:bg-surface-alt",
+                        active ? "bg-surface-alt text-primary font-semibold" : "text-text"
+                      )}
+                    >
+                      {link.label}
+                      {link.description ? (
+                        <span className="mt-0.5 block text-xs font-normal text-muted">{link.description}</span>
+                      ) : null}
+                    </Link>
+                  </li>
+                );
+              })}
               <li>
                 <button
                   type="button"

@@ -9,6 +9,7 @@ const BASE: NextBestActionInput = {
   payableInvoiceCount: 0,
   pendingSignatureAgreement: undefined,
   careerReadiness: null,
+  hasUsableCareerRecommendations: false,
   hasActiveDiscoverySession: false,
 };
 
@@ -66,12 +67,41 @@ describe("getNextBestAction", () => {
     expect(action.description).toBe("Add two more subjects. Rate your interests.");
   });
 
-  it("points to recommendations once READY or COUNSELLOR_VERIFIED", () => {
+  it("points to recommendations once READY or COUNSELLOR_VERIFIED AND a real usable result exists", () => {
     for (const level of ["READY", "COUNSELLOR_VERIFIED"] as const) {
-      const action = getNextBestAction({ ...BASE, profileStatus: "completed", careerReadiness: readiness(level) });
+      const action = getNextBestAction({
+        ...BASE,
+        profileStatus: "completed",
+        careerReadiness: readiness(level),
+        hasUsableCareerRecommendations: true,
+      });
       expect(action.href).toBe("/recommendations");
       expect(action.cta).toBe("View my recommendations");
     }
+  });
+
+  it("NW01 Part F — never claims recommendations are ready when readiness says READY/VERIFIED but there is no real usable result (e.g. a catalogue outage)", () => {
+    for (const level of ["READY", "COUNSELLOR_VERIFIED"] as const) {
+      const action = getNextBestAction({
+        ...BASE,
+        profileStatus: "completed",
+        careerReadiness: readiness(level),
+        hasUsableCareerRecommendations: false,
+      });
+      expect(action.title).not.toMatch(/your recommendations are ready/i);
+      expect(action.title.toLowerCase()).toContain("right now");
+    }
+  });
+
+  it("NW01 Part F — the catalogue-outage fallback still respects an existing active Discovery Session (never re-prompts booking)", () => {
+    const action = getNextBestAction({
+      ...BASE,
+      profileStatus: "completed",
+      careerReadiness: readiness("READY"),
+      hasUsableCareerRecommendations: false,
+      hasActiveDiscoverySession: true,
+    });
+    expect(action.href).not.toBe("/discovery-session/book");
   });
 
   it("offers a Discovery Session when nothing more urgent applies and none is booked", () => {

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search } from "lucide-react";
-import { HOME_NAV_LINK, PRIMARY_NAV } from "@/config/site";
+import { HOME_NAV_LINK, PRIMARY_NAV, PRODUCT_NAV } from "@/config/site";
 import { Container } from "@/components/layout/Container";
 import { isNavLinkActive } from "@/lib/navigation/active-nav";
 import { LanguageSelector } from "./LanguageSelector";
@@ -97,6 +97,26 @@ export function Header() {
                 <NavUnderline active={isNavLinkActive(pathname, HOME_NAV_LINK.href)} />
               </Link>
             </li>
+            {/* NW03.2 — the two product entry points (Career Intelligence,
+                Abroad), rendered the same quiet-underline way as the rest
+                of the primary nav, right after Home and before Explore so
+                they read as top-level destinations rather than buried in
+                the Explore dropdown. */}
+            {PRODUCT_NAV.map((link) => {
+              const active = isNavLinkActive(pathname, link.href);
+              return (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(NAV_LINK_BASE, active ? "font-semibold text-primary" : "font-medium text-text-soft hover:text-primary")}
+                  >
+                    {link.label}
+                    <NavUnderline active={active} />
+                  </Link>
+                </li>
+              );
+            })}
             <li>
               <ExploreMenu />
             </li>

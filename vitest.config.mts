@@ -335,6 +335,29 @@ export default defineConfig({
       // framework-free" convention as every directory above; it imports
       // nothing from Supabase or Next.js.
       "src/lib/auth/**/*.test.ts",
+      // NW01 "Trust & System Integrity" — ProfileCompletenessCard.tsx's
+      // pure `profileCompletenessMessage()` helper (the fix for the
+      // confirmed "100% complete still says 'Almost there!'" defect) is
+      // exported and unit-tested directly, same "pure logic, thin UI on
+      // top, no React Testing Library in this repo" convention as every
+      // directory above — this is the first `src/components/` directory
+      // (outside `sections/`) to need its own test glob.
+      "src/components/dashboard/**/*.test.ts",
+      // NW01 "Trust & System Integrity" — the shared Asia/Kolkata-explicit,
+      // "IST"-labelled date/time formatter (src/lib/discovery-sessions/
+      // format.ts) that replaced several bare, timezone-ambiguous
+      // `toLocaleString("en-IN")` calls across the Discovery Session
+      // surfaces (dashboard card, booking page, admin detail page).
+      "src/lib/discovery-sessions/**/*.test.ts",
+      // NW03.4 "Shared auth, profile & entitlement foundation" — the pure
+      // purchase-category -> product classifier (src/lib/products/
+      // entitlements.ts: productForCategory/classifyPurchaseEntitlements).
+      // Same "pure, framework-free" convention as every directory above;
+      // the I/O wrapper (getMyProductEntitlements(), which calls
+      // listMyPurchases() and reads pricing_plans) talks to Supabase and is
+      // untested here for the same reason as every other src/lib/supabase/-
+      // adjacent I/O wrapper in this file.
+      "src/lib/products/**/*.test.ts",
     ],
   },
 });

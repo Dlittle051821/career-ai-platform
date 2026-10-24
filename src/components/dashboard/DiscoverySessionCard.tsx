@@ -3,10 +3,7 @@ import Link from "next/link";
 import { ArrowRight, CalendarHeart } from "lucide-react";
 import type { DiscoverySession } from "@/types/discovery-session";
 import { DISCOVERY_SESSION_STATUS_LABELS } from "@/types/discovery-session";
-
-function formatSessionTime(iso: string): string {
-  return new Date(iso).toLocaleString("en-IN", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
-}
+import { formatDiscoverySessionDateTime } from "@/lib/discovery-sessions/format";
 
 /**
  * UX10-D01 — "Discovery Session". `session` is the real
@@ -37,7 +34,7 @@ export function DiscoverySessionCard({ session }: { session: DiscoverySession | 
           </span>
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-text">Career Guidance Session</p>
-            {session.scheduledAt ? <p className="text-xs text-muted">{formatSessionTime(session.scheduledAt)}</p> : null}
+            {session.scheduledAt ? <p className="text-xs text-muted">{formatDiscoverySessionDateTime(session.scheduledAt)}</p> : null}
             {session.assignedCounsellorName ? <p className="truncate text-xs text-muted">With {session.assignedCounsellorName}</p> : null}
           </div>
         </div>

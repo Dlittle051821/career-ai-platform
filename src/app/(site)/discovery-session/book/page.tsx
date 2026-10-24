@@ -15,6 +15,7 @@ import { DiscoverySessionBookingForm } from "@/components/sections/discovery-ses
 import { getMyActiveDiscoverySession } from "@/lib/supabase/discovery-sessions/book";
 import { createClient } from "@/lib/supabase/server";
 import { DISCOVERY_SESSION_STATUS_LABELS } from "@/types/discovery-session";
+import { formatDiscoverySessionDateTime } from "@/lib/discovery-sessions/format";
 
 export const metadata: Metadata = {
   title: "Free Discovery Session | Nextwise",
@@ -116,10 +117,25 @@ export default async function DiscoverySessionBookPage() {
                   <p className="text-base font-semibold text-primary">
                     You already have a Discovery Session {DISCOVERY_SESSION_STATUS_LABELS[activeSession.status].toLowerCase()}
                   </p>
+                  {/*
+                    NW01 Part G — confirmed defect: this always said "will
+                    be in touch to confirm a time", even once the session's
+                    real `scheduledAt` was already set (status "scheduled")
+                    — stale, and contradicted the dashboard's own Discovery
+                    Session card, which already showed the real time. A
+                    `preferredTimeRange` (a STUDENT-submitted preference,
+                    never a confirmed slot — see DiscoverySessionBookingForm's
+                    own "This is a preference, not a confirmed appointment
+                    slot" hint) is still never shown here as if it were one.
+                  */}
                   <p className="mt-2 text-sm leading-relaxed text-muted">
-                    {activeSession.assignedCounsellorName
-                      ? `${activeSession.assignedCounsellorName} will be in touch to confirm a time, if they haven't already.`
-                      : "A counsellor will reach out to confirm a time that works for you."}
+                    {activeSession.scheduledAt
+                      ? `Confirmed for ${formatDiscoverySessionDateTime(activeSession.scheduledAt)}${
+                          activeSession.assignedCounsellorName ? ` with ${activeSession.assignedCounsellorName}` : ""
+                        }.`
+                      : activeSession.assignedCounsellorName
+                        ? `${activeSession.assignedCounsellorName} will be in touch to confirm a time, if they haven't already.`
+                        : "A counsellor will reach out to confirm a time that works for you."}
                   </p>
                   <Link href="/dashboard" className="mt-4 inline-block text-sm font-semibold text-secondary-dark hover:text-primary">
                     Back to my dashboard

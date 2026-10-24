@@ -101,6 +101,20 @@ export const EXPLORE_NAV: NavLink[] = [
   { label: "Study Options", href: "/study-options", description: "Compare studying in India against studying abroad." },
 ];
 
+/**
+ * NW03.2 — the two top-level product entry points (Career Intelligence,
+ * Abroad). Added ahead of the pre-existing PRIMARY_NAV items, matching
+ * HOME_NAV_LINK's own precedent of a small, separately-tracked constant
+ * rather than folding into PRIMARY_NAV itself — Header.tsx and
+ * MobileNav.tsx render this row distinctly from the rest of PRIMARY_NAV
+ * (see NW03_02_ROUTES.md). Purely additive: no existing nav link below is
+ * removed, renamed, or reordered.
+ */
+export const PRODUCT_NAV: NavLink[] = [
+  { label: "Career Intelligence", href: "/career", description: "Career discovery, courses, and counselling in India." },
+  { label: "Study Abroad", href: "/abroad", description: "Research and plan studying abroad across six countries." },
+];
+
 export const PRIMARY_NAV: NavLink[] = [
   { label: "How It Works", href: "/how-it-works" },
   { label: "Counselling", href: "/book-counselling" },
@@ -123,6 +137,10 @@ export const PRIMARY_NAV: NavLink[] = [
 export const HOME_NAV_LINK: NavLink = { label: "Home", href: "/" };
 
 export const FOOTER_NAV: Record<string, NavLink[]> = {
+  Products: [
+    { label: "Career Intelligence", href: "/career" },
+    { label: "Study Abroad", href: "/abroad" },
+  ],
   Explore: [
     { label: "Careers", href: "/careers" },
     { label: "Courses", href: "/courses" },

@@ -47,12 +47,21 @@ export function RegisterForm() {
   // UX10-DS02 — preserve a safe `next` across the "Log in" link so a
   // visitor who arrived here with a return destination (e.g. from the
   // public Discovery Session landing) doesn't lose it just because they
-  // already have an account and switch to logging in instead. This does
-  // NOT change where a successful registration itself redirects to (see
-  // handleSubmit below and UX10-DS02_REFERENCE_AUDIT.md section 3 for why
-  // that redirect target is deliberately left untouched).
+  // already have an account and switch to logging in instead.
   const safeNextForLink = getSafeRedirectPath(searchParams.get("next"), "");
   const loginHref = safeNextForLink ? `/login?next=${encodeURIComponent(safeNextForLink)}` : "/login";
+
+  // NW03.3 (AC-04) — the actual post-registration destination. Previously
+  // hardcoded to "/welcome" regardless of where the visitor started (see
+  // handleSubmit below), which meant an Abroad-originated signup (e.g. from
+  // /abroad's "Get Started" link) was unconditionally funneled through the
+  // Career-oriented Assisted Onboarding screen with no way to reach
+  // /studio/abroad directly — a violation of "Abroad must never require a
+  // Career assessment". Routed through the same shared, open-redirect-safe
+  // getSafeRedirectPath() validator LoginForm.tsx already uses, so a plain
+  // registration (no `next`, the common case) still lands on "/welcome"
+  // exactly as before — only an explicit, safe `next` changes the outcome.
+  const safeNext = getSafeRedirectPath(searchParams.get("next"), "/welcome");
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -91,7 +100,9 @@ export function RegisterForm() {
             marketing_consent: values.marketingConsent,
           },
           emailRedirectTo:
-            typeof window !== "undefined" ? `${window.location.origin}/auth/callback?next=/welcome` : undefined,
+            typeof window !== "undefined"
+              ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext)}`
+              : undefined,
         },
       });
 
@@ -115,9 +126,12 @@ export function RegisterForm() {
       if (data.session) {
         // Email confirmation is disabled on this Supabase project — the
         // account is immediately active with a live session. Milestone
-        // 11-B: land on the Assisted Onboarding choice screen, never
-        // straight into a mandatory profile form — see /welcome.
-        router.push("/welcome");
+        // 11-B: a plain registration (no `next`) lands on the Assisted
+        // Onboarding choice screen, never straight into a mandatory profile
+        // form — see /welcome. NW03.3: an explicit, safe `next` (e.g. a
+        // registrant arriving from /abroad) now wins instead, so Abroad
+        // signups can land on /studio/abroad directly — see safeNext above.
+        router.push(safeNext);
         router.refresh();
         return;
       }

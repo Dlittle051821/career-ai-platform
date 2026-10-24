@@ -38,6 +38,47 @@
  * LaunchCountryCode) and exercised by this module's own test file
  * (launch-country-sources.test.ts asserts no duplicate countryCode and no
  * duplicate providerSlug across the whole list).
+ *
+ * NW02 — LAUNCH SET REVISED (India + the six EU01 European countries):
+ * Germany's and Ireland's entries are untouched (same providerSlug, same
+ * already-active provider rows). The United Kingdom/United States/Canada/
+ * Australia entries are REMOVED (their underlying `external_search_providers`
+ * rows are untouched in the database — just no longer surfaced as a
+ * launch-primary here). Five entries are added/changed:
+ *   - India (`study-in-india`, studyinindia.gov.in) and the four new
+ *     European countries (Netherlands/France/Sweden/Denmark) all point at
+ *     provider rows that already exist in
+ *     `supabase/seed/0006_trusted_course_search_seed.sql` — but, unlike
+ *     Germany/Ireland, those five rows are seeded `active = false` (the
+ *     original spec behind that seed gave only a bare official domain for
+ *     them, with instructions to "verify... before activation" — the same
+ *     discipline this file's own header describes for UCAS/CRICOS/NCES
+ *     before 0008 activated the UK/US/CA/AU/IE set).
+ *   - This file still names them as the launch-primary designation (the
+ *     "which ONE provider row is the right one for this country"
+ *     question this module exists to answer), but `active = false` means
+ *     `buildProviderSearchResult` (adapter.ts) returns
+ *     `{ available: false, reason: "provider_inactive" }` for every one of
+ *     them until an admin activates the row — so no inactive source is
+ *     ever surfaced to a student as verified. `/courses` and
+ *     `/universities` already render the honest
+ *     "No trusted official portal is currently activated for <country> in
+ *     our system yet" message for exactly this case (pre-existing M20C
+ *     behavior, exercised by this milestone's own regression tests).
+ *   - Each of these five domains (studyinindia.gov.in, studyinnl.org,
+ *     campusfrance.org, universityadmissions.se, studyindenmark.dk) is the
+ *     SAME domain already independently verified by UX10-EU01's
+ *     `src/data/europe-explorer.ts` (Netherlands/France/Sweden/Denmark —
+ *     that file's own docblock records how each was verified against the
+ *     organization's own live site) — reused here verbatim rather than
+ *     re-typed, so the two registries can never silently drift apart on
+ *     authority/domain text for the countries they share.
+ *   - NW02 does not flip any provider's `active` flag — that is a database
+ *     write, and the brief is explicit that an inactive source must get a
+ *     separately reviewable activation proposal, never an automatic flip.
+ *     See NW02_OPEN_BLOCKERS.md for the exact admin action (via the
+ *     existing `/admin/education/sources` tooling) that activates each of
+ *     these five once reviewed.
  */
 
 import { LAUNCH_COUNTRY_CODES, LAUNCH_COUNTRY_NAMES, normalizeLaunchCountryCode, type LaunchCountryCode } from "./launch-countries";
@@ -69,17 +110,28 @@ export interface LaunchCountryPrimarySource {
 }
 
 /**
- * Exactly six entries — one per LAUNCH_COUNTRY_CODES, in the same order.
- * Germany's source (DAAD International Programmes) already existed in
- * the architecture this milestone discovered — seeded `active = true`
- * with a real verified deep link by
- * supabase/seed/0006_trusted_course_search_seed.sql — and is reused
- * as-is, unmodified. The other five are new provider rows added by
- * supabase/seed/0008_m20a_launch_country_sources_seed.sql (this
- * milestone's own seed file; see that file's header for why each was
- * seeded `active = true` rather than left pending admin verification).
+ * Exactly seven entries — one per LAUNCH_COUNTRY_CODES, in the same order.
+ * Germany's and Ireland's sources are unmodified: both already existed,
+ * already `active = true`, already carrying a real verified source
+ * (DAAD International Programmes / Education in Ireland). The other five
+ * (India, Netherlands, France, Sweden, Denmark) point at provider rows
+ * that already exist in `supabase/seed/0006_trusted_course_search_seed.sql`
+ * but are seeded `active = false` — this file still designates each as its
+ * country's launch-primary so `getLaunchCountryPrimarySource` answers "which
+ * one provider is this country's primary" correctly, while the `active`
+ * flag itself (a database value, never flipped by this milestone) keeps
+ * each one honestly unavailable to students until an admin verifies and
+ * activates it. See this file's own header and NW02_OPEN_BLOCKERS.md.
  */
 export const LAUNCH_COUNTRY_PRIMARY_SOURCES: readonly LaunchCountryPrimarySource[] = [
+  {
+    countryCode: "IN",
+    countryName: LAUNCH_COUNTRY_NAMES.IN,
+    providerSlug: "study-in-india",
+    authority: "Study in India — Government of India",
+    primaryDomain: "studyinindia.gov.in",
+    purpose: "Official Government of India guidance on higher-education institutions and programmes in India.",
+  },
   {
     countryCode: "DE",
     countryName: LAUNCH_COUNTRY_NAMES.DE,
@@ -89,44 +141,44 @@ export const LAUNCH_COUNTRY_PRIMARY_SOURCES: readonly LaunchCountryPrimarySource
     purpose: "International study guidance, programme discovery, and admission guidance for studying in Germany.",
   },
   {
-    countryCode: "GB",
-    countryName: LAUNCH_COUNTRY_NAMES.GB,
-    providerSlug: "study-uk-british-council",
-    authority: "Study UK — British Council",
-    primaryDomain: "study-uk.britishcouncil.org",
-    purpose: "National study guidance, course and university guidance, and application guidance for studying in the UK.",
-  },
-  {
-    countryCode: "US",
-    countryName: LAUNCH_COUNTRY_NAMES.US,
-    providerSlug: "educationusa",
-    authority: "EducationUSA",
-    primaryDomain: "educationusa.state.gov",
-    purpose: "Official U.S. higher-education guidance for international students.",
-  },
-  {
-    countryCode: "CA",
-    countryName: LAUNCH_COUNTRY_NAMES.CA,
-    providerSlug: "government-of-canada-study",
-    authority: "Government of Canada",
-    primaryDomain: "canada.ca",
-    purpose: "International student study guidance, school selection, and study permit information for studying in Canada.",
-  },
-  {
-    countryCode: "AU",
-    countryName: LAUNCH_COUNTRY_NAMES.AU,
-    providerSlug: "study-australia",
-    authority: "Study Australia — Australian Government",
-    primaryDomain: "studyaustralia.gov.au",
-    purpose: "Course and provider discovery, study guidance, student life, and visa preparation for studying in Australia.",
-  },
-  {
     countryCode: "IE",
     countryName: LAUNCH_COUNTRY_NAMES.IE,
     providerSlug: "education-in-ireland",
     authority: "Education in Ireland",
     primaryDomain: "educationinireland.com",
     purpose: "Institution discovery, study planning, and international student guidance for studying in Ireland.",
+  },
+  {
+    countryCode: "NL",
+    countryName: LAUNCH_COUNTRY_NAMES.NL,
+    providerSlug: "study-in-nl",
+    authority: "Study in NL — Nuffic",
+    primaryDomain: "studyinnl.org",
+    purpose: "Official guidance on studying in the Netherlands, programme search, and practical planning for international students.",
+  },
+  {
+    countryCode: "FR",
+    countryName: LAUNCH_COUNTRY_NAMES.FR,
+    providerSlug: "campus-france",
+    authority: "Campus France",
+    primaryDomain: "campusfrance.org",
+    purpose: "France's official agency for promoting French higher education and guiding international students through study and admission planning.",
+  },
+  {
+    countryCode: "SE",
+    countryName: LAUNCH_COUNTRY_NAMES.SE,
+    providerSlug: "universityadmissions-se",
+    authority: "University Admissions in Sweden — Swedish Council for Higher Education (UHR)",
+    primaryDomain: "universityadmissions.se",
+    purpose: "Official national application portal for higher education in Sweden, run by the Swedish Council for Higher Education (UHR).",
+  },
+  {
+    countryCode: "DK",
+    countryName: LAUNCH_COUNTRY_NAMES.DK,
+    providerSlug: "study-in-denmark",
+    authority: "Study in Denmark — Danish Ministry of Higher Education and Science",
+    primaryDomain: "studyindenmark.dk",
+    purpose: "Official Danish government guidance on studying in Denmark, including institutions, programmes, and practical planning.",
   },
 ];
 

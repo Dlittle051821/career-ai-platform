@@ -58,7 +58,7 @@ export function DiscoverySessionActionForm({
             </Select>
           </FormField>
 
-          <FormField id="scheduledAt" label="Scheduled date/time" hint="Required before moving to 'Scheduled'.">
+          <FormField id="scheduledAt" label="Scheduled date/time (IST)" hint="Required before moving to 'Scheduled'. Enter this in India Standard Time — every student-facing display of this time is always shown in IST, regardless of the student's own country.">
             <Input id="scheduledAt" name="scheduledAt" type="datetime-local" defaultValue={toLocalDateTimeInputValue(session.scheduledAt)} />
           </FormField>
         </div>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSafeRedirectPath } from "@/lib/auth/safe-redirect";
+import { resolveDefaultWorkspacePath } from "@/lib/auth/default-workspace";
 
 /**
  * Single callback route for every Supabase email link: signup
@@ -24,13 +25,25 @@ import { getSafeRedirectPath } from "@/lib/auth/safe-redirect";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const safeNext = getSafeRedirectPath(searchParams.get("next"), "/dashboard");
+  // NW01 Part B — this fallback only ever fires when `next` is absent or
+  // unsafe; both real flows that land here (RegisterForm's email
+  // confirmation and ForgotPasswordForm's recovery link) always supply an
+  // explicit, already-safe `next` ("/welcome"/"/reset-password"), so this
+  // is a rare defense-in-depth path, not the common case — kept
+  // role-aware anyway for consistency with LoginForm's own fallback (see
+  // src/lib/auth/default-workspace.ts).
+  const rawNext = searchParams.get("next");
+  const safeNext = getSafeRedirectPath(rawNext, "");
 
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(`${origin}${safeNext}`);
+      const destination = safeNext || (user ? await resolveDefaultWorkspacePath(supabase, user.id) : "/dashboard");
+      return NextResponse.redirect(`${origin}${destination}`);
     }
   }
 

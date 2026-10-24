@@ -52,6 +52,39 @@ export const careerPriorityLabel = (key: string): string => CAREER_PRIORITY_LABE
 export const educationLevelLabel = (key: string): string => EDUCATION_LEVEL_LABELS.get(key) ?? humanize(key);
 export const fieldLabel = (key: string): string => FIELD_LABELS.get(key) ?? humanize(key);
 
+/**
+ * NW02 §7 — career → education pathway navigation.
+ *
+ * Maps a career's own `education_routes.education_level` key (from
+ * `profile-options.ts`'s EDUCATION_LEVEL_OPTIONS — the same taxonomy the
+ * Student Digital Profile uses) onto the Course Explorer's taxonomy of
+ * `CanonicalDegreeLevel` string values (`/lib/education/external-search/
+ * taxonomy.ts`'s CANONICAL_DEGREE_LEVELS: "bachelors" | "masters" |
+ * "doctorate" | "diploma_certificate" | "other") — returned as a plain
+ * string, not that type, so this module never has to import the
+ * education/external-search taxonomy just for a type annotation.
+ *
+ * Returns null for a level this milestone has no confident Course
+ * Explorer equivalent for (class_10/class_12 — school-stage levels with no
+ * course-catalogue analogue) rather than guessing one; callers should omit
+ * the "search courses" link entirely in that case, never link to a degree
+ * level this route doesn't actually imply.
+ */
+export function educationLevelToCourseSearchDegree(key: string): string | null {
+  switch (key) {
+    case "bachelors":
+      return "bachelors";
+    case "masters":
+      return "masters";
+    case "phd":
+      return "doctorate";
+    case "diploma":
+      return "diploma_certificate";
+    default:
+      return null;
+  }
+}
+
 export const SKILL_LEVEL_LABELS: Record<string, string> = {
   beginner: "Beginner",
   intermediate: "Intermediate",

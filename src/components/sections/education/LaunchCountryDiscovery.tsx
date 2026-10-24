@@ -8,7 +8,7 @@ interface LaunchCountryDiscoveryProps {
    * The launch country the page's OWN existing query state currently
    * resolves to — null when no destination is selected, or the current
    * selection is a valid but non-launch-country value (e.g. a country this
-   * dataset supports that isn't one of the six Tier 1 launch countries).
+   * dataset supports that isn't one of the Tier 1 launch countries).
    * Each page computes this itself from state it already has
    * (`/courses`'s `destination` param, `/universities`'s single-selected
    * country checkbox) via M20A's own `isLaunchCountryCode` — this
@@ -52,7 +52,7 @@ interface LaunchCountryDiscoveryProps {
  * on either page without any state-synchronization code.
  *
  * Deliberately subtle: a labeled `<nav>` of small pill links, not a bank of
- * marketing cards — the six launch countries are a quick way to jump
+ * marketing cards — the launch countries are a quick way to jump
  * straight to a trusted official source, not a promotional unit.
  */
 export function LaunchCountryDiscovery({ selectedCode, buildHref, unavailableCodes = [], className }: LaunchCountryDiscoveryProps) {

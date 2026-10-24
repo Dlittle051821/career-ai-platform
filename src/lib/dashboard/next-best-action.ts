@@ -15,6 +15,19 @@ export interface NextBestActionInput {
   payableInvoiceCount: number;
   pendingSignatureAgreement: MyAgreementSummary | undefined;
   careerReadiness: RecommendationReadiness | null;
+  /**
+   * NW01 Part F — whether `getRecommendations()` actually returned at
+   * least one real career match right now, independent of
+   * `careerReadiness.level`. Required before this module will ever say
+   * "Your recommendations are ready" — readiness alone only reflects the
+   * student's OWN profile completeness, not whether the career catalogue
+   * currently has anything to recommend (the exact gap the original
+   * catalogue outage exposed). Same signal journey-progress.ts now also
+   * requires — see src/lib/dashboard/journey-progress.ts's docblock —
+   * both callers pass the same real `getRecommendations()` result so
+   * Dashboard and /recommendations can never disagree about this.
+   */
+  hasUsableCareerRecommendations: boolean;
   hasActiveDiscoverySession: boolean;
 }
 
@@ -41,7 +54,15 @@ export interface NextBestActionInput {
  * docs/ux/UX03-04_DESIGN_SYSTEM_JOURNEY.md.
  */
 export function getNextBestAction(args: NextBestActionInput): NextBestAction {
-  const { profileStatus, profilePercent, payableInvoiceCount, pendingSignatureAgreement, careerReadiness, hasActiveDiscoverySession } = args;
+  const {
+    profileStatus,
+    profilePercent,
+    payableInvoiceCount,
+    pendingSignatureAgreement,
+    careerReadiness,
+    hasUsableCareerRecommendations,
+    hasActiveDiscoverySession,
+  } = args;
 
   if (profileStatus === "not_started") {
     return {
@@ -89,11 +110,24 @@ export function getNextBestAction(args: NextBestActionInput): NextBestAction {
   }
 
   if (careerReadiness && (careerReadiness.level === "READY" || careerReadiness.level === "COUNSELLOR_VERIFIED")) {
+    // NW01 Part F — readiness alone used to be treated as proof
+    // recommendations exist; it only proves the STUDENT's profile is
+    // ready. Only say "ready" when the engine actually produced a usable
+    // result right now too.
+    if (hasUsableCareerRecommendations) {
+      return {
+        title: "Your recommendations are ready",
+        description: "Explore careers ranked against your Student Digital Profile, with plain-language reasons for each one.",
+        href: "/recommendations",
+        cta: "View my recommendations",
+      };
+    }
+
     return {
-      title: "Your recommendations are ready",
-      description: "Explore careers ranked against your Student Digital Profile, with plain-language reasons for each one.",
-      href: "/recommendations",
-      cta: "View my recommendations",
+      title: "Your profile is ready, but we can't generate recommendations right now",
+      description: "This is on our side, not yours — please check back shortly, or book a free Discovery Session to talk it through with a counsellor in the meantime.",
+      href: hasActiveDiscoverySession ? "/recommendations" : "/discovery-session/book",
+      cta: hasActiveDiscoverySession ? "Check recommendations" : "Book my free Discovery Session",
     };
   }
 

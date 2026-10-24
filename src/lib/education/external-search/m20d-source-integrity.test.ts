@@ -135,10 +135,15 @@ describe("Go-route open-redirect static audit — /go/course-search/provider/[pr
   });
 });
 
-describe("Launch-country code convention — GB, never UK, as the country identifier (M20D)", () => {
+describe("Launch-country code convention — ISO alpha-2 only, never 'UK' as a code (M20D)", () => {
   it("never defines a launch country code literal of 'UK' anywhere in the registry", () => {
     const codes = LAUNCH_COUNTRY_PRIMARY_SOURCES.map((entry) => entry.countryCode);
     expect(codes).not.toContain("UK");
-    expect(codes).toContain("GB");
+  });
+
+  it("NW02 — the United Kingdom (GB) is no longer a launch-primary country; India (IN) is", () => {
+    const codes = LAUNCH_COUNTRY_PRIMARY_SOURCES.map((entry) => entry.countryCode);
+    expect(codes).not.toContain("GB");
+    expect(codes).toContain("IN");
   });
 });

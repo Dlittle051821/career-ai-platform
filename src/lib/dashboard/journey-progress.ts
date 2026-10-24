@@ -1,5 +1,7 @@
 import type { ProfileStatus } from "@/types/student-profile";
 import type { ReadinessLevel } from "@/types/recommendation-readiness";
+import type { ApplicationStage } from "@/types/admin";
+import { getApplicationBucket } from "@/lib/applications/application-lifecycle";
 
 /**
  * UX04 — Student Journey Progress.
@@ -35,12 +37,21 @@ import type { ReadinessLevel } from "@/types/recommendation-readiness";
  * - Build Profile: taken directly from the Student Digital Profile's own
  *   completion status (src/lib/profile/completion.ts) — the same status
  *   already shown on the dashboard's profile card. Not re-derived here.
- * - Recommendations: taken directly from Recommendation Readiness
- *   (Milestone 11-C2). READY/COUNSELLOR_VERIFIED marks this stage
- *   "complete" — meaning recommendations are available, NOT that the
- *   student has reviewed them (no such "reviewed" signal is stored
- *   anywhere in this product; see Section N of the UX03/04 spec). Copy
- *   is worded accordingly ("ready to view", never "reviewed").
+ * - Recommendations: taken from Recommendation Readiness (Milestone
+ *   11-C2) AND real recommendation-engine output together —
+ *   READY/COUNSELLOR_VERIFIED alone marks this stage "complete" NO
+ *   LONGER; it also requires `hasUsableCareerRecommendations` (whether
+ *   `getRecommendations()` actually returned at least one real career
+ *   match against the live catalogue). NW01 Part D — readiness level
+ *   only reflects whether the STUDENT'S OWN profile has enough data; it
+ *   says nothing about whether the career catalogue itself currently has
+ *   any matchable careers (the exact gap the original catalogue outage
+ *   exposed: readiness said "ready" while zero careers existed to
+ *   recommend). This still never claims the student has reviewed them
+ *   (no such "reviewed" signal is stored anywhere in this product; see
+ *   Section N of the UX03/04 spec, and NW01 brief Part D's explicit "do
+ *   not fabricate a reviewed signal"). Copy is worded accordingly ("ready
+ *   to view", never "reviewed").
  * - Saved Options: at least one row in education_saved_items.
  * - Decide: no persistent "a decision was made" signal exists anywhere
  *   in this product — career/course comparison (CompareTray and
@@ -49,13 +60,23 @@ import type { ReadinessLevel } from "@/types/recommendation-readiness";
  *   stage can therefore never honestly reach "complete" today. It is
  *   always rendered as informational/upcoming and never gates whether
  *   the Apply stage can be current — see `GATING_STAGES` below.
- * - Apply: at least one row in the `applications` table (Milestone 7),
- *   regardless of its internal admin stage — a row only ever exists
- *   because the student deliberately started an application from a
- *   course page (src/lib/supabase/education/applications.ts). This
- *   never claims a submission or a decision — it only reflects that an
- *   application exists, matching the dashboard's own existing copy
- *   ("N application(s) in progress").
+ * - Apply: NW01 Part E — no longer "at least one row exists, regardless
+ *   of stage". A plain inquiry/preparing/ready_to_submit row is not a
+ *   completed application ("an inquiry is NOT a completed application" —
+ *   NW01 brief Part E); this stage is "complete" only once at least one
+ *   application has moved past that internal-prep bucket, reusing the
+ *   REAL, already-existing `getApplicationBucket()` classification
+ *   (src/lib/applications/application-lifecycle.ts, Milestone 16/19) —
+ *   "active" (inquiry/preparing/ready_to_submit) does not count;
+ *   "submitted"/"decision"/"closed" do, because each of those buckets
+ *   only exists once a stage transition past ready_to_submit has
+ *   genuinely happened (and, as of Milestone 19, "submitted" itself can
+ *   only ever be reached via the staff-recorded, immutable
+ *   `application_submissions` row — see application-lifecycle.ts's own
+ *   `submit` action docblock). No new status value or schema change was
+ *   needed — the existing `ApplicationStage` enum already distinguishes
+ *   this correctly; the bug was purely that this module never consulted
+ *   it.
  *
  * This module intentionally does NOT produce its own call-to-action
  * text ("what should I do next") — that is `getNextBestAction()`'s job
@@ -96,8 +117,17 @@ export interface JourneyProgressInput {
   profileStatus: ProfileStatus;
   profilePercent: number;
   careerReadinessLevel: ReadinessLevel | null;
+  /**
+   * NW01 Part D — whether `getRecommendations()` actually returned at
+   * least one real career match against the live catalogue right now
+   * (e.g. `results.length > 0`), independent of `careerReadinessLevel`.
+   * Required for the "recommendations" stage to ever read "complete" —
+   * see the module docblock above.
+   */
+  hasUsableCareerRecommendations: boolean;
   savedItemCount: number;
-  applicationCount: number;
+  /** NW01 Part E — every one of the student's own applications' real stages, used to tell an internal inquiry/prep record apart from an actual recorded submission via `getApplicationBucket()`. */
+  applicationStages: ApplicationStage[];
 }
 
 const STAGE_LABELS: Record<JourneyStageKey, string> = {
@@ -122,12 +152,19 @@ const STAGE_HREFS: Record<JourneyStageKey, string> = {
 const GATING_STAGES: readonly JourneyStageKey[] = ["explore", "build_profile", "recommendations", "saved_options", "apply"];
 
 export function computeJourneyProgress(input: JourneyProgressInput): JourneyProgress {
-  const { profileStatus, profilePercent, careerReadinessLevel, savedItemCount, applicationCount } = input;
+  const { profileStatus, profilePercent, careerReadinessLevel, hasUsableCareerRecommendations, savedItemCount, applicationStages } = input;
 
+  const applicationCount = applicationStages.length;
   const buildProfileComplete = profileStatus === "completed";
-  const recommendationsComplete = careerReadinessLevel === "READY" || careerReadinessLevel === "COUNSELLOR_VERIFIED";
+  const readinessSaysReady = careerReadinessLevel === "READY" || careerReadinessLevel === "COUNSELLOR_VERIFIED";
+  // NW01 Part D — readiness alone is not proof usable recommendations
+  // exist; both must be true. See module docblock.
+  const recommendationsComplete = readinessSaysReady && hasUsableCareerRecommendations;
   const savedOptionsComplete = savedItemCount > 0;
-  const applyComplete = applicationCount > 0;
+  // NW01 Part E — "complete" requires at least one application that has
+  // genuinely moved past the inquiry/preparing/ready_to_submit bucket,
+  // not merely "a row exists". See module docblock.
+  const applyComplete = applicationStages.some((stage) => getApplicationBucket(stage) !== "active");
   const exploreComplete = savedOptionsComplete || applyComplete || buildProfileComplete || recommendationsComplete;
 
   const completeByKey: Record<JourneyStageKey, boolean> = {
@@ -155,7 +192,7 @@ export function computeJourneyProgress(input: JourneyProgressInput): JourneyProg
       key,
       label: STAGE_LABELS[key],
       state,
-      description: describeStage(key, state, { profilePercent, savedItemCount, applicationCount }),
+      description: describeStage(key, state, { profilePercent, savedItemCount, applicationCount, readinessSaysReady }),
       href: STAGE_HREFS[key],
       informational,
     };
@@ -169,7 +206,7 @@ export function computeJourneyProgress(input: JourneyProgressInput): JourneyProg
 function describeStage(
   key: JourneyStageKey,
   state: JourneyStageState,
-  ctx: { profilePercent: number; savedItemCount: number; applicationCount: number }
+  ctx: { profilePercent: number; savedItemCount: number; applicationCount: number; readinessSaysReady: boolean }
 ): string {
   switch (key) {
     case "explore":
@@ -180,7 +217,16 @@ function describeStage(
       return "Add your details to unlock personalised guidance.";
     case "recommendations":
       if (state === "complete") return "Your recommendations are ready to view.";
-      if (state === "current") return "A bit more information will make these more useful.";
+      if (state === "current") {
+        // NW01 Part D — readiness can say "ready" while there are still
+        // no usable results (a catalogue-availability gap, not a profile
+        // gap) — this honestly distinguishes the two instead of always
+        // blaming "a bit more information", which would be wrong when the
+        // real cause is on our side, not the student's.
+        return ctx.readinessSaysReady
+          ? "Your profile is ready, but we don't have matching recommendations available right now — please check back soon."
+          : "A bit more information will make these more useful.";
+      }
       return "Available once your Student Digital Profile is complete.";
     case "saved_options":
       if (state === "complete") {
@@ -191,7 +237,13 @@ function describeStage(
       return "Compare your saved options side by side when you're ready to decide — a feature we're continuing to build out.";
     case "apply":
       if (state === "complete") {
-        return `${ctx.applicationCount} application${ctx.applicationCount === 1 ? "" : "s"} in progress.`;
+        return `${ctx.applicationCount} application${ctx.applicationCount === 1 ? "" : "s"} submitted or further along.`;
+      }
+      // NW01 Part E — an application can exist (inquiry/preparing/
+      // ready_to_submit) without yet being "complete" here; say so
+      // honestly instead of implying the student hasn't started at all.
+      if (ctx.applicationCount > 0) {
+        return `${ctx.applicationCount} application${ctx.applicationCount === 1 ? "" : "s"} in progress — not yet submitted.`;
       }
       return "Apply once you've decided on a course or university.";
   }

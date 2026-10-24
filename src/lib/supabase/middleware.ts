@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseEnv } from "./env";
 import type { Database } from "@/types/database";
+import { resolveDefaultWorkspacePath } from "@/lib/auth/default-workspace";
 
 const PROTECTED_PATHS = [
   "/dashboard",
@@ -20,6 +21,7 @@ const PROTECTED_PATHS = [
   // (authenticated) Discovery Session booking flow.
   "/welcome",
   "/discovery-session",
+  "/studio",
 ];
 const AUTH_ONLY_PATHS = ["/login", "/register"];
 
@@ -73,8 +75,16 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
+  // NW01 Part B — this used to always bounce to "/dashboard", which sent a
+  // signed-in admin/finance/counsellor/etc. account that re-opened /login
+  // or /register straight to the STUDENT dashboard instead of /admin. This
+  // is a rare path (an already-authenticated visitor re-opening an
+  // auth-only page), so the one extra `admin_roles` lookup it now costs is
+  // not the "every /admin/* navigation" hot path the comment above is
+  // protecting — it only runs here, on /login and /register.
   if (isAuthOnly && user) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const target = await resolveDefaultWorkspacePath(supabase, user.id);
+    return NextResponse.redirect(new URL(target, request.url));
   }
 
   // Milestone 7 — /admin is in PROTECTED_PATHS above, so a logged-out

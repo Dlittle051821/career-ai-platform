@@ -96,7 +96,7 @@ export default async function UniversitiesPage({ searchParams }: UniversitiesPag
   // launch country's real public.countries id (replacing any other
   // country checkboxes); "All countries" clears it. `q`/`city`/`studyMode`
   // are always preserved. `selectedLaunchCode` mirrors singleSelectedCountry
-  // but only when that single country IS one of the six launch countries —
+  // but only when that single country IS one of the Tier 1 launch countries —
   // never re-derives launch-country membership, only asks M20A's own
   // `isLaunchCountryCode`.
   const selectedLaunchCode: LaunchCountryCode | null =

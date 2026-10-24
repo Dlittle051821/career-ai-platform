@@ -84,10 +84,18 @@ export default async function DashboardPage() {
   const careerReadiness = recommendationReadiness?.career ?? null;
 
   const hasProfileDataForRecommendations = studentSnapshot ? hasMinimumProfileDataForRecommendations(studentSnapshot) : false;
-  const topCareerRecommendation =
+  // NW01 Part D/F — this is now the ONE real "do usable recommendations
+  // actually exist right now?" signal, shared by both getNextBestAction()
+  // and computeJourneyProgress() below so they can never disagree with
+  // each other, or with /recommendations (src/app/recommendations/page.tsx),
+  // which computes its own `results` from the exact same
+  // getRecommendations() call.
+  const careerRecommendationResults =
     studentSnapshot && hasProfileDataForRecommendations
-      ? (await getRecommendations(studentSnapshot, await getCareersForMatching())).results[0] ?? null
-      : null;
+      ? (await getRecommendations(studentSnapshot, await getCareersForMatching())).results
+      : [];
+  const topCareerRecommendation = careerRecommendationResults[0] ?? null;
+  const hasUsableCareerRecommendations = careerRecommendationResults.length > 0;
 
   const nextBestAction = getNextBestAction({
     profileStatus: studentCompletion.status,
@@ -95,6 +103,7 @@ export default async function DashboardPage() {
     payableInvoiceCount: payableInvoices.length,
     pendingSignatureAgreement: agreements.find((a) => a.signatureStatus === "pending_signature"),
     careerReadiness,
+    hasUsableCareerRecommendations,
     hasActiveDiscoverySession: Boolean(activeDiscoverySession),
   });
 
@@ -102,8 +111,9 @@ export default async function DashboardPage() {
     profileStatus: studentCompletion.status,
     profilePercent: studentCompletion.percent,
     careerReadinessLevel: careerReadiness?.level ?? null,
+    hasUsableCareerRecommendations,
     savedItemCount: savedItems.length,
-    applicationCount: applications.length,
+    applicationStages: applications.map((a) => a.stage),
   });
 
   const importantDates = getImportantDates({

@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { computeJourneyProgress, type JourneyProgressInput } from "./journey-progress";
+import type { ApplicationStage } from "@/types/admin";
 
 const BASE: JourneyProgressInput = {
   profileStatus: "not_started",
   profilePercent: 0,
   careerReadinessLevel: null,
+  hasUsableCareerRecommendations: false,
   savedItemCount: 0,
-  applicationCount: 0,
+  applicationStages: [],
 };
 
 function stageOf(progress: ReturnType<typeof computeJourneyProgress>, key: string) {
@@ -39,12 +41,13 @@ describe("computeJourneyProgress", () => {
     expect(stageOf(withSavedItem, "build_profile").description).toContain("40%");
   });
 
-  it("recommendation-ready journey: profile complete + READY marks Recommendations complete and moves current stage to Saved Options", () => {
+  it("recommendation-ready journey: profile complete + READY + a real usable result marks Recommendations complete and moves current stage to Saved Options", () => {
     const progress = computeJourneyProgress({
       ...BASE,
       profileStatus: "completed",
       profilePercent: 100,
       careerReadinessLevel: "READY",
+      hasUsableCareerRecommendations: true,
     });
     expect(stageOf(progress, "explore").state).toBe("complete");
     expect(stageOf(progress, "build_profile").state).toBe("complete");
@@ -53,11 +56,12 @@ describe("computeJourneyProgress", () => {
     expect(progress.currentStage).toBe("saved_options");
   });
 
-  it("COUNSELLOR_VERIFIED also counts Recommendations as complete (not just READY)", () => {
+  it("COUNSELLOR_VERIFIED also counts Recommendations as complete (not just READY), still only with a real usable result", () => {
     const progress = computeJourneyProgress({
       ...BASE,
       profileStatus: "completed",
       careerReadinessLevel: "COUNSELLOR_VERIFIED",
+      hasUsableCareerRecommendations: true,
     });
     expect(stageOf(progress, "recommendations").state).toBe("complete");
   });
@@ -66,6 +70,23 @@ describe("computeJourneyProgress", () => {
     for (const level of ["NOT_READY", "PRELIMINARY"] as const) {
       const progress = computeJourneyProgress({ ...BASE, profileStatus: "completed", careerReadinessLevel: level });
       expect(stageOf(progress, "recommendations").state).not.toBe("complete");
+    }
+  });
+
+  it("NW01 Part D — READY/COUNSELLOR_VERIFIED alone is NOT enough: without a real usable result, Recommendations is never complete, and the reason given is honest (not 'add more profile info')", () => {
+    for (const level of ["READY", "COUNSELLOR_VERIFIED"] as const) {
+      const progress = computeJourneyProgress({
+        ...BASE,
+        profileStatus: "completed",
+        profilePercent: 100,
+        careerReadinessLevel: level,
+        hasUsableCareerRecommendations: false,
+      });
+      const recommendations = stageOf(progress, "recommendations");
+      expect(recommendations.state).not.toBe("complete");
+      expect(recommendations.description).not.toMatch(/ready to view/i);
+      expect(recommendations.description).not.toMatch(/more information/i);
+      expect(recommendations.description.toLowerCase()).toContain("right now");
     }
   });
 
@@ -81,8 +102,9 @@ describe("computeJourneyProgress", () => {
       profileStatus: "completed",
       profilePercent: 100,
       careerReadinessLevel: "COUNSELLOR_VERIFIED",
+      hasUsableCareerRecommendations: true,
       savedItemCount: 5,
-      applicationCount: 2,
+      applicationStages: ["submitted", "inquiry"],
     });
     const decide = stageOf(progress, "decide");
     expect(decide.state).toBe("upcoming");
@@ -95,25 +117,71 @@ describe("computeJourneyProgress", () => {
       profileStatus: "completed",
       profilePercent: 100,
       careerReadinessLevel: "READY",
+      hasUsableCareerRecommendations: true,
       savedItemCount: 2,
-      applicationCount: 0,
+      applicationStages: [],
     });
     expect(progress.currentStage).toBe("apply");
     expect(stageOf(progress, "apply").state).toBe("current");
   });
 
-  it("existing-application journey: an application completes Apply and is described honestly, without claiming submission", () => {
+  it("NW01 Part E — an inquiry-only application does NOT complete Apply, and is described honestly as not yet submitted", () => {
+    for (const stage of ["inquiry", "preparing", "ready_to_submit"] as ApplicationStage[]) {
+      const progress = computeJourneyProgress({
+        profileStatus: "completed",
+        profilePercent: 100,
+        careerReadinessLevel: "READY",
+        hasUsableCareerRecommendations: true,
+        savedItemCount: 1,
+        applicationStages: [stage],
+      });
+      const apply = stageOf(progress, "apply");
+      expect(apply.state).not.toBe("complete");
+      expect(apply.description).toMatch(/not yet submitted/i);
+    }
+  });
+
+  it("NW01 Part E — a genuinely submitted (or further-along) application DOES complete Apply, described without claiming an admission decision", () => {
+    for (const stage of ["submitted", "under_review", "interview", "decision_pending", "offer_received", "enrolled", "rejected", "withdrawn"] as ApplicationStage[]) {
+      const progress = computeJourneyProgress({
+        profileStatus: "completed",
+        profilePercent: 100,
+        careerReadinessLevel: "READY",
+        hasUsableCareerRecommendations: true,
+        savedItemCount: 1,
+        applicationStages: [stage],
+      });
+      const apply = stageOf(progress, "apply");
+      expect(apply.state).toBe("complete");
+      expect(apply.description).not.toMatch(/admitted|accepted|offer received/i);
+    }
+  });
+
+  it("NW01 Part E — a mix of one inquiry-only and one genuinely-submitted application still completes Apply (any real submission is enough)", () => {
     const progress = computeJourneyProgress({
       profileStatus: "completed",
       profilePercent: 100,
       careerReadinessLevel: "READY",
+      hasUsableCareerRecommendations: true,
       savedItemCount: 1,
-      applicationCount: 1,
+      applicationStages: ["inquiry", "submitted"],
+    });
+    expect(stageOf(progress, "apply").state).toBe("complete");
+  });
+
+  it("existing-application journey: a submitted application completes Apply and is described honestly, without claiming a decision", () => {
+    const progress = computeJourneyProgress({
+      profileStatus: "completed",
+      profilePercent: 100,
+      careerReadinessLevel: "READY",
+      hasUsableCareerRecommendations: true,
+      savedItemCount: 1,
+      applicationStages: ["submitted"],
     });
     const apply = stageOf(progress, "apply");
     expect(apply.state).toBe("complete");
     expect(apply.description).toContain("1 application");
-    expect(apply.description).not.toMatch(/submit/i);
+    expect(apply.description).not.toMatch(/decision|admitted|accepted/i);
   });
 
   it("fully-complete journey: every gating stage complete, currentStage settles on the last gating stage (Apply)", () => {
@@ -121,8 +189,9 @@ describe("computeJourneyProgress", () => {
       profileStatus: "completed",
       profilePercent: 100,
       careerReadinessLevel: "READY",
+      hasUsableCareerRecommendations: true,
       savedItemCount: 4,
-      applicationCount: 2,
+      applicationStages: ["submitted", "under_review"],
     });
     expect(progress.currentStage).toBe("apply");
     expect(progress.completedStages).toEqual(["explore", "build_profile", "recommendations", "saved_options", "apply"]);
