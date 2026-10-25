@@ -135,7 +135,7 @@ export default async function StudioAbroadPage() {
 
       <div className="grid gap-6 sm:grid-cols-2">
         <SavedShortlistCard count={abroadSavedCount} previews={abroadSavedPreviews} />
-        <ApplicationsCard applications={abroadApplications} />
+        <ApplicationsCard applications={abroadApplications} viewAllHref="/studio/abroad/applications" />
       </div>
 
       <DiscoverySessionCard session={activeDiscoverySession} activeSessionLabel="Discovery Session" />

@@ -160,6 +160,18 @@ export const ADMIN_PERMISSIONS = [
   // "Authorization model".
   "application-submissions:read",
   "application-submissions:write",
+  // NW06 — Student Action Required tasks. Its own narrow read/write pair,
+  // following the exact same per-milestone-narrow-permission-pair
+  // convention as "application-documents:read"/"review" and
+  // "application-submissions:read"/"write" above, rather than reusing
+  // "application-documents:review" (a materially different RPC-backed
+  // write boundary — staff_create_application_task()/staff_update_
+  // application_task_status(), supabase/migrations-proposed/
+  // NW06_application_tasks.sql PART 4/5) or the broader "applications:write".
+  // Deliberately NOT granted to finance/analyst/content_editor — see
+  // ROLE_PERMISSIONS below.
+  "application-tasks:read",
+  "application-tasks:write",
 ] as const;
 
 export type AdminPermission = (typeof ADMIN_PERMISSIONS)[number];
@@ -243,6 +255,12 @@ export const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
     // "application-documents:review" above.
     "application-submissions:read",
     "application-submissions:write",
+    // NW06 — admin gets full task management access. RLS (NW06_application_
+    // tasks.sql PART 3) additionally scopes admin to every application
+    // regardless — no assignment restriction, matching "application-
+    // documents:review"/"application-submissions:write" above.
+    "application-tasks:read",
+    "application-tasks:write",
   ],
   counsellor: [
     "dashboard:read",
@@ -299,6 +317,14 @@ export const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
     // is UX, RLS/RPC is the boundary" split as everywhere else in this file.
     "application-submissions:read",
     "application-submissions:write",
+    // NW06 — counsellors create/manage tasks only for their OWN assigned
+    // applications; RLS (NW06_application_tasks.sql PART 3) and both RPCs'
+    // own re-checks at write time are what actually enforce that narrowing
+    // — this permission only gets a counsellor past the application-layer
+    // gate at all, same "permission is UX, RLS/RPC is the boundary" split
+    // as everywhere else in this file.
+    "application-tasks:read",
+    "application-tasks:write",
   ],
   finance: [
     "dashboard:read",

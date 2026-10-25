@@ -8,6 +8,7 @@ import {
   uploadApplicationDocument,
   type MyApplicationDocument,
 } from "@/lib/supabase/education/application-documents";
+import { completeMyApplicationTask } from "@/lib/supabase/education/application-tasks";
 import type { StudentApplicationAction } from "@/types/admin";
 
 /**
@@ -108,4 +109,24 @@ export async function removeApplicationDocumentAction(applicationId: string, doc
 export async function getApplicationDocumentDownloadUrlAction(storagePath: string): Promise<{ url: string | null }> {
   const url = await getApplicationDocumentDownloadUrl(storagePath);
   return { url };
+}
+
+/**
+ * NW06 — backs ApplicationTasks.tsx's "Mark as done" / "I've paid this
+ * directly" control. A SELF-REPORT ONLY (see completeMyApplicationTask()'s
+ * own docblock) — never moves a task to verified_complete; only staff can
+ * do that from the admin workspace.
+ */
+export async function completeApplicationTaskAction(
+  applicationId: string,
+  taskId: string,
+  options: { note?: string; evidenceDocumentId?: string | null } = {}
+): Promise<ApplicationActionResult> {
+  const result = await completeMyApplicationTask(taskId, options);
+  if (!result.success) {
+    return { success: false, error: result.error ?? "We couldn't update this task. Please try again." };
+  }
+  revalidatePath(`/applications/${applicationId}`);
+  revalidatePath("/studio/abroad/applications");
+  return { success: true, error: null };
 }

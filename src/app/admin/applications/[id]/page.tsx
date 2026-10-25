@@ -16,6 +16,7 @@ import { listApplicationDocumentsForAdmin } from "@/lib/supabase/admin/applicati
 import { getApplicationChecklistItems } from "@/lib/supabase/admin/application-checklist";
 import { getApplicationInternalNotes } from "@/lib/supabase/admin/application-notes";
 import { getApplicationSubmissionForAdmin, listApplicationSubmissionDocumentsForAdmin } from "@/lib/supabase/admin/application-submissions";
+import { listApplicationTasks } from "@/lib/supabase/admin/application-tasks";
 import {
   APPLICATION_DOCUMENT_TYPE_LABELS,
   getApplicationDocumentCompleteness,
@@ -31,6 +32,7 @@ import { AdminDocumentReviewControls } from "@/components/admin/applications/Adm
 import { AdminApplicationChecklist } from "@/components/admin/applications/AdminApplicationChecklist";
 import { AdminApplicationNotes } from "@/components/admin/applications/AdminApplicationNotes";
 import { AdminApplicationSubmissionPanel } from "@/components/admin/applications/AdminApplicationSubmissionPanel";
+import { AdminApplicationTasks } from "@/components/admin/applications/AdminApplicationTasks";
 import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
 import { hasPermission } from "@/lib/admin/permissions";
 import { APPLICATION_STAGE_LABELS } from "@/types/admin";
@@ -70,6 +72,7 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
   const canReviewWorkspace = hasPermission(admin?.role, "application-documents:review");
   const canReadSubmissions = hasPermission(admin?.role, "application-submissions:read");
   const canWriteSubmissions = hasPermission(admin?.role, "application-submissions:write");
+  const canReadTasks = hasPermission(admin?.role, "application-tasks:read");
 
   const documents = canReadDocuments ? await listApplicationDocumentsForAdmin(id) : [];
   const [checklistItems, internalNotes] = canReviewWorkspace
@@ -77,6 +80,7 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
     : [[], []];
   const existingSubmission = canReadSubmissions ? await getApplicationSubmissionForAdmin(id) : null;
   const submissionDocuments = existingSubmission ? await listApplicationSubmissionDocumentsForAdmin(existingSubmission.id) : [];
+  const tasks = canReadTasks ? await listApplicationTasks(id) : [];
 
   const documentCompleteness = getApplicationDocumentCompleteness(documents.map((d) => ({ documentType: d.documentType as ApplicationDocumentType, originalFilename: d.originalFilename })));
   const documentReviewCompleteness = getApplicationDocumentReviewCompleteness(
@@ -225,6 +229,20 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
           <p className="mt-1 text-sm text-text">{application.studentNote?.trim() ? application.studentNote : "No note from the student yet."}</p>
         </div>
       </Card>
+
+      {/* TASKS — NW06.6/NW06.7. The counsellor/admin side of "Student
+          action required": staff create/track tasks (including
+          external-payment self-report tasks) here; the student sees and
+          acts on the same records via ApplicationTasks.tsx on
+          /applications/[id]. Gated behind application-tasks:read — omitted
+          entirely for a caller without it, same "card disappears rather
+          than crashes" posture as every other gated card on this page. */}
+      {canReadTasks ? (
+        <Card className="mt-6 space-y-3">
+          <h2 className="text-base font-semibold text-primary">Tasks</h2>
+          <AdminApplicationTasks applicationId={id} initialTasks={tasks} />
+        </Card>
+      ) : null}
 
       {/* SUBMISSION PREPARATION — Milestone 19. Extends this SAME page
           (never a parallel system). Gated behind application-submissions:read

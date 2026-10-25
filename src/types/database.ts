@@ -947,6 +947,45 @@ type ApplicationSubmissionDocumentsRow = {
 };
 
 // ---------------------------------------------------------------------------
+// application_tasks — NW06 — PROPOSED, NOT YET APPLIED to any database (see
+// supabase/migrations-proposed/NW06_application_tasks.sql). Declared here
+// ahead of being applied, same convention NW05.3 already established above
+// for student_mark_section_self_entered — so the typed `.from("application_
+// tasks")`/RPC call sites compile today and need no further edit once a
+// founder/admin applies the migration. Column order/names copied verbatim
+// from the migration's PART 1 `create table`.
+// ---------------------------------------------------------------------------
+type ApplicationTasksRow = {
+  id: string;
+  application_id: string;
+  task_type: string;
+  status: string;
+  title: string;
+  description: string | null;
+  due_date: string | null;
+  related_document_type: string | null;
+  external_payment_amount_minor_units: number | null;
+  external_payment_currency: string | null;
+  external_payment_payee: string | null;
+  external_payment_instructions: string | null;
+  external_payment_reference: string | null;
+  /** STUDENT-FACING. Set only via student_complete_application_task(). */
+  student_note: string | null;
+  student_completed_at: string | null;
+  evidence_document_id: string | null;
+  /** STAFF-ONLY. Never returned by get_my_application_tasks()/get_my_open_application_tasks(). */
+  verified_at: string | null;
+  verified_by: string | null;
+  /** STAFF-ONLY. Never returned by any student-facing RPC. */
+  staff_note: string | null;
+  cancelled_at: string | null;
+  cancelled_by: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
 // payments (Milestone 7 — operational tracking only, see 0004 migration)
 // ---------------------------------------------------------------------------
 type PaymentsRow = {
@@ -1916,6 +1955,95 @@ export interface Database {
         Args: { p_section_key: string };
         Returns: void;
       };
+      // NW06 — PROPOSED, NOT YET APPLIED to any database (see
+      // supabase/migrations-proposed/NW06_application_tasks.sql). Declared
+      // here ahead of that migration's approval so the new src/lib/supabase/
+      // education/application-tasks.ts and src/lib/supabase/admin/
+      // application-tasks.ts call sites type-check against each function's
+      // intended real signature now, same "ahead-of-approval declaration"
+      // convention NW05.3 already established above for
+      // student_mark_section_self_entered.
+      staff_create_application_task: {
+        Args: {
+          p_application_id: string;
+          p_task_type: string;
+          p_title: string;
+          p_description?: string | null;
+          p_due_date?: string | null;
+          p_related_document_type?: string | null;
+          p_external_payment_amount_minor_units?: number | null;
+          p_external_payment_currency?: string | null;
+          p_external_payment_payee?: string | null;
+          p_external_payment_instructions?: string | null;
+          p_external_payment_reference?: string | null;
+        };
+        Returns: {
+          id: string;
+          task_type: string;
+          status: string;
+          title: string;
+          due_date: string | null;
+          created_at: string;
+        }[];
+      };
+      staff_update_application_task_status: {
+        Args: { p_task_id: string; p_status: string; p_staff_note?: string | null };
+        Returns: {
+          id: string;
+          application_id: string;
+          task_type: string;
+          status: string;
+          verified_at: string | null;
+          cancelled_at: string | null;
+          updated_at: string;
+        }[];
+      };
+      student_complete_application_task: {
+        Args: { p_task_id: string; p_student_note?: string | null; p_evidence_document_id?: string | null };
+        Returns: {
+          id: string;
+          status: string;
+          student_completed_at: string | null;
+          evidence_document_id: string | null;
+        }[];
+      };
+      get_my_application_tasks: {
+        Args: { p_application_id: string };
+        Returns: {
+          id: string;
+          task_type: string;
+          status: string;
+          title: string;
+          description: string | null;
+          due_date: string | null;
+          related_document_type: string | null;
+          external_payment_amount_minor_units: number | null;
+          external_payment_currency: string | null;
+          external_payment_payee: string | null;
+          external_payment_instructions: string | null;
+          external_payment_reference: string | null;
+          student_note: string | null;
+          student_completed_at: string | null;
+          evidence_document_id: string | null;
+          verified_at: string | null;
+          created_at: string;
+          updated_at: string;
+        }[];
+      };
+      get_my_open_application_tasks: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string;
+          application_id: string;
+          task_type: string;
+          status: string;
+          title: string;
+          due_date: string | null;
+          external_payment_amount_minor_units: number | null;
+          external_payment_currency: string | null;
+          created_at: string;
+        }[];
+      };
     };
     Tables: {
       profiles: {
@@ -2377,6 +2505,23 @@ export interface Database {
         Row: ApplicationSubmissionDocumentsRow;
         Insert: Omit<ApplicationSubmissionDocumentsRow, "id" | "created_at"> & { id?: string; created_at?: string };
         Update: Partial<Omit<ApplicationSubmissionDocumentsRow, "id" | "submission_id" | "created_at">>;
+        Relationships: [];
+      };
+
+      // NW06 — PROPOSED, NOT YET APPLIED to any database (see
+      // supabase/migrations-proposed/NW06_application_tasks.sql). Every
+      // mutation goes through staff_create_application_task()/staff_update_
+      // application_task_status()/student_complete_application_task() — no
+      // TypeScript code ever calls .insert()/.update() on this table
+      // directly, same "typed Row shape exists only for the typed .select()
+      // read path" convention application_submissions/application_
+      // submission_documents above already use. Included here only so
+      // listApplicationTasks()'s plain `.from("application_tasks").select
+      // ("*")` (RLS-scoped, read-only) compiles.
+      application_tasks: {
+        Row: ApplicationTasksRow;
+        Insert: Omit<ApplicationTasksRow, "id" | "created_at" | "updated_at"> & { id?: string; created_at?: string; updated_at?: string };
+        Update: Partial<Omit<ApplicationTasksRow, "id" | "application_id" | "created_at">> & { updated_at?: string };
         Relationships: [];
       };
 

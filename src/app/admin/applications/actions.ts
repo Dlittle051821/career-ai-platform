@@ -8,6 +8,7 @@ import { getApplicationDocumentDownloadUrlForAdmin, reviewApplicationDocument } 
 import { toggleApplicationChecklistItem } from "@/lib/supabase/admin/application-checklist";
 import { addApplicationInternalNote } from "@/lib/supabase/admin/application-notes";
 import { recordApplicationSubmission } from "@/lib/supabase/admin/application-submissions";
+import { createApplicationTask, updateApplicationTaskStatus, type CreateApplicationTaskInput } from "@/lib/supabase/admin/application-tasks";
 import { friendlyAdminError, AdminValidationError, type ActionState } from "@/lib/admin/form-state";
 
 export interface SimpleActionResult {
@@ -115,6 +116,53 @@ export async function toggleApplicationChecklistItemAction(applicationId: string
 export async function addApplicationInternalNoteAction(applicationId: string, formData: FormData): Promise<SimpleActionResult> {
   try {
     await addApplicationInternalNote(applicationId, formData);
+  } catch (error) {
+    return { success: false, error: friendlyAdminError(error) };
+  }
+  revalidatePath(`/admin/applications/${applicationId}`);
+  return { success: true };
+}
+
+/**
+ * NW06 — creates a new Student Action Required task (AdminApplicationTasks.tsx's
+ * "New task" form). Every validation rule and the authorization/assignment
+ * check both live in staff_create_application_task() — this action is a
+ * thin FormData-to-typed-input adapter plus the standard
+ * friendlyAdminError()/revalidatePath() wrapping every other action in this
+ * file already uses.
+ */
+export async function createApplicationTaskAction(applicationId: string, formData: FormData): Promise<SimpleActionResult> {
+  const input: CreateApplicationTaskInput = {
+    applicationId,
+    taskType: String(formData.get("taskType") ?? ""),
+    title: String(formData.get("title") ?? "").trim(),
+    description: String(formData.get("description") ?? "").trim() || null,
+    dueDate: String(formData.get("dueDate") ?? "").trim() || null,
+    relatedDocumentType: String(formData.get("relatedDocumentType") ?? "").trim() || null,
+    externalPaymentAmountMinorUnits: (() => {
+      const raw = String(formData.get("externalPaymentAmountMajor") ?? "").trim();
+      if (!raw) return null;
+      const major = Number.parseFloat(raw);
+      return Number.isFinite(major) ? Math.round(major * 100) : null;
+    })(),
+    externalPaymentCurrency: String(formData.get("externalPaymentCurrency") ?? "").trim() || null,
+    externalPaymentPayee: String(formData.get("externalPaymentPayee") ?? "").trim() || null,
+    externalPaymentInstructions: String(formData.get("externalPaymentInstructions") ?? "").trim() || null,
+    externalPaymentReference: String(formData.get("externalPaymentReference") ?? "").trim() || null,
+  };
+  try {
+    await createApplicationTask(input);
+  } catch (error) {
+    return { success: false, error: friendlyAdminError(error) };
+  }
+  revalidatePath(`/admin/applications/${applicationId}`);
+  return { success: true };
+}
+
+/** NW06 — moves a task to a new status (review, verify, reopen, cancel). */
+export async function updateApplicationTaskStatusAction(applicationId: string, taskId: string, status: string, staffNote?: string): Promise<SimpleActionResult> {
+  try {
+    await updateApplicationTaskStatus(taskId, status, staffNote || null);
   } catch (error) {
     return { success: false, error: friendlyAdminError(error) };
   }

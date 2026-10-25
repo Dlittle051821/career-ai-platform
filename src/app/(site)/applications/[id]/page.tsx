@@ -8,11 +8,13 @@ import { getCurrentUser } from "@/lib/supabase/profile";
 import { getMyApplicationById, getMyApplicationHistory } from "@/lib/supabase/education/applications";
 import { listMyApplicationDocuments } from "@/lib/supabase/education/application-documents";
 import { getMyApplicationSubmission } from "@/lib/supabase/education/application-submissions";
+import { listMyApplicationTasks } from "@/lib/supabase/education/application-tasks";
 import { ApplicationStatusBadge } from "@/components/applications/ApplicationStatusBadge";
 import { ApplicationTimeline } from "@/components/applications/ApplicationTimeline";
 import { ApplicationActions } from "@/components/applications/ApplicationActions";
 import { ApplicationNoteEditor } from "@/components/applications/ApplicationNoteEditor";
 import { ApplicationDocuments } from "@/components/applications/ApplicationDocuments";
+import { ApplicationTasks } from "@/components/applications/ApplicationTasks";
 import { getApplicationNextAction } from "@/lib/applications/application-lifecycle";
 import { APPLICATION_STAGE_LABELS, type ApplicationStage } from "@/types/admin";
 import { FADE_UP_CLASSES } from "@/lib/ui/motion";
@@ -56,6 +58,7 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
   const history = await getMyApplicationHistory(id);
   const documents = await listMyApplicationDocuments(id);
   const submission = await getMyApplicationSubmission(id);
+  const tasks = await listMyApplicationTasks(id);
   const next = getApplicationNextAction(application.stage);
   const title =
     application.courseName && application.universityName
@@ -121,6 +124,19 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
                 </div>
               ) : null}
             </dl>
+          </Card>
+
+          {/* NW06.6 — Student Action Required tasks. Placed ahead of
+              Documents since a task (which may itself reference a
+              document type) is the more time-sensitive of the two —
+              mirrors the "Next step" card's own precedence in the right
+              column. Every task here comes straight from
+              get_my_application_tasks(); this card never invents one. */}
+          <Card>
+            <h2 className="text-base font-semibold text-primary">Action required</h2>
+            <div className="mt-4">
+              <ApplicationTasks applicationId={application.id} initialTasks={tasks} />
+            </div>
           </Card>
 
           <Card>

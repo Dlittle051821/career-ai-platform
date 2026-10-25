@@ -6,8 +6,18 @@ import type { MyApplicationSummary } from "@/lib/supabase/education/applications
 
 const CLOSED_STAGES = new Set(["enrolled", "rejected", "withdrawn"]);
 
-/** UX10-D01 — "Applications". `applications` is the real `listMyApplications()` result, unchanged — never invented universities or statuses. */
-export function ApplicationsCard({ applications }: { applications: MyApplicationSummary[] }) {
+/**
+ * UX10-D01 — "Applications". `applications` is the real
+ * `listMyApplications()` result, unchanged — never invented universities
+ * or statuses.
+ *
+ * NW06.2 — `viewAllHref` defaults to the generic `/applications` list (used
+ * as-is on `/dashboard`); `/studio/abroad` passes
+ * `/studio/abroad/applications` instead, so the one "View All" link on this
+ * card lands on the new Abroad-scoped dashboard rather than the unfiltered
+ * list when this card is shown inside the Abroad workspace.
+ */
+export function ApplicationsCard({ applications, viewAllHref = "/applications" }: { applications: MyApplicationSummary[]; viewAllHref?: string }) {
   const shown = applications.slice(0, 2);
 
   return (
@@ -42,7 +52,7 @@ export function ApplicationsCard({ applications }: { applications: MyApplication
         </ul>
       )}
 
-      <Link href="/applications" className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary-light">
+      <Link href={viewAllHref} className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary-light">
         View All Applications
         <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" />
       </Link>
