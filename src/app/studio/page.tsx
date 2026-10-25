@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Compass, Globe2 } from "lucide-react";
+import { ArrowRight, Compass, Globe2, FileCheck2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { getCurrentProfile, firstNameFrom } from "@/lib/supabase/profile";
@@ -15,6 +15,7 @@ import { getUniversitiesByIds } from "@/lib/supabase/education/universities";
 import { getCoursesByIds } from "@/lib/supabase/education/courses";
 import { listMyApplications } from "@/lib/supabase/education/applications";
 import { getMyActiveDiscoverySession } from "@/lib/supabase/discovery-sessions/book";
+import { listMyRecommendationReports } from "@/lib/supabase/education/recommendation-reports";
 import { getMyRecommendationReadiness } from "@/lib/supabase/recommendation-readiness";
 import { getCareersForMatching } from "@/lib/supabase/careers";
 import { getRecommendations, hasMinimumProfileDataForRecommendations } from "@/lib/recommendations";
@@ -64,7 +65,7 @@ export default async function StudioHubPage() {
   const [profile, entitlements] = await Promise.all([getCurrentProfile(), getMyProductEntitlements()]);
   const firstName = firstNameFrom(profile);
 
-  const [studentSnapshot, invoices, agreements, savedItems, applications, activeDiscoverySession, recommendationReadiness] = await Promise.all([
+  const [studentSnapshot, invoices, agreements, savedItems, applications, activeDiscoverySession, recommendationReadiness, recommendationReports] = await Promise.all([
     getStudentProfileSnapshot(),
     listMyInvoices(),
     listMyAgreements(),
@@ -72,6 +73,7 @@ export default async function StudioHubPage() {
     listMyApplications(),
     getMyActiveDiscoverySession(),
     getMyRecommendationReadiness(),
+    listMyRecommendationReports(),
   ]);
 
   const studentCompletion = studentSnapshot
@@ -177,6 +179,24 @@ export default async function StudioHubPage() {
         <SavedShortlistCard count={savedItems.length} previews={savedPreviews} />
         <DiscoverySessionCard session={activeDiscoverySession} />
       </div>
+
+      {/* NW07.6 — surfaced only once there's something to see: counsellor-authored, independently-reviewed guidance, distinct from the AI/engine-based career matches above. */}
+      {recommendationReports.length > 0 ? (
+        <Link href="/studio/recommendation-reports" className="group block">
+          <Card className="flex items-center justify-between gap-3 transition-shadow group-hover:shadow-soft">
+            <div className="flex items-center gap-3">
+              <FileCheck2 aria-hidden="true" className="h-5 w-5 text-secondary-dark" />
+              <div>
+                <p className="font-medium text-text">Recommendation Reports</p>
+                <p className="text-sm text-muted">
+                  {recommendationReports.length} report{recommendationReports.length === 1 ? "" : "s"} from your counsellor
+                </p>
+              </div>
+            </div>
+            <ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0 text-muted" />
+          </Card>
+        </Link>
+      ) : null}
     </div>
   );
 }

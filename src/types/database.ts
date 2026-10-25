@@ -986,6 +986,48 @@ type ApplicationTasksRow = {
 };
 
 // ---------------------------------------------------------------------------
+// recommendation_drafts / recommendation_draft_versions (NW07.6 — PROPOSED,
+// NOT YET APPLIED: supabase/migrations-proposed/
+// NW07_counsellor_studio_foundation.sql PART 2). Column order/names copied
+// verbatim from the migration's own `create table` statements. RPC-only —
+// no plain insert/update/delete from the Supabase client against either
+// table, for any role.
+// ---------------------------------------------------------------------------
+type RecommendationDraftsRow = {
+  id: string;
+  student_user_id: string;
+  recommendation_type: string | null;
+  title: string;
+  status: string;
+  current_version_id: string | null;
+  created_by: string;
+  author_counsellor_id: string | null;
+  submitted_at: string | null;
+  submitted_by: string | null;
+  /** STAFF-ONLY. Never returned by get_my_recommendation_reports()/get_my_recommendation_report_content(). */
+  review_notes: string | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  approved_at: string | null;
+  approved_by: string | null;
+  released_at: string | null;
+  released_by: string | null;
+  archived_at: string | null;
+  archived_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type RecommendationDraftVersionsRow = {
+  id: string;
+  draft_id: string;
+  version_number: number;
+  content: Json;
+  authored_by: string | null;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
 // payments (Milestone 7 — operational tracking only, see 0004 migration)
 // ---------------------------------------------------------------------------
 type PaymentsRow = {
@@ -2044,6 +2086,79 @@ export interface Database {
           created_at: string;
         }[];
       };
+      // NW07 — PROPOSED, NOT YET APPLIED to any database (see
+      // supabase/migrations-proposed/NW07_counsellor_studio_foundation.sql).
+      // Declared ahead of that migration's approval, same convention as
+      // NW06's own application_tasks functions above.
+      counsellor_has_case_access: {
+        Args: { p_student_user_id: string };
+        Returns: boolean;
+      };
+      staff_create_recommendation_draft: {
+        Args: { p_student_user_id: string; p_title: string; p_recommendation_type?: string | null; p_content?: Json };
+        Returns: {
+          id: string;
+          student_user_id: string;
+          recommendation_type: string | null;
+          title: string;
+          status: string;
+          current_version_id: string | null;
+          created_at: string;
+          updated_at: string;
+        }[];
+      };
+      staff_update_recommendation_draft_content: {
+        Args: { p_draft_id: string; p_content: Json };
+        Returns: { id: string; status: string; current_version_id: string | null; updated_at: string }[];
+      };
+      staff_submit_recommendation_draft_for_review: {
+        Args: { p_draft_id: string };
+        Returns: { id: string; status: string; submitted_at: string | null; submitted_by: string | null }[];
+      };
+      staff_review_recommendation_draft: {
+        Args: { p_draft_id: string; p_decision: string; p_review_notes?: string | null };
+        Returns: {
+          id: string;
+          status: string;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          approved_at: string | null;
+          approved_by: string | null;
+          review_notes: string | null;
+        }[];
+      };
+      staff_release_recommendation_draft: {
+        Args: { p_draft_id: string };
+        Returns: { id: string; status: string; released_at: string | null; released_by: string | null }[];
+      };
+      staff_withdraw_recommendation_draft: {
+        Args: { p_draft_id: string };
+        Returns: { id: string; status: string }[];
+      };
+      staff_archive_recommendation_draft: {
+        Args: { p_draft_id: string };
+        Returns: { id: string; status: string; archived_at: string | null; archived_by: string | null }[];
+      };
+      get_my_recommendation_reports: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string;
+          title: string;
+          recommendation_type: string | null;
+          released_at: string | null;
+          updated_at: string;
+        }[];
+      };
+      get_my_recommendation_report_content: {
+        Args: { p_draft_id: string };
+        Returns: {
+          id: string;
+          title: string;
+          recommendation_type: string | null;
+          content: Json;
+          released_at: string | null;
+        }[];
+      };
     };
     Tables: {
       profiles: {
@@ -2522,6 +2637,26 @@ export interface Database {
         Row: ApplicationTasksRow;
         Insert: Omit<ApplicationTasksRow, "id" | "created_at" | "updated_at"> & { id?: string; created_at?: string; updated_at?: string };
         Update: Partial<Omit<ApplicationTasksRow, "id" | "application_id" | "created_at">> & { updated_at?: string };
+        Relationships: [];
+      };
+
+      // NW07 — PROPOSED, NOT YET APPLIED (see supabase/migrations-proposed/
+      // NW07_counsellor_studio_foundation.sql PART 2). RPC-only — both
+      // tables' real Insert/Update are irrelevant (no code path ever calls
+      // .insert()/.update() against them directly), but every Row type
+      // flowing through getStudentDetail-style reads needs the table
+      // declared so a plain `.select("*")` type-checks.
+      recommendation_drafts: {
+        Row: RecommendationDraftsRow;
+        Insert: Omit<RecommendationDraftsRow, "id" | "created_at" | "updated_at"> & { id?: string; created_at?: string; updated_at?: string };
+        Update: Partial<Omit<RecommendationDraftsRow, "id" | "student_user_id" | "created_at">> & { updated_at?: string };
+        Relationships: [];
+      };
+
+      recommendation_draft_versions: {
+        Row: RecommendationDraftVersionsRow;
+        Insert: Omit<RecommendationDraftVersionsRow, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<RecommendationDraftVersionsRow, "id" | "draft_id" | "version_number" | "created_at">>;
         Relationships: [];
       };
 

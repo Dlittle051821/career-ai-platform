@@ -115,6 +115,32 @@ export async function listApplicationTasks(applicationId: string): Promise<Admin
   return ((data ?? []) as AdminApplicationTaskRow[]).map(toAdminApplicationTask);
 }
 
+/**
+ * NW07.7 — every NOT-YET-CLOSED task across EVERY application the caller
+ * can see, in one query. No `application_id` filter: this table's own RLS
+ * (NW06_application_tasks.sql PART 3, reusing `applications.assigned_
+ * counsellor_id = current_counsellor_id()`) already scopes a counsellor to
+ * exactly their own assigned applications' tasks — this query never needs
+ * to filter for that itself, same "RLS alone decides scope" pattern
+ * `listDiscoverySessions()`/`listMyRecommendationDrafts()` already use.
+ * Used by the Counsellor Studio's Tasks & Operations view (NW07.7) instead
+ * of a second, duplicate task system.
+ */
+export async function listMyOpenStaffApplicationTasks(): Promise<AdminApplicationTask[]> {
+  await requireAdminPermission("application-tasks:read");
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("application_tasks")
+    .select("*")
+    .in("status", ["open", "in_progress", "student_completed"])
+    .order("due_date", { ascending: true, nullsFirst: false });
+  if (error) {
+    logDbError("listMyOpenStaffApplicationTasks", error);
+    return [];
+  }
+  return ((data ?? []) as AdminApplicationTaskRow[]).map(toAdminApplicationTask);
+}
+
 export interface CreateApplicationTaskInput {
   applicationId: string;
   taskType: string;

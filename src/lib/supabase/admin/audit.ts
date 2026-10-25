@@ -153,4 +153,12 @@ export const AUDIT_ENTITY_TYPES = [
   // src/lib/supabase/admin/application-submissions.ts's
   // recordApplicationSubmission()).
   "application_submission",
+  // NW07.6 — Recommendation Workflow. Its own entity type (rather than
+  // reusing "student") for every action that targets the DRAFT itself
+  // (content edits, submit, review, release, withdraw, archive) — creation
+  // is still logged under "student" (see recommendation-drafts.ts), since
+  // that action's most meaningful subject is which student gained a new
+  // case artifact, same split "application_document_review" already makes
+  // for M18 above.
+  "recommendation_draft",
 ] as const;

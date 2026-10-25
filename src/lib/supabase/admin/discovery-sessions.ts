@@ -95,6 +95,8 @@ function toDiscoverySession(
 export interface DiscoverySessionFilters {
   status?: DiscoverySessionStatus;
   unassignedOnly?: boolean;
+  /** NW07.3/07.4 — scope to one student's own Discovery Sessions (the Student Case Workspace's "Discovery Sessions" tab). RLS still applies on top — a counsellor only ever sees rows RLS already grants them, regardless of this filter. */
+  studentUserId?: string;
   page?: number;
 }
 
@@ -113,6 +115,7 @@ export async function listDiscoverySessions(filters: DiscoverySessionFilters = {
   let query = supabase.from("discovery_sessions").select("*", { count: "exact" }).order("created_at", { ascending: false });
   if (filters.status) query = query.eq("status", filters.status);
   if (filters.unassignedOnly) query = query.is("assigned_counsellor_id", null);
+  if (filters.studentUserId) query = query.eq("student_user_id", filters.studentUserId);
 
   const { data, error, count } = await query.range(from, to);
   if (error) {

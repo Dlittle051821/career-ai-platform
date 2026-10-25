@@ -172,6 +172,24 @@ export const ADMIN_PERMISSIONS = [
   // ROLE_PERMISSIONS below.
   "application-tasks:read",
   "application-tasks:write",
+  // NW07 — Counsellor Studio Foundation. Its own permission gating the
+  // whole /counsellor/** route tree at the layout level (distinct from
+  // "dashboard:read", which finance/content_editor/analyst also hold — the
+  // Counsellor Studio is explicitly NOT a surface those three roles should
+  // ever land on, per the NW07 brief's own role boundary section). Granted
+  // to admin (for the oversight view NW07.7 asks for) and counsellor;
+  // deliberately NOT finance/content_editor/analyst.
+  "counsellor-studio:read",
+  // NW07.6 — Recommendation Workflow. One pair covering every counsellor-
+  // side action (create/edit/submit/withdraw/review/release/archive) rather
+  // than proliferating a third pair for "review" — the one rule that
+  // actually matters (an author can never review/approve their own draft)
+  // is enforced at the RPC/database layer regardless of which permission
+  // string got the caller past this app-level gate, same "permission is
+  // UX, RLS/RPC is the boundary" split as every other module in this file.
+  // Deliberately NOT granted to finance/content_editor/analyst.
+  "recommendation-drafts:read",
+  "recommendation-drafts:write",
 ] as const;
 
 export type AdminPermission = (typeof ADMIN_PERMISSIONS)[number];
@@ -261,6 +279,13 @@ export const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
     // documents:review"/"application-submissions:write" above.
     "application-tasks:read",
     "application-tasks:write",
+    // NW07 — admin gets the Counsellor Studio (oversight view) and full
+    // recommendation-workflow access. RLS additionally scopes admin to
+    // every case/draft regardless — no assignment restriction, matching
+    // "application-tasks:read"/"write" above.
+    "counsellor-studio:read",
+    "recommendation-drafts:read",
+    "recommendation-drafts:write",
   ],
   counsellor: [
     "dashboard:read",
@@ -325,6 +350,17 @@ export const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
     // as everywhere else in this file.
     "application-tasks:read",
     "application-tasks:write",
+    // NW07 — counsellors are the primary user of the Counsellor Studio and
+    // the primary author of recommendation drafts; the dual-basis case-
+    // access rule (public.counsellor_has_case_access(), NW07_counsellor_
+    // studio_foundation.sql PART 1) and the RPC-level self-review
+    // prevention (PART 2) are what actually enforce the narrowing — this
+    // permission only gets a counsellor past the application-layer gate at
+    // all, same "permission is UX, RLS/RPC is the boundary" split as
+    // everywhere else in this file.
+    "counsellor-studio:read",
+    "recommendation-drafts:read",
+    "recommendation-drafts:write",
   ],
   finance: [
     "dashboard:read",
