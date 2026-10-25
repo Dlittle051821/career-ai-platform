@@ -28,6 +28,7 @@ import {
   YES_NO_MAYBE_OPTIONS,
 } from "@/data/profile-options";
 import type { CompletionResult } from "@/types/student-profile";
+import type { ProfileSectionKey } from "@/types/profile-provenance";
 
 /**
  * All Milestone 3 "save this onboarding step" Server Actions. Every
@@ -48,6 +49,14 @@ import type { CompletionResult } from "@/types/student-profile";
  * "replace all rows for this user" strategy rather than diffing — the
  * wizard always submits the section's full current state, so this can
  * never leave stale/duplicate rows behind (Milestone 3 section 33).
+ *
+ * NW05.3 — each save function also calls
+ * `downgradeSectionProvenanceIfNeeded()` for its own section immediately
+ * after a successful write. See that function's docblock below for why:
+ * in short, once a student edits a section themselves, any stale
+ * COUNSELLOR_ENTERED/COUNSELLOR_VERIFIED provenance on it is honestly
+ * reset to SELF_ENTERED rather than silently continuing to claim
+ * counsellor attribution for data the student just overwrote.
  */
 
 export interface SaveResult {
@@ -96,10 +105,48 @@ async function recomputeCompletion(supabase: ServerSupabase, userId: string): Pr
   return completion;
 }
 
+/**
+ * NW05.3 — downgrade-only provenance safeguard.
+ *
+ * Calls the PROPOSED `public.student_mark_section_self_entered(text)` RPC
+ * (see `supabase/migrations-proposed/
+ * NW05_student_mark_section_self_entered.sql` — a reviewable, NOT-applied
+ * migration; this milestone does not apply it to any database). That RPC
+ * is itself downgrade-only and auth.uid()-scoped: it can only ever move a
+ * student's OWN section from COUNSELLOR_ENTERED/COUNSELLOR_VERIFIED back
+ * to SELF_ENTERED, and can never set COUNSELLOR_ENTERED or
+ * COUNSELLOR_VERIFIED — a student still cannot grant their own section any
+ * counsellor attribution. See the migration file's header comment for the
+ * full design.
+ *
+ * Deliberately resilient to the RPC not existing yet in a given
+ * environment: until a human administrator reviews and applies that
+ * migration, `supabase.rpc(...)` fails in every environment (the function
+ * is simply absent from the schema), and this function swallows that
+ * failure — logging it once, server-side, for visibility — rather than
+ * failing the student's actual save. The save itself (the student's real
+ * data) must never be made to depend on an unapplied migration; this is a
+ * secondary consistency safeguard layered on top of it, never a
+ * precondition for it.
+ */
+async function downgradeSectionProvenanceIfNeeded(supabase: ServerSupabase, sectionKey: ProfileSectionKey): Promise<void> {
+  try {
+    const { error } = await supabase.rpc("student_mark_section_self_entered", { p_section_key: sectionKey });
+    if (error) {
+      console.warn(`[student-profile-actions] provenance downgrade for "${sectionKey}" was skipped (RPC not available yet):`, error.message);
+    }
+  } catch (err) {
+    console.warn(`[student-profile-actions] provenance downgrade for "${sectionKey}" threw:`, err);
+  }
+}
+
 function revalidateProfilePages() {
   revalidatePath("/dashboard");
   revalidatePath("/profile");
   revalidatePath("/profile/onboarding");
+  // NW05.2 — /studio's "Your journey so far" overview also reads profile
+  // completion; keep it in sync with every other profile-aware page.
+  revalidatePath("/studio");
 }
 
 function keys(options: { key: string }[]): string[] {
@@ -148,6 +195,7 @@ export async function saveAboutYou(input: AboutYouInput): Promise<SaveResult> {
       { onConflict: "user_id" }
     );
     if (error) return { success: false, error: friendlyDbError(error) };
+    await downgradeSectionProvenanceIfNeeded(supabase, "about_you");
 
     const completion = await recomputeCompletion(supabase, userId);
     revalidateProfilePages();
@@ -224,6 +272,7 @@ export async function saveEducation(records: EducationInput[]): Promise<SaveResu
       const ins = await supabase.from("student_education").insert(rows);
       if (ins.error) return { success: false, error: friendlyDbError(ins.error) };
     }
+    await downgradeSectionProvenanceIfNeeded(supabase, "education");
 
     const completion = await recomputeCompletion(supabase, userId);
     revalidateProfilePages();
@@ -260,6 +309,7 @@ export async function saveSubjectStrengths(items: SubjectStrengthInput[]): Promi
       const ins = await supabase.from("student_subject_strengths").insert(rows);
       if (ins.error) return { success: false, error: friendlyDbError(ins.error) };
     }
+    await downgradeSectionProvenanceIfNeeded(supabase, "subject_strengths");
 
     const completion = await recomputeCompletion(supabase, userId);
     revalidateProfilePages();
@@ -303,6 +353,7 @@ export async function saveInterests(items: InterestInput[], otherText: string | 
       const ins = await supabase.from("student_interests").insert(rows);
       if (ins.error) return { success: false, error: friendlyDbError(ins.error) };
     }
+    await downgradeSectionProvenanceIfNeeded(supabase, "interests");
 
     const completion = await recomputeCompletion(supabase, userId);
     revalidateProfilePages();
@@ -340,6 +391,7 @@ export async function saveSkills(items: SkillInput[]): Promise<SaveResult> {
       const ins = await supabase.from("student_skills").insert(rows);
       if (ins.error) return { success: false, error: friendlyDbError(ins.error) };
     }
+    await downgradeSectionProvenanceIfNeeded(supabase, "skills");
 
     const completion = await recomputeCompletion(supabase, userId);
     revalidateProfilePages();
@@ -376,6 +428,7 @@ export async function saveWorkPreferences(items: WorkPreferenceInput[]): Promise
       const ins = await supabase.from("student_work_preferences").insert(rows);
       if (ins.error) return { success: false, error: friendlyDbError(ins.error) };
     }
+    await downgradeSectionProvenanceIfNeeded(supabase, "work_preferences");
 
     const completion = await recomputeCompletion(supabase, userId);
     revalidateProfilePages();
@@ -412,6 +465,7 @@ export async function saveCareerPriorities(items: CareerPriorityInput[]): Promis
       const ins = await supabase.from("student_career_priorities").insert(rows);
       if (ins.error) return { success: false, error: friendlyDbError(ins.error) };
     }
+    await downgradeSectionProvenanceIfNeeded(supabase, "career_priorities");
 
     const completion = await recomputeCompletion(supabase, userId);
     revalidateProfilePages();
@@ -458,6 +512,7 @@ export async function saveCareerGoals(input: CareerGoalsInput): Promise<SaveResu
       { onConflict: "user_id" }
     );
     if (error) return { success: false, error: friendlyDbError(error) };
+    await downgradeSectionProvenanceIfNeeded(supabase, "career_goals");
 
     const completion = await recomputeCompletion(supabase, userId);
     revalidateProfilePages();
@@ -506,6 +561,7 @@ export async function saveStudyPreferences(input: StudyPreferencesInput): Promis
       { onConflict: "user_id" }
     );
     if (error) return { success: false, error: friendlyDbError(error) };
+    await downgradeSectionProvenanceIfNeeded(supabase, "study_location");
 
     const completion = await recomputeCompletion(supabase, userId);
     revalidateProfilePages();
@@ -549,6 +605,7 @@ export async function saveFundingPreferences(input: FundingPreferencesInput): Pr
       { onConflict: "user_id" }
     );
     if (error) return { success: false, error: friendlyDbError(error) };
+    await downgradeSectionProvenanceIfNeeded(supabase, "budget_funding");
 
     const completion = await recomputeCompletion(supabase, userId);
     revalidateProfilePages();
@@ -596,6 +653,7 @@ export async function saveExperience(records: ExperienceInput[]): Promise<SaveRe
       const ins = await supabase.from("student_experience").insert(rows);
       if (ins.error) return { success: false, error: friendlyDbError(ins.error) };
     }
+    await downgradeSectionProvenanceIfNeeded(supabase, "experience");
 
     const completion = await recomputeCompletion(supabase, userId);
     revalidateProfilePages();

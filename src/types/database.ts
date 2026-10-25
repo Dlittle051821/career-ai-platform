@@ -1904,6 +1904,18 @@ export interface Database {
           created_at: string;
         }[];
       };
+      // NW05.3 — PROPOSED, NOT YET APPLIED to any database (see
+      // supabase/migrations-proposed/
+      // NW05_student_mark_section_self_entered.sql). Declared here ahead of
+      // that migration's approval so src/lib/supabase/student-profile-
+      // actions.ts's call site type-checks against the function's intended
+      // real signature now, rather than needing an `as any` escape hatch
+      // that would silently stop type-checking the call once the migration
+      // IS applied and this file is regenerated for real.
+      student_mark_section_self_entered: {
+        Args: { p_section_key: string };
+        Returns: void;
+      };
     };
     Tables: {
       profiles: {

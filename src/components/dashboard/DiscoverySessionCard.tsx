@@ -11,8 +11,21 @@ import { formatDiscoverySessionDateTime } from "@/lib/discovery-sessions/format"
  * name. `mentor.png` is a provided illustrative asset used as a generic
  * "counsellor" visual, since `DiscoverySession` has no counsellor photo
  * field to show instead.
+ *
+ * NW05.5 — `activeSessionLabel` (default "Career Guidance Session",
+ * unchanged for every existing caller) lets a caller elsewhere in the
+ * product — e.g. the Abroad Workspace, which shares this same single
+ * Discovery Session booking flow rather than running a second one —
+ * describe an active session without the Career-specific label, since
+ * there is no Abroad-specific session type to report.
  */
-export function DiscoverySessionCard({ session }: { session: DiscoverySession | null }) {
+export function DiscoverySessionCard({
+  session,
+  activeSessionLabel = "Career Guidance Session",
+}: {
+  session: DiscoverySession | null;
+  activeSessionLabel?: string;
+}) {
   return (
     <section aria-labelledby="discovery-heading" className="flex h-full flex-col rounded-[1.5rem] border border-border bg-surface p-5 shadow-soft">
       <div className="flex items-start gap-3">
@@ -33,7 +46,7 @@ export function DiscoverySessionCard({ session }: { session: DiscoverySession | 
             <Image src="/dashboard/mentor.png" alt="" aria-hidden="true" fill className="object-cover object-top" />
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-text">Career Guidance Session</p>
+            <p className="truncate text-sm font-medium text-text">{activeSessionLabel}</p>
             {session.scheduledAt ? <p className="text-xs text-muted">{formatDiscoverySessionDateTime(session.scheduledAt)}</p> : null}
             {session.assignedCounsellorName ? <p className="truncate text-xs text-muted">With {session.assignedCounsellorName}</p> : null}
           </div>
