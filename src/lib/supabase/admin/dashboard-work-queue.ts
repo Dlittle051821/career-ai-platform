@@ -8,8 +8,8 @@ import {
   getApplicationDocumentReviewCompleteness,
   type ApplicationDocumentType,
 } from "@/lib/applications/application-documents";
-import { getNextOperationalAction } from "@/lib/applications/next-operational-action";
-import { getWorkQueueBucket, type WorkQueueBucket } from "@/lib/applications/application-work-queue";
+import { getNextOperationalAction, type NextOperationalActionKind } from "@/lib/applications/next-operational-action";
+import { getWorkQueueBucket, getWorkQueueSummary, type WorkQueueBucket, type WorkQueueSummary } from "@/lib/applications/application-work-queue";
 import type { AdminRole, ApplicationStage } from "@/types/admin";
 import { hasPermission } from "@/lib/admin/permissions";
 
@@ -125,6 +125,111 @@ export async function getApplicationsNeedingAttention(role: AdminRole | undefine
   }
 
   return results;
+}
+
+/**
+ * NW08.5 — Application Operations overview. Same bounded-scan discipline as
+ * getApplicationsNeedingAttention() above (never an unbounded "all
+ * applications" query, `getNextOperationalAction()` reused as-is, never a
+ * second rules engine) but ordered OLDEST-updated-first rather than
+ * newest-first, because an operations exception view's job is to surface
+ * what has been sitting the longest, not what moved most recently (that is
+ * exactly what the dashboard widget already covers). `scanLimit` is
+ * disclosed back on the returned object so the page can honestly say
+ * "based on the N oldest-updated open applications" rather than implying
+ * platform-wide completeness.
+ */
+export interface StaleApplication extends DashboardWorkQueueApplication {
+  /** Computed server-side at fetch time (not in the rendering component — see NW08.5's own note on React Server Component render purity) so the page never calls Date.now() itself. */
+  daysSinceUpdate: number;
+}
+
+export interface ApplicationOperationsOverview {
+  scanLimit: number;
+  scannedCount: number;
+  bucketSummary: WorkQueueSummary[];
+  /** Non-terminal applications, within the scanned set, not updated in STALE_THRESHOLD_DAYS. */
+  staleCount: number;
+  staleItems: StaleApplication[];
+}
+
+const STALE_THRESHOLD_DAYS = 14;
+
+export async function getApplicationOperationsOverview(role: AdminRole | undefined, scanLimit = 200, staleListLimit = 10): Promise<ApplicationOperationsOverview> {
+  const empty: ApplicationOperationsOverview = { scanLimit, scannedCount: 0, bucketSummary: [], staleCount: 0, staleItems: [] };
+  if (!hasPermission(role, "application-documents:read")) return empty;
+  await requireAdminPermission("application-documents:read");
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("applications")
+    .select("id, student_user_id, stage, updated_at")
+    .in("stage", CANDIDATE_STAGES)
+    .order("updated_at", { ascending: true })
+    .limit(scanLimit);
+
+  if (error) {
+    logDbError("getApplicationOperationsOverview", error);
+    return empty;
+  }
+
+  const rows = (data ?? []) as AppRow[];
+  if (rows.length === 0) return empty;
+
+  const ids = rows.map((r) => r.id);
+  const [documentsByApp, checklistByApp, studentNameById] = await Promise.all([
+    listApplicationDocumentsForAdminBatch(ids),
+    getApplicationChecklistItemsBatch(ids),
+    buildStudentNameMap(supabase, rows.map((r) => r.student_user_id)),
+  ]);
+
+  const nowMs = Date.now();
+  const staleCutoffMs = nowMs - STALE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
+  const kinds: NextOperationalActionKind[] = [];
+  const staleItems: StaleApplication[] = [];
+  let staleCount = 0;
+
+  for (const row of rows) {
+    const documents = documentsByApp.get(row.id) ?? [];
+    const checklistItems = checklistByApp.get(row.id) ?? [];
+    const documentCompleteness = getApplicationDocumentCompleteness(documents.map((d) => ({ documentType: d.documentType as ApplicationDocumentType, originalFilename: d.originalFilename })));
+    const documentReviewCompleteness = getApplicationDocumentReviewCompleteness(documents.map((d) => ({ documentType: d.documentType as ApplicationDocumentType, reviewStatus: d.reviewStatus })));
+    const nextAction = getNextOperationalAction({
+      stage: row.stage as ApplicationStage,
+      currentDocuments: documents.map((d) => ({ documentType: d.documentType as ApplicationDocumentType, reviewStatus: d.reviewStatus })),
+      documentCompleteness,
+      documentReviewCompleteness,
+      manualChecklistItems: checklistItems,
+    });
+    kinds.push(nextAction.kind);
+    const bucket = getWorkQueueBucket(nextAction.kind);
+
+    const updatedAtMs = new Date(row.updated_at).getTime();
+    const isStale = updatedAtMs < staleCutoffMs;
+    if (isStale) {
+      staleCount += 1;
+      if (staleItems.length < staleListLimit) {
+        staleItems.push({
+          id: row.id,
+          studentName: studentNameById.get(row.student_user_id) ?? null,
+          universityName: null,
+          stage: row.stage as ApplicationStage,
+          bucket,
+          actionLabel: nextAction.label,
+          updatedAt: row.updated_at,
+          daysSinceUpdate: Math.floor((nowMs - updatedAtMs) / (24 * 60 * 60 * 1000)),
+        });
+      }
+    }
+  }
+
+  return {
+    scanLimit,
+    scannedCount: rows.length,
+    bucketSummary: getWorkQueueSummary(kinds),
+    staleCount,
+    staleItems,
+  };
 }
 
 async function buildStudentNameMap(supabase: Awaited<ReturnType<typeof createClient>>, ids: string[]): Promise<Map<string, string>> {

@@ -3,10 +3,11 @@ import Link from "next/link";
 import { ChartColumn } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Select } from "@/components/forms/Select";
+import { Input } from "@/components/forms/Input";
 import { FormField } from "@/components/forms/FormField";
 import { FilterBar } from "@/components/admin/FilterBar";
 import { getAnalyticsSummary } from "@/lib/supabase/admin/analytics";
-import { withShareOfTotal } from "@/lib/admin/analytics";
+import { resolveAnalyticsWindow, withShareOfTotal } from "@/lib/admin/analytics";
 import { formatMoney } from "@/lib/admin/money";
 import { APPLICATION_STAGE_LABELS, LEAD_STAGE_LABELS, OUTCOME_STAGE_LABELS, PAYMENT_STATUS_LABELS, type ApplicationStage, type LeadStage, type OutcomeStage, type PaymentStatus } from "@/types/admin";
 import { PRODUCT_EVENTS, type ImplementedEventName } from "@/lib/analytics/events";
@@ -14,7 +15,7 @@ import { PRODUCT_EVENTS, type ImplementedEventName } from "@/lib/analytics/event
 export const metadata: Metadata = { title: "Analytics" };
 
 interface AnalyticsPageProps {
-  searchParams: Promise<{ range?: string }>;
+  searchParams: Promise<{ range?: string; from?: string; to?: string }>;
 }
 
 const RANGE_OPTIONS = [
@@ -22,6 +23,8 @@ const RANGE_OPTIONS = [
   { value: "7", label: "Last 7 days" },
   { value: "30", label: "Last 30 days" },
   { value: "90", label: "Last 90 days" },
+  { value: "this_month", label: "This month" },
+  { value: "last_month", label: "Last month" },
 ];
 
 function RateBlock({ label, percent, numerator, denominator, isReliable }: { label: string; percent: number | null; numerator: number; denominator: number; isReliable: boolean }) {
@@ -46,12 +49,13 @@ function RateBlock({ label, percent, numerator, denominator, isReliable }: { lab
 export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPageProps) {
   const params = await searchParams;
   const rangeParam = params.range ?? "";
-  const sinceDays = rangeParam ? Number.parseInt(rangeParam, 10) : undefined;
+  const resolvedWindow = resolveAnalyticsWindow(params, new Date());
 
-  const summary = await getAnalyticsSummary({ sinceDays: Number.isInteger(sinceDays) && sinceDays! > 0 ? sinceDays : undefined });
+  const summary = await getAnalyticsSummary({ sinceIso: resolvedWindow.sinceIso, untilIso: resolvedWindow.untilIso });
   const leadFunnelWithShare = withShareOfTotal(summary.leadFunnel);
   const applicationFunnelWithShare = withShareOfTotal(summary.applicationStageDistribution);
   const paymentStatusWithShare = withShareOfTotal(summary.paymentStatusDistribution);
+  const hasCustomDateRange = Boolean(params.from || params.to);
 
   return (
     <div className="max-w-6xl">
@@ -61,14 +65,16 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
         <p className="mt-2 max-w-2xl text-sm text-muted">
           Every figure is a live server-side aggregate — never a full-table load. Percentages built from fewer than
           5 records are flagged as a small sample rather than shown as confident numbers. Metric definitions:
-          docs/admin-system-guide.md §11.
+          docs/milestones/NW08/NW08_METRIC_DICTIONARY.md and docs/admin-system-guide.md §11. All dates are
+          interpreted and bucketed in UTC — see NW08_METRIC_DICTIONARY.md for why.
         </p>
+        <p className="mt-2 text-sm font-medium text-text">Showing: {resolvedWindow.rangeLabel}</p>
       </div>
 
       <Card className="mb-6">
-        <FilterBar basePath="/admin/analytics" hasActiveFilters={Boolean(rangeParam)}>
+        <FilterBar basePath="/admin/analytics" hasActiveFilters={Boolean(rangeParam) || hasCustomDateRange}>
           <FormField id="range" label="Time range">
-            <Select id="range" name="range" defaultValue={rangeParam}>
+            <Select id="range" name="range" defaultValue={rangeParam} disabled={hasCustomDateRange}>
               {RANGE_OPTIONS.map((r) => (
                 <option key={r.value} value={r.value}>
                   {r.label}
@@ -76,7 +82,14 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
               ))}
             </Select>
           </FormField>
+          <FormField id="from" label="Custom from">
+            <Input id="from" name="from" type="date" defaultValue={params.from ?? ""} />
+          </FormField>
+          <FormField id="to" label="Custom to">
+            <Input id="to" name="to" type="date" defaultValue={params.to ?? ""} />
+          </FormField>
         </FilterBar>
+        <p className="mt-2 text-xs text-muted">Setting a custom from/to date overrides the time-range dropdown above.</p>
       </Card>
 
       <div className="mb-6 grid gap-6 sm:grid-cols-2">

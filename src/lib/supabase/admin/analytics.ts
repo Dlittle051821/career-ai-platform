@@ -37,15 +37,25 @@ const APPLICATION_STAGES: ApplicationStage[] = [
 ];
 const PAYMENT_STATUSES: PaymentStatus[] = ["pending", "paid", "failed", "refunded", "partially_refunded", "cancelled"];
 
-async function countWhere(
-  supabase: Supabase,
-  table: "leads" | "applications" | "payments",
-  column: string,
-  value: string,
-  sinceIso: string | null
-): Promise<number> {
+/**
+ * NW08.7 — a date window with an optional floor AND an optional ceiling
+ * (the pre-NW08 code only ever had a floor — "trailing N days" has no
+ * natural upper bound other than "now"). Every query helper below takes
+ * one of these instead of a bare `sinceIso: string | null`, so adding a
+ * real calendar-month/custom-range filter meant widening this one shape
+ * once rather than re-deriving a two-sided bound at each of the ~10 call
+ * sites. An absent bound means "unbounded on that side" — exactly the old
+ * "All time" behavior when both are absent.
+ */
+export interface DateWindow {
+  sinceIso: string | null;
+  untilIso: string | null;
+}
+
+async function countWhere(supabase: Supabase, table: "leads" | "applications" | "payments", column: string, value: string, window: DateWindow): Promise<number> {
   let query = supabase.from(table).select("*", { count: "exact", head: true }).eq(column, value);
-  if (sinceIso) query = query.gte("created_at", sinceIso);
+  if (window.sinceIso) query = query.gte("created_at", window.sinceIso);
+  if (window.untilIso) query = query.lt("created_at", window.untilIso);
   const { count, error } = await query;
   if (error) {
     logDbError(`countWhere:${table}.${column}=${value}`, error);
@@ -54,9 +64,10 @@ async function countWhere(
   return count ?? 0;
 }
 
-async function totalCount(supabase: Supabase, table: "leads" | "applications" | "payments", sinceIso: string | null): Promise<number> {
+async function totalCount(supabase: Supabase, table: "leads" | "applications" | "payments", window: DateWindow): Promise<number> {
   let query = supabase.from(table).select("*", { count: "exact", head: true });
-  if (sinceIso) query = query.gte("created_at", sinceIso);
+  if (window.sinceIso) query = query.gte("created_at", window.sinceIso);
+  if (window.untilIso) query = query.lt("created_at", window.untilIso);
   const { count, error } = await query;
   if (error) {
     logDbError(`totalCount:${table}`, error);
@@ -78,9 +89,10 @@ function topCountsFromValues(values: (string | null)[], limit: number): { key: s
 }
 
 /** Top-N lead sources computed in-memory from one bounded single-column select — safe because a single counselling operation's lead volume is expected to be modest, never millions of rows. */
-async function topLeadSources(supabase: Supabase, sinceIso: string | null, limit: number): Promise<{ key: string; count: number }[]> {
+async function topLeadSources(supabase: Supabase, window: DateWindow, limit: number): Promise<{ key: string; count: number }[]> {
   let query = supabase.from("leads").select("source");
-  if (sinceIso) query = query.gte("created_at", sinceIso);
+  if (window.sinceIso) query = query.gte("created_at", window.sinceIso);
+  if (window.untilIso) query = query.lt("created_at", window.untilIso);
   const { data, error } = await query;
   if (error) {
     logDbError("topLeadSources", error);
@@ -90,9 +102,10 @@ async function topLeadSources(supabase: Supabase, sinceIso: string | null, limit
 }
 
 /** Top-N universities by application interest, same bounded single-column-select approach. */
-async function topUniversitiesByApplicationCount(supabase: Supabase, sinceIso: string | null, limit: number): Promise<{ key: string; count: number }[]> {
+async function topUniversitiesByApplicationCount(supabase: Supabase, window: DateWindow, limit: number): Promise<{ key: string; count: number }[]> {
   let query = supabase.from("applications").select("university_id");
-  if (sinceIso) query = query.gte("created_at", sinceIso);
+  if (window.sinceIso) query = query.gte("created_at", window.sinceIso);
+  if (window.untilIso) query = query.lt("created_at", window.untilIso);
   const { data, error } = await query;
   if (error) {
     logDbError("topUniversitiesByApplicationCount", error);
@@ -102,8 +115,12 @@ async function topUniversitiesByApplicationCount(supabase: Supabase, sinceIso: s
 }
 
 export interface AnalyticsFilters {
-  /** Number of trailing days to scope leads/applications/payments to; omitted = all time. Counsellor workload is always current, not time-scoped. */
+  /** Number of trailing days to scope leads/applications/payments to; omitted = all time. Counsellor workload is always current, not time-scoped. Ignored when sinceIso is also given. */
   sinceDays?: number;
+  /** NW08.7 — explicit lower bound (inclusive), for a calendar-month or custom-range filter. Takes precedence over sinceDays. */
+  sinceIso?: string;
+  /** NW08.7 — explicit upper bound (exclusive). With no sinceDays/sinceIso, this alone still bounds the window (e.g. "everything before X"). */
+  untilIso?: string;
 }
 
 /**
@@ -127,6 +144,8 @@ export interface ProductAnalyticsSummary {
 
 export interface AnalyticsSummary {
   sinceDays: number | null;
+  /** NW08.7 — the effective window actually applied (after resolving sinceDays/sinceIso/untilIso), so the page can state exactly what it filtered to rather than re-deriving it. */
+  effectiveWindow: DateWindow;
   leadFunnel: FunnelStageCount[];
   leadToStudentConversion: RateResult;
   applicationStageDistribution: FunnelStageCount[];
@@ -139,9 +158,10 @@ export interface AnalyticsSummary {
   product: ProductAnalyticsSummary;
 }
 
-async function countProductEvent(supabase: Supabase, eventName: ImplementedEventName, sinceIso: string | null): Promise<number> {
+async function countProductEvent(supabase: Supabase, eventName: ImplementedEventName, window: DateWindow): Promise<number> {
   let query = supabase.from("product_events").select("*", { count: "exact", head: true }).eq("event_name", eventName);
-  if (sinceIso) query = query.gte("created_at", sinceIso);
+  if (window.sinceIso) query = query.gte("created_at", window.sinceIso);
+  if (window.untilIso) query = query.lt("created_at", window.untilIso);
   const { count, error } = await query;
   if (error) {
     logDbError(`countProductEvent:${eventName}`, error);
@@ -151,7 +171,7 @@ async function countProductEvent(supabase: Supabase, eventName: ImplementedEvent
 }
 
 /** Milestone 9 — the additive product/outcome metrics block. Every count here is a small, targeted `count: "exact", head: true` query (or, for outcomeStatusDistribution, the one bounded single-column select getOutcomeStatusDistribution() already uses) — same discipline as the rest of this file. */
-async function getProductAnalyticsSummary(supabase: Supabase, sinceIso: string | null): Promise<ProductAnalyticsSummary> {
+async function getProductAnalyticsSummary(supabase: Supabase, window: DateWindow): Promise<ProductAnalyticsSummary> {
   const [totalStudentUsers, newRegistrations, profileCompletionCount, eventCountEntries, invoicesPaid, outcomeStatusDistribution] = await Promise.all([
     (async () => {
       const { count, error } = await supabase.from("profiles").select("*", { count: "exact", head: true }).eq("account_type", "student");
@@ -163,7 +183,8 @@ async function getProductAnalyticsSummary(supabase: Supabase, sinceIso: string |
     })(),
     (async () => {
       let query = supabase.from("profiles").select("*", { count: "exact", head: true }).eq("account_type", "student");
-      if (sinceIso) query = query.gte("created_at", sinceIso);
+      if (window.sinceIso) query = query.gte("created_at", window.sinceIso);
+      if (window.untilIso) query = query.lt("created_at", window.untilIso);
       const { count, error } = await query;
       if (error) {
         logDbError("newRegistrations", error);
@@ -173,7 +194,8 @@ async function getProductAnalyticsSummary(supabase: Supabase, sinceIso: string |
     })(),
     (async () => {
       let query = supabase.from("student_profiles").select("*", { count: "exact", head: true }).eq("profile_status", "completed");
-      if (sinceIso) query = query.gte("updated_at", sinceIso);
+      if (window.sinceIso) query = query.gte("updated_at", window.sinceIso);
+      if (window.untilIso) query = query.lt("updated_at", window.untilIso);
       const { count, error } = await query;
       if (error) {
         logDbError("profileCompletionCount", error);
@@ -181,10 +203,11 @@ async function getProductAnalyticsSummary(supabase: Supabase, sinceIso: string |
       }
       return count ?? 0;
     })(),
-    Promise.all(IMPLEMENTED_EVENT_NAMES.map(async (name) => [name, await countProductEvent(supabase, name, sinceIso)] as const)),
+    Promise.all(IMPLEMENTED_EVENT_NAMES.map(async (name) => [name, await countProductEvent(supabase, name, window)] as const)),
     (async () => {
       let query = supabase.from("invoices").select("*", { count: "exact", head: true }).eq("status", "paid");
-      if (sinceIso) query = query.gte("created_at", sinceIso);
+      if (window.sinceIso) query = query.gte("created_at", window.sinceIso);
+      if (window.untilIso) query = query.lt("created_at", window.untilIso);
       const { count, error } = await query;
       if (error) {
         logDbError("invoicesPaid", error);
@@ -209,19 +232,26 @@ async function getProductAnalyticsSummary(supabase: Supabase, sinceIso: string |
 export async function getAnalyticsSummary(filters: AnalyticsFilters = {}): Promise<AnalyticsSummary> {
   await requireAdminPermission("analytics:read");
   const supabase = await createClient();
-  const sinceIso = filters.sinceDays ? new Date(Date.now() - filters.sinceDays * 24 * 60 * 60 * 1000).toISOString() : null;
+  // NW08.7 — an explicit sinceIso/untilIso pair (a real calendar-month or
+  // custom range) takes precedence over the legacy sinceDays convenience;
+  // all three absent means "all time", exactly as before NW08.
+  const window: DateWindow = {
+    sinceIso: filters.sinceIso ?? (filters.sinceDays ? new Date(Date.now() - filters.sinceDays * 24 * 60 * 60 * 1000).toISOString() : null),
+    untilIso: filters.untilIso ?? null,
+  };
 
   const [leadStageCounts, applicationStageCounts, paymentStatusCounts, totalLeads, totalApplications, counsellorWorkload, revenueRows, topSources, topUniversityIds, product] =
     await Promise.all([
-      Promise.all(LEAD_STAGES.map(async (stage) => ({ stage, count: await countWhere(supabase, "leads", "stage", stage, sinceIso) }))),
-      Promise.all(APPLICATION_STAGES.map(async (stage) => ({ stage, count: await countWhere(supabase, "applications", "stage", stage, sinceIso) }))),
-      Promise.all(PAYMENT_STATUSES.map(async (status) => ({ stage: status, count: await countWhere(supabase, "payments", "status", status, sinceIso) }))),
-      totalCount(supabase, "leads", sinceIso),
-      totalCount(supabase, "applications", sinceIso),
+      Promise.all(LEAD_STAGES.map(async (stage) => ({ stage, count: await countWhere(supabase, "leads", "stage", stage, window) }))),
+      Promise.all(APPLICATION_STAGES.map(async (stage) => ({ stage, count: await countWhere(supabase, "applications", "stage", stage, window) }))),
+      Promise.all(PAYMENT_STATUSES.map(async (status) => ({ stage: status, count: await countWhere(supabase, "payments", "status", status, window) }))),
+      totalCount(supabase, "leads", window),
+      totalCount(supabase, "applications", window),
       listCounsellorWorkload(),
       (async () => {
         let query = supabase.from("payments").select("amount_minor_units, currency, status");
-        if (sinceIso) query = query.gte("created_at", sinceIso);
+        if (window.sinceIso) query = query.gte("created_at", window.sinceIso);
+        if (window.untilIso) query = query.lt("created_at", window.untilIso);
         const { data, error } = await query;
         if (error) {
           logDbError("revenueRows", error);
@@ -229,9 +259,9 @@ export async function getAnalyticsSummary(filters: AnalyticsFilters = {}): Promi
         }
         return data ?? [];
       })(),
-      topLeadSources(supabase, sinceIso, 5),
-      topUniversitiesByApplicationCount(supabase, sinceIso, 5),
-      getProductAnalyticsSummary(supabase, sinceIso),
+      topLeadSources(supabase, window, 5),
+      topUniversitiesByApplicationCount(supabase, window, 5),
+      getProductAnalyticsSummary(supabase, window),
     ]);
 
   const convertedLeads = leadStageCounts.find((s) => s.stage === "converted")?.count ?? 0;
@@ -263,6 +293,7 @@ export async function getAnalyticsSummary(filters: AnalyticsFilters = {}): Promi
 
   return {
     sinceDays: filters.sinceDays ?? null,
+    effectiveWindow: window,
     leadFunnel: leadStageCounts,
     leadToStudentConversion: computeRate(convertedLeads, totalLeads),
     applicationStageDistribution: applicationStageCounts,

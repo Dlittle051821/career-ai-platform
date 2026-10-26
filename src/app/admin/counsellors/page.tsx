@@ -64,30 +64,73 @@ export default async function AdminCounsellorsPage({ searchParams }: Counsellors
         workload.length === 0 ? (
           <EmptyState icon={UserCog} title="No counsellors yet" description="Add a counsellor to see workload here." />
         ) : (
-          <AdminTable headers={["Counsellor", "Active", "Capacity", "Students", "Leads", "Applications"]}>
-            {workload.map((c) => (
-              <tr key={c.id} className="hover:bg-surface-alt/50">
-                <Td className="font-medium text-text">
-                  <Link href={`/admin/counsellors/${c.id}`} className="hover:text-primary hover:underline">
-                    {c.displayName}
-                  </Link>
-                </Td>
-                <Td>
-                  <StatusBadge status={c.isActive ? "active" : "inactive"} />
-                </Td>
-                <Td className="text-text-soft">{c.capacity ?? "—"}</Td>
-                <Td>
-                  <Badge tone="neutral">{c.assignedStudentCount}</Badge>
-                </Td>
-                <Td>
-                  <Badge tone="neutral">{c.assignedLeadCount}</Badge>
-                </Td>
-                <Td>
-                  <Badge tone="neutral">{c.assignedApplicationCount}</Badge>
-                </Td>
-              </tr>
-            ))}
-          </AdminTable>
+          <>
+            {/* NW08.4 — Team Overview: the same workload data as before,
+                now also surfacing specializations/regions (already part of
+                CounsellorWorkload/Counsellor — simply not rendered before)
+                and a capacity-utilization flag, plus cross-links into the
+                existing Leads/Applications lists filtered to this
+                counsellor's own caseload (assignedCounsellorId, wired into
+                both pages' querystring handling this milestone). */}
+            <AdminTable headers={["Counsellor", "Active", "Specializations", "Capacity", "Students", "Leads", "Applications", ""]}>
+              {workload.map((c) => {
+                const totalAssigned = c.assignedStudentCount + c.assignedLeadCount + c.assignedApplicationCount;
+                const overCapacity = c.capacity !== null && totalAssigned > c.capacity;
+                return (
+                  <tr key={c.id} className="hover:bg-surface-alt/50">
+                    <Td className="font-medium text-text">
+                      <Link href={`/admin/counsellors/${c.id}`} className="hover:text-primary hover:underline">
+                        {c.displayName}
+                      </Link>
+                    </Td>
+                    <Td>
+                      <StatusBadge status={c.isActive ? "active" : "inactive"} />
+                    </Td>
+                    <Td className="max-w-[220px]">
+                      {c.specializations.length === 0 ? (
+                        <span className="text-text-soft">—</span>
+                      ) : (
+                        <span className="flex flex-wrap gap-1">
+                          {c.specializations.slice(0, 3).map((s) => (
+                            <Badge key={s} tone="accent">
+                              {s}
+                            </Badge>
+                          ))}
+                          {c.specializations.length > 3 ? <span className="text-xs text-muted">+{c.specializations.length - 3}</span> : null}
+                        </span>
+                      )}
+                    </Td>
+                    <Td>
+                      <span className={overCapacity ? "font-medium text-warning" : "text-text-soft"}>
+                        {c.capacity ?? "—"}
+                        {overCapacity ? " (over)" : ""}
+                      </span>
+                    </Td>
+                    <Td>
+                      <Badge tone="neutral">{c.assignedStudentCount}</Badge>
+                    </Td>
+                    <Td>
+                      <Link href={`/admin/leads?assignedCounsellorId=${c.id}`} className="hover:underline">
+                        <Badge tone="neutral">{c.assignedLeadCount}</Badge>
+                      </Link>
+                    </Td>
+                    <Td>
+                      <Link href={`/admin/applications?assignedCounsellorId=${c.id}`} className="hover:underline">
+                        <Badge tone="neutral">{c.assignedApplicationCount}</Badge>
+                      </Link>
+                    </Td>
+                    <Td>
+                      {overCapacity ? (
+                        <Badge tone="warning">Over capacity</Badge>
+                      ) : totalAssigned === 0 ? (
+                        <Badge tone="neutral">Idle</Badge>
+                      ) : null}
+                    </Td>
+                  </tr>
+                );
+              })}
+            </AdminTable>
+          </>
         )
       ) : (
         <>

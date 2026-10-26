@@ -40,7 +40,7 @@ const STAGES: ApplicationStage[] = [
 ];
 
 interface ApplicationsPageProps {
-  searchParams: Promise<{ q?: string; stage?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; stage?: string; page?: string; assignedCounsellorId?: string }>;
 }
 
 export default async function AdminApplicationsPage({ searchParams }: ApplicationsPageProps) {
@@ -50,13 +50,19 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
   const stage = STAGES.includes(stageParam as ApplicationStage) ? (stageParam as ApplicationStage) : undefined;
   const parsedPage = params.page ? Number.parseInt(params.page, 10) : 1;
   const page = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  // NW08.4 — supports the Counsellor & Team overview's "View assigned
+  // applications" cross-link. Not exposed as its own filter control in
+  // this page's FilterBar (no counsellor picker here) — it only takes
+  // effect when arrived at via that link's querystring.
+  const assignedCounsellorId = params.assignedCounsellorId?.trim() || undefined;
 
-  const [result, admin] = await Promise.all([listApplications({ query: query || undefined, stage, page }), getCurrentAdmin()]);
+  const [result, admin] = await Promise.all([listApplications({ query: query || undefined, stage, assignedCounsellorId, page }), getCurrentAdmin()]);
 
   const activeFilters: Record<string, string> = {};
   if (query) activeFilters.q = query;
   if (stage) activeFilters.stage = stage;
-  const hasActiveFilters = Boolean(query || stage);
+  if (assignedCounsellorId) activeFilters.assignedCounsellorId = assignedCounsellorId;
+  const hasActiveFilters = Boolean(query || stage || assignedCounsellorId);
 
   // UX09 — work-queue grouping for the current PAGE of results only (never
   // an unbounded scan of every application). Gated behind

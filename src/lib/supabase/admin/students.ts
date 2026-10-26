@@ -402,3 +402,39 @@ export async function addStudentNote(studentUserId: string, formData: FormData):
     entityLabel: `student ${studentUserId}`,
   });
 }
+
+/**
+ * NW08.3 — status distribution across every registered student, counted
+ * with the SAME "prospect = explicit meta row saying so, OR no meta row at
+ * all" rule listStudents() above already implements (see that function's
+ * own comment at its `status === "prospect"` branch) — this function does
+ * not re-derive that rule independently; it is deliberately kept
+ * consistent so this distribution and the Students list's own status
+ * filter can never disagree about how many students are "prospects".
+ * Bounded: one head-count query for the total, one per explicit status —
+ * never a full row load. Gated by the same "students:read" permission
+ * listStudents() requires, so it never needs a broader permission than
+ * the list view it summarizes.
+ */
+export async function getStudentStatusDistribution(): Promise<{ status: AdminStudentStatus; count: number }[]> {
+  await requireAdminPermission("students:read");
+  const supabase = await createClient();
+
+  const [totalRes, ...explicitCounts] = await Promise.all([
+    supabase.from("profiles").select("*", { count: "exact", head: true }).eq("account_type", "student"),
+    ...ADMIN_STUDENT_STATUSES.map((status) => supabase.from("admin_student_meta").select("*", { count: "exact", head: true }).eq("status", status)),
+  ]);
+  if (totalRes.error) logDbError("getStudentStatusDistribution:total", totalRes.error);
+  explicitCounts.forEach((res, i) => {
+    if (res.error) logDbError(`getStudentStatusDistribution:${ADMIN_STUDENT_STATUSES[i]}`, res.error);
+  });
+
+  const explicitCountByStatus = new Map(ADMIN_STUDENT_STATUSES.map((status, i) => [status, explicitCounts[i].count ?? 0]));
+  const total = totalRes.count ?? 0;
+  const nonProspectExplicit = ADMIN_STUDENT_STATUSES.filter((s) => s !== "prospect").reduce((sum, s) => sum + (explicitCountByStatus.get(s) ?? 0), 0);
+
+  return ADMIN_STUDENT_STATUSES.map((status) => ({
+    status,
+    count: status === "prospect" ? Math.max(0, total - nonProspectExplicit) : explicitCountByStatus.get(status) ?? 0,
+  }));
+}

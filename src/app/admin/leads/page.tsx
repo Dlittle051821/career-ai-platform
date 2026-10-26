@@ -19,7 +19,7 @@ export const metadata: Metadata = { title: "Leads" };
 const STAGES: LeadStage[] = ["new", "contacted", "qualified", "nurturing", "converted", "lost"];
 
 interface LeadsPageProps {
-  searchParams: Promise<{ q?: string; stage?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; stage?: string; page?: string; assignedCounsellorId?: string }>;
 }
 
 export default async function AdminLeadsPage({ searchParams }: LeadsPageProps) {
@@ -29,13 +29,18 @@ export default async function AdminLeadsPage({ searchParams }: LeadsPageProps) {
   const stage = STAGES.includes(stageParam as LeadStage) ? (stageParam as LeadStage) : undefined;
   const parsedPage = params.page ? Number.parseInt(params.page, 10) : 1;
   const page = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  // NW08.4 — supports the Counsellor & Team overview's "View assigned
+  // leads" cross-link (listLeads already accepted this filter; it just
+  // wasn't reachable from this page's own querystring before).
+  const assignedCounsellorId = params.assignedCounsellorId?.trim() || undefined;
 
-  const result = await listLeads({ query: query || undefined, stage, page });
+  const result = await listLeads({ query: query || undefined, stage, assignedCounsellorId, page });
 
   const activeFilters: Record<string, string> = {};
   if (query) activeFilters.q = query;
   if (stage) activeFilters.stage = stage;
-  const hasActiveFilters = Boolean(query || stage);
+  if (assignedCounsellorId) activeFilters.assignedCounsellorId = assignedCounsellorId;
+  const hasActiveFilters = Boolean(query || stage || assignedCounsellorId);
 
   return (
     <div className="max-w-6xl">

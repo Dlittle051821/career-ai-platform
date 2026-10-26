@@ -125,6 +125,8 @@ export interface ApplicationFilters {
   query?: string;
   stage?: ApplicationStage;
   studentUserId?: string;
+  /** NW08.4 — filter to one counsellor's assigned caseload, for the Counsellor & Team overview's "View assigned applications" cross-link. */
+  assignedCounsellorId?: string;
   page?: number;
 }
 
@@ -140,6 +142,7 @@ export async function listApplications(filters: ApplicationFilters = {}): Promis
   let query = supabase.from("applications").select("*", { count: "exact" }).order("created_at", { ascending: false });
   if (filters.stage) query = query.eq("stage", filters.stage);
   if (filters.studentUserId) query = query.eq("student_user_id", filters.studentUserId);
+  if (filters.assignedCounsellorId) query = query.eq("assigned_counsellor_id", filters.assignedCounsellorId);
 
   // Search is applied against the student's name/email, which lives on
   // `profiles` — resolved as a pre-pass id lookup rather than an embedded

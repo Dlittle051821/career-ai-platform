@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+﻿import type { ReactNode } from "react";
 
 /**
  * Shared table chrome for every admin list page. The `overflow-x-auto`
@@ -14,8 +14,8 @@ export function AdminTable({ headers, children }: { headers: string[]; children:
       <table className="w-full min-w-[640px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-border bg-surface-alt text-left text-xs font-semibold uppercase tracking-wide text-muted">
-            {headers.map((h) => (
-              <th key={h} scope="col" className="px-4 py-3 whitespace-nowrap">
+            {headers.map((h, index) => (
+              <th key={`header-${index}`} scope="col" className="px-4 py-3 whitespace-nowrap">
                 {h}
               </th>
             ))}
@@ -30,3 +30,4 @@ export function AdminTable({ headers, children }: { headers: string[]; children:
 export function Td({ children, className }: { children: ReactNode; className?: string }) {
   return <td className={`px-4 py-3 align-top ${className ?? ""}`}>{children}</td>;
 }
+

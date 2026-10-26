@@ -31,6 +31,7 @@ import {
   Link2,
   Tag,
   CalendarHeart,
+  AlertTriangle,
 } from "lucide-react";
 import { logout } from "@/lib/supabase/actions";
 import { ADMIN_ROLE_LABELS, type CurrentAdmin } from "@/types/admin";
@@ -43,31 +44,61 @@ interface NavItem {
   href: string;
   icon: typeof LayoutDashboard;
   permission: AdminPermission;
+  /**
+   * NW08.2 — a presentation-only grouping label for the sidebar, following
+   * the Admin Studio IA the NW08 brief suggests (Command Centre / Students
+   * & CRM / Applications / Counsellors & Team / Commercial / Finance /
+   * Operations / Reports & Analytics / Settings), extended with two groups
+   * (Catalogue, for university/course content; the brief's own groups
+   * don't have a home for it) so no existing nav item is dropped just
+   * because the mockup didn't show it (brief's own explicit instruction).
+   * This field changes NOTHING about the href, the permission, or which
+   * roles see which item — only how the same 21 items are visually
+   * clustered.
+   */
+  group: string;
 }
 
 const ADMIN_NAV: NavItem[] = [
-  { label: "Dashboard", href: "/admin", icon: LayoutDashboard, permission: "dashboard:read" },
-  { label: "Students", href: "/admin/students", icon: Users, permission: "students:read" },
-  { label: "Universities", href: "/admin/universities", icon: Landmark, permission: "universities:read" },
-  { label: "Courses", href: "/admin/courses", icon: GraduationCap, permission: "courses:read" },
-  { label: "Data Imports", href: "/admin/education/imports", icon: Upload, permission: "education-imports:read" },
-  { label: "Duplicates", href: "/admin/education/duplicates", icon: GitMerge, permission: "education-duplicates:read" },
-  { label: "Data Quality", href: "/admin/education/data-quality", icon: ShieldCheck, permission: "education-data-quality:read" },
-  { label: "Sources", href: "/admin/education/sources", icon: Link2, permission: "education-sources:read" },
-  { label: "Applications", href: "/admin/applications", icon: ClipboardList, permission: "applications:read" },
-  { label: "Leads", href: "/admin/leads", icon: Contact, permission: "leads:read" },
-  { label: "Discovery Sessions", href: "/admin/discovery-sessions", icon: CalendarHeart, permission: "discovery-sessions:read" },
-  { label: "Pricing", href: "/admin/pricing", icon: Tag, permission: "pricing:read" },
-  { label: "Payments", href: "/admin/payments", icon: Wallet, permission: "payments:read" },
-  { label: "Invoices", href: "/admin/invoices", icon: Receipt, permission: "invoices:read" },
-  { label: "Refunds", href: "/admin/refunds", icon: RotateCcw, permission: "refunds:read" },
-  { label: "Payment Events", href: "/admin/payment-events", icon: Webhook, permission: "payment-events:read" },
-  { label: "Billing Settings", href: "/admin/billing-settings", icon: Settings2, permission: "billing-settings:read" },
-  { label: "Agreements", href: "/admin/agreements", icon: Signature, permission: "agreements:read" },
-  { label: "Counsellors", href: "/admin/counsellors", icon: UserCog, permission: "counsellors:read" },
-  { label: "Analytics", href: "/admin/analytics", icon: ChartColumn, permission: "analytics:read" },
-  { label: "Content", href: "/admin/content", icon: FileText, permission: "content:read" },
-  { label: "Audit Log", href: "/admin/audit-log", icon: ScrollText, permission: "audit:read" },
+  { label: "Dashboard", href: "/admin", icon: LayoutDashboard, permission: "dashboard:read", group: "Command Centre" },
+  { label: "CRM Overview", href: "/admin/crm", icon: Contact, permission: "students:read", group: "Students & CRM" },
+  { label: "Students", href: "/admin/students", icon: Users, permission: "students:read", group: "Students & CRM" },
+  { label: "Leads", href: "/admin/leads", icon: Contact, permission: "leads:read", group: "Students & CRM" },
+  { label: "Discovery Sessions", href: "/admin/discovery-sessions", icon: CalendarHeart, permission: "discovery-sessions:read", group: "Students & CRM" },
+  { label: "Applications", href: "/admin/applications", icon: ClipboardList, permission: "applications:read", group: "Applications" },
+  { label: "Operations", href: "/admin/applications/operations", icon: AlertTriangle, permission: "application-documents:read", group: "Applications" },
+  { label: "Counsellors", href: "/admin/counsellors", icon: UserCog, permission: "counsellors:read", group: "Counsellors & Team" },
+  { label: "Pricing", href: "/admin/pricing", icon: Tag, permission: "pricing:read", group: "Commercial" },
+  { label: "Agreements", href: "/admin/agreements", icon: Signature, permission: "agreements:read", group: "Commercial" },
+  { label: "Finance Overview", href: "/admin/finance", icon: Wallet, permission: "payments:read", group: "Finance" },
+  { label: "Payments", href: "/admin/payments", icon: Wallet, permission: "payments:read", group: "Finance" },
+  { label: "Invoices", href: "/admin/invoices", icon: Receipt, permission: "invoices:read", group: "Finance" },
+  { label: "Refunds", href: "/admin/refunds", icon: RotateCcw, permission: "refunds:read", group: "Finance" },
+  { label: "Payment Events", href: "/admin/payment-events", icon: Webhook, permission: "payment-events:read", group: "Finance" },
+  { label: "Billing Settings", href: "/admin/billing-settings", icon: Settings2, permission: "billing-settings:read", group: "Finance" },
+  { label: "Data Imports", href: "/admin/education/imports", icon: Upload, permission: "education-imports:read", group: "Operations" },
+  { label: "Duplicates", href: "/admin/education/duplicates", icon: GitMerge, permission: "education-duplicates:read", group: "Operations" },
+  { label: "Data Quality", href: "/admin/education/data-quality", icon: ShieldCheck, permission: "education-data-quality:read", group: "Operations" },
+  { label: "Sources", href: "/admin/education/sources", icon: Link2, permission: "education-sources:read", group: "Operations" },
+  { label: "Universities", href: "/admin/universities", icon: Landmark, permission: "universities:read", group: "Catalogue" },
+  { label: "Courses", href: "/admin/courses", icon: GraduationCap, permission: "courses:read", group: "Catalogue" },
+  { label: "Analytics", href: "/admin/analytics", icon: ChartColumn, permission: "analytics:read", group: "Reports & Analytics" },
+  { label: "Content", href: "/admin/content", icon: FileText, permission: "content:read", group: "Settings" },
+  { label: "Audit Log", href: "/admin/audit-log", icon: ScrollText, permission: "audit:read", group: "Settings" },
+];
+
+/** Fixed display order for the groups above — Object/Map iteration order would otherwise follow first-seen-in-array order anyway, but this makes the intended IA order explicit and independent of ADMIN_NAV's own item ordering. */
+const NAV_GROUP_ORDER = [
+  "Command Centre",
+  "Students & CRM",
+  "Applications",
+  "Counsellors & Team",
+  "Commercial",
+  "Finance",
+  "Operations",
+  "Catalogue",
+  "Reports & Analytics",
+  "Settings",
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -88,27 +119,37 @@ function crumbLabelFor(segment: string): string {
 
 function NavLinks({ role, onNavigate }: { role: CurrentAdmin["role"]; onNavigate?: () => void }) {
   const pathname = usePathname();
+  const visible = ADMIN_NAV.filter((item) => hasPermission(role, item.permission));
+  const groups = NAV_GROUP_ORDER.map((group) => ({ group, items: visible.filter((item) => item.group === group) })).filter((g) => g.items.length > 0);
+
   return (
-    <nav aria-label="Admin modules" className="flex flex-col gap-0.5">
-      {ADMIN_NAV.filter((item) => hasPermission(role, item.permission)).map((item) => {
-        const Icon = item.icon;
-        const active = isActive(pathname, item.href);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onNavigate}
-            aria-current={active ? "page" : undefined}
-            className={cn(
-              "flex items-center gap-3 rounded-[var(--radius-control)] px-3 py-2.5 text-sm font-medium transition-colors",
-              active ? "bg-primary text-on-primary" : "text-on-primary-muted hover:bg-white/10 hover:text-on-primary"
-            )}
-          >
-            <Icon aria-hidden="true" className="h-4 w-4 shrink-0" />
-            {item.label}
-          </Link>
-        );
-      })}
+    <nav aria-label="Admin modules" className="flex flex-col gap-4">
+      {groups.map(({ group, items }) => (
+        <div key={group}>
+          <p className="px-3 text-[11px] font-semibold uppercase tracking-wide text-on-primary-muted/70">{group}</p>
+          <div className="mt-1 flex flex-col gap-0.5">
+            {items.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(pathname, item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onNavigate}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "flex items-center gap-3 rounded-[var(--radius-control)] px-3 py-2.5 text-sm font-medium transition-colors",
+                    active ? "bg-primary text-on-primary" : "text-on-primary-muted hover:bg-white/10 hover:text-on-primary"
+                  )}
+                >
+                  <Icon aria-hidden="true" className="h-4 w-4 shrink-0" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </nav>
   );
 }
@@ -142,7 +183,7 @@ export function AdminShell({ admin, children }: { admin: CurrentAdmin; children:
         <div className="flex h-16 items-center gap-2 border-b border-white/10 px-5">
           <Logo onDark />
           <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-on-primary-muted">
-            Admin
+            Admin Studio
           </span>
         </div>
         <div className="flex-1 overflow-y-auto px-3 py-4">
@@ -175,7 +216,7 @@ export function AdminShell({ admin, children }: { admin: CurrentAdmin; children:
               <div className="flex items-center gap-2">
                 <Logo onDark />
                 <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-on-primary-muted">
-                  Admin
+                  Admin Studio
                 </span>
               </div>
               <button

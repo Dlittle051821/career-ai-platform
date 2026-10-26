@@ -368,3 +368,35 @@ export async function convertLeadToStudent(id: string, studentEmail: string): Pr
     context: { linkedStudentUserId: profile.id },
   });
 }
+
+const LEAD_STAGES: LeadStage[] = ["new", "contacted", "qualified", "nurturing", "converted", "lost"];
+
+/** NW08.3 — one bounded count query per stage. Gated by the same "leads:read" permission listLeads() already requires. Used by the Student CRM & Lifecycle overview page. */
+export async function getLeadStageDistribution(): Promise<{ stage: LeadStage; count: number }[]> {
+  await requireAdminPermission("leads:read");
+  const supabase = await createClient();
+  const counts = await Promise.all(
+    LEAD_STAGES.map(async (stage) => {
+      const { count, error } = await supabase.from("leads").select("*", { count: "exact", head: true }).eq("stage", stage);
+      if (error) {
+        logDbError(`getLeadStageDistribution:${stage}`, error);
+        return { stage, count: 0 };
+      }
+      return { stage, count: count ?? 0 };
+    })
+  );
+  return counts;
+}
+
+/** NW08.3 — the same "overdue for follow-up" definition src/lib/supabase/admin/dashboard.ts's getAdminDashboardSummary() uses (next_follow_up_date in the past or today, stage not already converted/lost), exposed here under "leads:read" rather than "dashboard:read" so the CRM overview page doesn't need a broader permission than the Leads list it summarizes. */
+export async function getLeadsNeedingFollowUpCount(): Promise<number> {
+  await requireAdminPermission("leads:read");
+  const supabase = await createClient();
+  const today = new Date().toISOString().slice(0, 10);
+  const { count, error } = await supabase.from("leads").select("*", { count: "exact", head: true }).lte("next_follow_up_date", today).not("stage", "in", "(converted,lost)");
+  if (error) {
+    logDbError("getLeadsNeedingFollowUpCount", error);
+    return 0;
+  }
+  return count ?? 0;
+}

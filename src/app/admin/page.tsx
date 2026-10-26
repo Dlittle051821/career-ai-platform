@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Users, UserCheck, Sparkles, CalendarClock, ClipboardList, Clock, Wallet, TrendingUp, UserCog, ScrollText } from "lucide-react";
+import { Users, UserCheck, Sparkles, CalendarClock, ClipboardList, Clock, Wallet, TrendingUp, UserCog, ScrollText, ReceiptText, ShieldAlert } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { WORK_QUEUE_BUCKET_ICON, WORK_QUEUE_BUCKET_ICON_CLASS, WORK_QUEUE_BUCKET_TONE } from "@/components/admin/applications/work-queue-visuals";
+import { OperationalAlertsCard, RevenueTrendChart, ServiceDeliveryDonut, SectionCard } from "@/components/admin/CommandCentreWidgets";
 import { getAdminDashboardSummary } from "@/lib/supabase/admin/dashboard";
 import { getApplicationsNeedingAttention } from "@/lib/supabase/admin/dashboard-work-queue";
 import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
@@ -13,7 +14,7 @@ import { withShareOfTotal } from "@/lib/admin/analytics";
 import { hasPermission } from "@/lib/admin/permissions";
 import { ADMIN_ROLE_LABELS, LEAD_STAGE_LABELS, type LeadStage } from "@/types/admin";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export const metadata: Metadata = { title: "Command Centre" };
 
 function SummaryCard({
   icon: Icon,
@@ -61,17 +62,25 @@ export default async function AdminDashboardPage() {
   const canReadDocuments = hasPermission(admin?.role, "application-documents:read");
   const needsAttention = canReadDocuments ? await getApplicationsNeedingAttention(admin?.role) : [];
 
+  const revenueLabel =
+    summary.recordedRevenueByCurrency.length === 0
+      ? formatMoney(0, "INR")
+      : summary.recordedRevenueByCurrency.map((r) => formatMoney(r.amountMinorUnits, r.currency)).join(" + ");
+
   return (
     <div className="max-w-6xl">
-      <div className="mb-6">
-        <p className="text-sm font-semibold uppercase tracking-wide text-secondary">Admin</p>
-        <h1 className="mt-2 text-2xl font-semibold text-primary sm:text-3xl">
-          {admin ? `Welcome, ${ADMIN_ROLE_LABELS[admin.role]}` : "Dashboard"}
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted">
-          Every figure below is a live count from the database — an empty database shows zero, not a placeholder.
-          See docs/admin-system-guide.md §11 for exactly how each metric is defined.
-        </p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-wide text-secondary">Admin Studio · Command Centre</p>
+          <h1 className="mt-2 text-2xl font-semibold text-primary sm:text-3xl">
+            {admin ? `Welcome, ${ADMIN_ROLE_LABELS[admin.role]}` : "Command Centre"}
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted">
+            Every figure on this page is a live count from the database — an empty database shows zero, never a
+            placeholder or an example number. See docs/milestones/NW08/NW08_METRIC_DICTIONARY.md and
+            docs/admin-system-guide.md §11 for exactly how each metric is defined.
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -100,12 +109,13 @@ export default async function AdminDashboardPage() {
           href="/admin/payments?status=pending"
           tone={summary.pendingPaymentsCount > 0 ? "warning" : "neutral"}
         />
+        <SummaryCard icon={TrendingUp} label="Recorded revenue (paid)" value={revenueLabel} href="/admin/payments?status=paid" tone="success" />
         <SummaryCard
-          icon={TrendingUp}
-          label="Recorded revenue (paid)"
-          value={formatMoney(summary.recordedRevenueMinorUnits, summary.recordedRevenueCurrency)}
-          href="/admin/payments?status=paid"
-          tone="success"
+          icon={ReceiptText}
+          label="Pending refund cases"
+          value={summary.pendingRefundsCount}
+          href="/admin/refunds"
+          tone={summary.pendingRefundsCount > 0 ? "warning" : "neutral"}
         />
       </div>
 
@@ -157,6 +167,35 @@ export default async function AdminDashboardPage() {
           )}
         </Card>
       ) : null}
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <SectionCard
+          title="Operational alerts"
+          subtitle="Real exceptions pulled from existing queues — never a fabricated or illustrative count."
+          action={
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-error-light text-error">
+              <ShieldAlert aria-hidden="true" className="h-4 w-4" />
+            </span>
+          }
+        >
+          <OperationalAlertsCard alerts={summary.operationalAlerts} />
+        </SectionCard>
+
+        <SectionCard title="Service delivery breakdown" subtitle="Students by current stage in the counselling and application journey (student_outcomes).">
+          <ServiceDeliveryDonut breakdown={summary.serviceDeliveryBreakdown} />
+        </SectionCard>
+      </div>
+
+      <Card className="mt-6">
+        <h2 className="text-lg font-semibold text-primary">Revenue trend (recorded, paid only)</h2>
+        <p className="mt-1 text-sm text-muted">Trailing 6 calendar months, grouped separately by currency — never summed across currencies.</p>
+        <div className="mt-4">
+          <RevenueTrendChart trend={summary.revenueTrend} />
+        </div>
+        <Link href="/admin/payments?status=paid" className="mt-4 inline-block text-sm font-semibold text-secondary-dark hover:text-primary">
+          View all paid payments →
+        </Link>
+      </Card>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Card>
