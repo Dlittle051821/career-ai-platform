@@ -16,7 +16,12 @@ import {
   markShownThisVisit,
   setDismissedUntilMs,
 } from "@/lib/registration-prompt/storage";
-import { REGISTRATION_PROMPT_REQUEST_EVENT } from "@/lib/registration-prompt/event-bus";
+import {
+  REGISTRATION_PROMPT_HOLD_EVENT,
+  REGISTRATION_PROMPT_REQUEST_EVENT,
+  applyRegistrationPromptHold,
+  type RegistrationPromptHoldDetail,
+} from "@/lib/registration-prompt/event-bus";
 import { FADE_UP_CLASSES } from "@/lib/ui/motion";
 
 /**
@@ -70,6 +75,9 @@ export function RegistrationPrompt() {
   // threshold does, via setOpen below.
   const engagedMsRef = useRef(0);
   const openedRef = useRef(false);
+  // NW08.7 — active holds (e.g. the signature homepage hero while its story is on screen).
+  // While any is raised, the TIMED path waits; contextual requests are unaffected.
+  const holdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!ready) return; // Don't start counting until we know whether this visitor is anonymous.
@@ -93,7 +101,7 @@ export function RegistrationPrompt() {
     const intervalId = window.setInterval(() => {
       if (document.visibilityState !== "visible") return;
       engagedMsRef.current += 1000;
-      if (engagedMsRef.current >= ENGAGED_THRESHOLD_MS) {
+      if (engagedMsRef.current >= ENGAGED_THRESHOLD_MS && holdsRef.current.size === 0) {
         tryOpen("timer");
       }
     }, 1000);
@@ -116,6 +124,15 @@ export function RegistrationPrompt() {
     // callback's closure each tick via the outer scope, not restarted.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
+
+  // NW08.7 — listen for holds from mount (independently of auth readiness) so a hold raised during page load is never missed.
+  useEffect(() => {
+    function handleHold(event: Event) {
+      holdsRef.current = applyRegistrationPromptHold(holdsRef.current, (event as CustomEvent<RegistrationPromptHoldDetail>).detail);
+    }
+    window.addEventListener(REGISTRATION_PROMPT_HOLD_EVENT, handleHold);
+    return () => window.removeEventListener(REGISTRATION_PROMPT_HOLD_EVENT, handleHold);
+  }, []);
 
   useEffect(() => {
     const dialog = dialogRef.current;

@@ -1,0 +1,55 @@
+/*
+ * NW08.7 — signature homepage hero: the opening headline reveal.
+ *
+ * CSS, not JavaScript, so the headline and actions are fully present and
+ * readable in the server HTML even before (or without) any script. Each
+ * headline line rises out of its own line box: the text is never
+ * transparent, so it paints on the first frame (no LCP delay).
+ */
+
+@keyframes nw-sig-rise {
+  from {
+    transform: translateY(105%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes nw-sig-settle {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.nw-sig-line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+}
+
+.nw-sig-line > span {
+  display: inline-block;
+  animation: nw-sig-rise 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.nw-sig-line:nth-child(2) > span {
+  animation-delay: 90ms;
+}
+
+.nw-sig-settle {
+  animation: nw-sig-settle 700ms cubic-bezier(0.22, 1, 0.36, 1) 260ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nw-sig-line > span,
+  .nw-sig-settle {
+    animation: none;
+  }
+}

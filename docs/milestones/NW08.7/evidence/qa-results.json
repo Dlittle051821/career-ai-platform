@@ -1,0 +1,1053 @@
+{
+  "console": [],
+  "overflow": [],
+  "reduced": [
+    {
+      "slug": "living-path",
+      "w": 390,
+      "mode": "query",
+      "reduced": true,
+      "animated": false,
+      "h1": "What comes next?",
+      "headings": [
+        "What comes next?",
+        "Your future has possibilities.",
+        "Explore the paths ahead.",
+        "Know What's Next.",
+        "Explore the paths ahead."
+      ],
+      "height": 2039
+    },
+    {
+      "slug": "living-path",
+      "w": 390,
+      "mode": "media",
+      "reduced": true,
+      "animated": false,
+      "h1": "What comes next?",
+      "headings": [
+        "What comes next?",
+        "Your future has possibilities.",
+        "Explore the paths ahead.",
+        "Know What's Next.",
+        "Explore the paths ahead."
+      ],
+      "height": 2039
+    },
+    {
+      "slug": "living-path",
+      "w": 1440,
+      "mode": "query",
+      "reduced": true,
+      "animated": false,
+      "h1": "What comes next?",
+      "headings": [
+        "What comes next?",
+        "Your future has possibilities.",
+        "Explore the paths ahead.",
+        "Know What's Next.",
+        "Explore the paths ahead."
+      ],
+      "height": 1429
+    },
+    {
+      "slug": "living-path",
+      "w": 1440,
+      "mode": "media",
+      "reduced": true,
+      "animated": false,
+      "h1": "What comes next?",
+      "headings": [
+        "What comes next?",
+        "Your future has possibilities.",
+        "Explore the paths ahead.",
+        "Know What's Next.",
+        "Explore the paths ahead."
+      ],
+      "height": 1429
+    },
+    {
+      "slug": "unfolding-future",
+      "w": 390,
+      "mode": "query",
+      "reduced": true,
+      "animated": false,
+      "h1": "What comes next?",
+      "headings": [
+        "What comes next?",
+        "Your future has possibilities.",
+        "Explore the paths ahead.",
+        "Know What's Next.",
+        "Explore the paths ahead."
+      ],
+      "height": 2039
+    },
+    {
+      "slug": "unfolding-future",
+      "w": 390,
+      "mode": "media",
+      "reduced": true,
+      "animated": false,
+      "h1": "What comes next?",
+      "headings": [
+        "What comes next?",
+        "Your future has possibilities.",
+        "Explore the paths ahead.",
+        "Know What's Next.",
+        "Explore the paths ahead."
+      ],
+      "height": 2039
+    },
+    {
+      "slug": "unfolding-future",
+      "w": 1440,
+      "mode": "query",
+      "reduced": true,
+      "animated": false,
+      "h1": "What comes next?",
+      "headings": [
+        "What comes next?",
+        "Your future has possibilities.",
+        "Explore the paths ahead.",
+        "Know What's Next.",
+        "Explore the paths ahead."
+      ],
+      "height": 1429
+    },
+    {
+      "slug": "unfolding-future",
+      "w": 1440,
+      "mode": "media",
+      "reduced": true,
+      "animated": false,
+      "h1": "What comes next?",
+      "headings": [
+        "What comes next?",
+        "Your future has possibilities.",
+        "Explore the paths ahead.",
+        "Know What's Next.",
+        "Explore the paths ahead."
+      ],
+      "height": 1429
+    },
+    {
+      "slug": "window-to-tomorrow",
+      "w": 390,
+      "mode": "query",
+      "reduced": true,
+      "animated": false,
+      "h1": "What comes next?",
+      "headings": [
+        "What comes next?",
+        "Your future has possibilities.",
+        "Explore the paths ahead.",
+        "Know What's Next.",
+        "Explore the paths ahead."
+      ],
+      "height": 2039
+    },
+    {
+      "slug": "window-to-tomorrow",
+      "w": 390,
+      "mode": "media",
+      "reduced": true,
+      "animated": false,
+      "h1": "What comes next?",
+      "headings": [
+        "What comes next?",
+        "Your future has possibilities.",
+        "Explore the paths ahead.",
+        "Know What's Next.",
+        "Explore the paths ahead."
+      ],
+      "height": 2039
+    },
+    {
+      "slug": "window-to-tomorrow",
+      "w": 1440,
+      "mode": "query",
+      "reduced": true,
+      "animated": false,
+      "h1": "What comes next?",
+      "headings": [
+        "What comes next?",
+        "Your future has possibilities.",
+        "Explore the paths ahead.",
+        "Know What's Next.",
+        "Explore the paths ahead."
+      ],
+      "height": 1429
+    },
+    {
+      "slug": "window-to-tomorrow",
+      "w": 1440,
+      "mode": "media",
+      "reduced": true,
+      "animated": false,
+      "h1": "What comes next?",
+      "headings": [
+        "What comes next?",
+        "Your future has possibilities.",
+        "Explore the paths ahead.",
+        "Know What's Next.",
+        "Explore the paths ahead."
+      ],
+      "height": 1429
+    }
+  ],
+  "reversibility": [
+    {
+      "slug": "living-path",
+      "w": 390,
+      "ok": true,
+      "forward": {
+        "0.1": [
+          "What comes next?"
+        ],
+        "0.35": [
+          "Your future has possibilities."
+        ],
+        "0.62": [
+          "Explore the paths ahead."
+        ],
+        "0.9": [
+          "Know What's Next."
+        ]
+      },
+      "reverse": {
+        "0.62": [
+          "Explore the paths ahead."
+        ],
+        "0.35": [
+          "Your future has possibilities."
+        ],
+        "0.1": [
+          "What comes next?"
+        ]
+      }
+    },
+    {
+      "slug": "living-path",
+      "w": 1440,
+      "ok": true,
+      "forward": {
+        "0.1": [
+          "What comes next?"
+        ],
+        "0.35": [
+          "Your future has possibilities."
+        ],
+        "0.62": [
+          "Explore the paths ahead."
+        ],
+        "0.9": [
+          "Know What's Next."
+        ]
+      },
+      "reverse": {
+        "0.62": [
+          "Explore the paths ahead."
+        ],
+        "0.35": [
+          "Your future has possibilities."
+        ],
+        "0.1": [
+          "What comes next?"
+        ]
+      }
+    },
+    {
+      "slug": "unfolding-future",
+      "w": 390,
+      "ok": true,
+      "forward": {
+        "0.1": [
+          "What comes next?"
+        ],
+        "0.35": [
+          "Your future has possibilities."
+        ],
+        "0.62": [
+          "Explore the paths ahead."
+        ],
+        "0.9": [
+          "Where would you like to start?",
+          "Know What's Next."
+        ]
+      },
+      "reverse": {
+        "0.62": [
+          "Explore the paths ahead."
+        ],
+        "0.35": [
+          "Your future has possibilities."
+        ],
+        "0.1": [
+          "What comes next?"
+        ]
+      }
+    },
+    {
+      "slug": "unfolding-future",
+      "w": 1440,
+      "ok": true,
+      "forward": {
+        "0.1": [
+          "What comes next?"
+        ],
+        "0.35": [
+          "Your future has possibilities."
+        ],
+        "0.62": [
+          "Explore the paths ahead."
+        ],
+        "0.9": [
+          "Where would you like to start?",
+          "Know What's Next."
+        ]
+      },
+      "reverse": {
+        "0.62": [
+          "Explore the paths ahead."
+        ],
+        "0.35": [
+          "Your future has possibilities."
+        ],
+        "0.1": [
+          "What comes next?"
+        ]
+      }
+    },
+    {
+      "slug": "window-to-tomorrow",
+      "w": 390,
+      "ok": true,
+      "forward": {
+        "0.1": [
+          "What comes next?"
+        ],
+        "0.35": [
+          "Your future has possibilities."
+        ],
+        "0.62": [
+          "Explore the paths ahead."
+        ],
+        "0.9": [
+          "Know What's Next."
+        ]
+      },
+      "reverse": {
+        "0.62": [
+          "Explore the paths ahead."
+        ],
+        "0.35": [
+          "Your future has possibilities."
+        ],
+        "0.1": [
+          "What comes next?"
+        ]
+      }
+    },
+    {
+      "slug": "window-to-tomorrow",
+      "w": 1440,
+      "ok": true,
+      "forward": {
+        "0.1": [
+          "What comes next?"
+        ],
+        "0.35": [
+          "Your future has possibilities."
+        ],
+        "0.62": [
+          "Explore the paths ahead."
+        ],
+        "0.9": [
+          "Know What's Next."
+        ]
+      },
+      "reverse": {
+        "0.62": [
+          "Explore the paths ahead."
+        ],
+        "0.35": [
+          "Your future has possibilities."
+        ],
+        "0.1": [
+          "What comes next?"
+        ]
+      }
+    }
+  ],
+  "keyboard": [
+    {
+      "slug": "living-path",
+      "stops": [
+        {
+          "text": "NextWise — home",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Home",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Explore Careers",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Career Intelligence",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Study Abroad",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Universities",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Courses",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Motion Lab: The Living Path",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Skip to the paths",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "INPUT",
+          "tag": "INPUT",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Restart",
+          "tag": "BUTTON",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "1",
+          "tag": "BUTTON",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "2",
+          "tag": "BUTTON",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "3",
+          "tag": "BUTTON",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "4",
+          "tag": "BUTTON",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Hide",
+          "tag": "BUTTON",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Explore CareersBrowse careers, what they",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Career IntelligenceGuided career discove",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Study AbroadResearch and plan studying a",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "UniversitiesExplore universities and com",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "CoursesFind courses across universities ",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "NextWise — home",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Home",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Explore Careers",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Career Intelligence",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Study Abroad",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Universities",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Courses",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Motion Lab: The Living Path",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        }
+      ],
+      "hiddenFocused": [],
+      "skipWorks": true
+    },
+    {
+      "slug": "unfolding-future",
+      "stops": [
+        {
+          "text": "NextWise — home",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Home",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Explore Careers",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Career Intelligence",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Study Abroad",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Universities",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Courses",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Motion Lab: The Unfolding Future",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Explore Careers",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Skip to the paths",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "INPUT",
+          "tag": "INPUT",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Restart",
+          "tag": "BUTTON",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "1",
+          "tag": "BUTTON",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "2",
+          "tag": "BUTTON",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "3",
+          "tag": "BUTTON",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "4",
+          "tag": "BUTTON",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Hide",
+          "tag": "BUTTON",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Explore CareersBrowse careers, what they",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Career IntelligenceGuided career discove",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Study AbroadResearch and plan studying a",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "UniversitiesExplore universities and com",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "CoursesFind courses across universities ",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "NextWise — home",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Home",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Explore Careers",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Career Intelligence",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Study Abroad",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Universities",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Courses",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        }
+      ],
+      "hiddenFocused": [],
+      "skipWorks": true
+    },
+    {
+      "slug": "window-to-tomorrow",
+      "stops": [
+        {
+          "text": "NextWise — home",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Home",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Explore Careers",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Career Intelligence",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Study Abroad",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Universities",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Courses",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Motion Lab: The Window to Tomorrow",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Skip to the paths",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "INPUT",
+          "tag": "INPUT",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Restart",
+          "tag": "BUTTON",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "1",
+          "tag": "BUTTON",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "2",
+          "tag": "BUTTON",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "3",
+          "tag": "BUTTON",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "4",
+          "tag": "BUTTON",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Hide",
+          "tag": "BUTTON",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Explore CareersBrowse careers, what they",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Career IntelligenceGuided career discove",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Study AbroadResearch and plan studying a",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "UniversitiesExplore universities and com",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "CoursesFind courses across universities ",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "NextWise — home",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Home",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Explore Careers",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Career Intelligence",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Study Abroad",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Universities",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Courses",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        },
+        {
+          "text": "Motion Lab: The Window to Tomorrow",
+          "tag": "A",
+          "hidden": false,
+          "focusRing": true
+        }
+      ],
+      "hiddenFocused": [],
+      "skipWorks": true
+    }
+  ],
+  "cls": [
+    {
+      "slug": "living-path",
+      "w": 390,
+      "cls": 0.0003
+    },
+    {
+      "slug": "living-path",
+      "w": 1440,
+      "cls": 0
+    },
+    {
+      "slug": "unfolding-future",
+      "w": 390,
+      "cls": 0.0003
+    },
+    {
+      "slug": "unfolding-future",
+      "w": 1440,
+      "cls": 0
+    },
+    {
+      "slug": "window-to-tomorrow",
+      "w": 390,
+      "cls": 0.0003
+    },
+    {
+      "slug": "window-to-tomorrow",
+      "w": 1440,
+      "cls": 0
+    }
+  ],
+  "scrollTrap": [
+    {
+      "slug": "living-path",
+      "w": 390,
+      "documentHeight": 5382,
+      "scrollY": 4538,
+      "pathsVisible": true
+    },
+    {
+      "slug": "living-path",
+      "w": 1440,
+      "documentHeight": 5348,
+      "scrollY": 4448,
+      "pathsVisible": true
+    },
+    {
+      "slug": "unfolding-future",
+      "w": 390,
+      "documentHeight": 5382,
+      "scrollY": 4538,
+      "pathsVisible": true
+    },
+    {
+      "slug": "unfolding-future",
+      "w": 1440,
+      "documentHeight": 5348,
+      "scrollY": 4448,
+      "pathsVisible": true
+    },
+    {
+      "slug": "window-to-tomorrow",
+      "w": 390,
+      "documentHeight": 5720,
+      "scrollY": 4876,
+      "pathsVisible": true
+    },
+    {
+      "slug": "window-to-tomorrow",
+      "w": 1440,
+      "documentHeight": 5708,
+      "scrollY": 4808,
+      "pathsVisible": true
+    }
+  ],
+  "frameTiming": [
+    {
+      "slug": "living-path",
+      "w": 390,
+      "frames": 148,
+      "median": 16.7,
+      "p95": 16.7,
+      "over50ms": 0
+    },
+    {
+      "slug": "living-path",
+      "w": 1440,
+      "frames": 144,
+      "median": 16.7,
+      "p95": 33.4,
+      "over50ms": 0
+    },
+    {
+      "slug": "unfolding-future",
+      "w": 390,
+      "frames": 160,
+      "median": 16.7,
+      "p95": 16.7,
+      "over50ms": 0
+    },
+    {
+      "slug": "unfolding-future",
+      "w": 1440,
+      "frames": 160,
+      "median": 16.7,
+      "p95": 16.8,
+      "over50ms": 0
+    },
+    {
+      "slug": "window-to-tomorrow",
+      "w": 390,
+      "frames": 170,
+      "median": 16.7,
+      "p95": 16.7,
+      "over50ms": 0
+    },
+    {
+      "slug": "window-to-tomorrow",
+      "w": 1440,
+      "frames": 135,
+      "median": 16.7,
+      "p95": 50.1,
+      "over50ms": 7
+    }
+  ]
+}

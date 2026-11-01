@@ -48,3 +48,37 @@ export function requestRegistrationPrompt(reason: string): void {
     new CustomEvent<RegistrationPromptRequestDetail>(REGISTRATION_PROMPT_REQUEST_EVENT, { detail: { reason } })
   );
 }
+
+/**
+ * NW08.7 — hold coordination for the signature homepage hero.
+ *
+ * The brief: "Do not show the timed registration modal while a critical
+ * animated interaction ... is in progress." A component that owns such an
+ * interaction raises a named hold while it is on screen and releases it
+ * afterwards. While any hold is raised, the prompt's TIMED path waits (the
+ * engaged-time counter keeps counting, so the prompt simply opens on the
+ * first tick after the hold is released). Contextual requests — a visitor
+ * explicitly trying to save something — are unaffected, as are every
+ * existing eligibility rule (authenticated users, excluded routes, once per
+ * visit, 7-day suppression). The policy itself is unchanged.
+ */
+export const REGISTRATION_PROMPT_HOLD_EVENT = "nextwise:registration-prompt-hold";
+
+export interface RegistrationPromptHoldDetail {
+  /** Who is holding (e.g. "signature-hero"); holds are tracked per source. */
+  source: string;
+  held: boolean;
+}
+
+export function setRegistrationPromptHold(source: string, held: boolean): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent<RegistrationPromptHoldDetail>(REGISTRATION_PROMPT_HOLD_EVENT, { detail: { source, held } }));
+}
+
+/** Pure reducer for the set of active hold sources (kept here so it is unit-testable). */
+export function applyRegistrationPromptHold(current: ReadonlySet<string>, detail: RegistrationPromptHoldDetail): Set<string> {
+  const next = new Set(current);
+  if (detail.held) next.add(detail.source);
+  else next.delete(detail.source);
+  return next;
+}

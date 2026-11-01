@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { publicPageMetadata } from "@/config/seo";
 import { HomeHero } from "@/components/sections/home/HomeHero";
+import { SignatureHero } from "@/components/sections/home/signature/SignatureHero";
+import { getHomepageHeroVariant } from "@/lib/home/signature-hero/variant";
 import { ProductEntryCards } from "@/components/sections/home/ProductEntryCards";
 import { StudioIntro } from "@/components/sections/home/StudioIntro";
 import { DiscoveryPillars } from "@/components/sections/home/DiscoveryPillars";
@@ -49,9 +51,14 @@ export const metadata: Metadata = publicPageMetadata(
 );
 
 export default function HomePage() {
+  // NW08.7 — the signature motion hero is integrated but OFF by default: `/`
+  // renders the current approved HomeHero unless NEXTWISE_HOMEPAGE_HERO is
+  // exactly "signature" at build time (see src/lib/home/signature-hero/
+  // variant.ts). Compare both locally at `/` and `/homepage-preview`.
+  const heroVariant = getHomepageHeroVariant();
   return (
     <>
-      <HomeHero />
+      {heroVariant === "signature" ? <SignatureHero /> : <HomeHero />}
       {/* NW04.2 — the two-product "choose where to start" entry section
           and the Student Studio introduction, both new and additive.
           See ProductEntryCards.tsx's and StudioIntro.tsx's own docblocks. */}

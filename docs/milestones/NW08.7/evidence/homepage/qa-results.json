@@ -1,0 +1,257 @@
+{
+  "console": [],
+  "overflow": [],
+  "cls": [
+    {
+      "w": 390,
+      "cls": 0.0001
+    },
+    {
+      "w": 1440,
+      "cls": 0.0039
+    }
+  ],
+  "frameTiming": [
+    {
+      "w": 390,
+      "frames": 68,
+      "median": 16.7,
+      "p95": 16.8,
+      "over50ms": 0
+    },
+    {
+      "w": 1440,
+      "frames": 79,
+      "median": 16.7,
+      "p95": 66.7,
+      "over50ms": 6
+    }
+  ],
+  "scrollPath": [
+    {
+      "w": 390,
+      "reachedNextSection": true
+    },
+    {
+      "w": 1440,
+      "reachedNextSection": true
+    }
+  ],
+  "keyboard": [
+    {
+      "w": 1440,
+      "stops": [
+        {
+          "text": "Skip to main content",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "NextWise — home",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Home",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Explore Careers",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Career Intelligence",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Study Abroad",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Universities",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Courses",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Search courses",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "English",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "ଓଡ଼ିଆ",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Sign In",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Get Started",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Start your journey",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Study in Europe",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Explore Career Intelligence",
+          "hidden": false,
+          "ring": true
+        }
+      ]
+    },
+    {
+      "w": 390,
+      "stops": [
+        {
+          "text": "Skip to main content",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "NextWise — home",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Open menu",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Start your journey",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Study in Europe",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Explore Career Intelligence",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Explore Nextwise Abroad",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "See how Nextwise works",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Create Your Free Account",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Build Your CareerDiscover career options",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Study in IndiaExplore career-aligned cou",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Study in EuropeDiscover 6 leading Europe",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "DAAD — German Academic Exchange Service ",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Education in Ireland — trusted national ",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Study in NL — Nuffic — trusted national ",
+          "hidden": false,
+          "ring": true
+        },
+        {
+          "text": "Campus France — trusted national source ",
+          "hidden": false,
+          "ring": true
+        }
+      ]
+    }
+  ],
+  "hold": [
+    {
+      "w": 390,
+      "events": [
+        "signature-hero:false",
+        "signature-hero:true"
+      ]
+    },
+    {
+      "w": 1440,
+      "events": [
+        "signature-hero:false",
+        "signature-hero:true"
+      ]
+    }
+  ],
+  "reduced": [
+    {
+      "w": 1440,
+      "mode": "reduced",
+      "sectionHeight": 836,
+      "viewport": 900,
+      "sticky": "relative",
+      "devBar": false,
+      "pathwaysVisible": true
+    },
+    {
+      "w": 768,
+      "mode": "reduced",
+      "sectionHeight": 960,
+      "viewport": 1024,
+      "sticky": "relative",
+      "devBar": false,
+      "pathwaysVisible": true
+    },
+    {
+      "w": 390,
+      "mode": "reduced",
+      "sectionHeight": 780,
+      "viewport": 844,
+      "sticky": "relative",
+      "devBar": false,
+      "pathwaysVisible": true
+    }
+  ]
+}
