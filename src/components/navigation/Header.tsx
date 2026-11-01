@@ -4,39 +4,40 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search } from "lucide-react";
-import { HOME_NAV_LINK, PRIMARY_NAV, PRODUCT_NAV } from "@/config/site";
+import { MAIN_NAV_ITEMS, HOME_NAV_LINK } from "@/config/site";
 import { Container } from "@/components/layout/Container";
 import { isNavLinkActive } from "@/lib/navigation/active-nav";
 import { LanguageSelector } from "./LanguageSelector";
 import { AccountMenu } from "./AccountMenu";
-import { ExploreMenu } from "./ExploreMenu";
-import { NavDropdown } from "./NavDropdown";
+import { WorkspaceEntryLink } from "./WorkspaceEntryLink";
 import { MobileNav } from "./MobileNav";
 import { Logo } from "./Logo";
 import { cn } from "@/lib/utils";
 
 /**
+ * NW08.5 — flat, six-item primary desktop nav (Home + MAIN_NAV_ITEMS),
+ * replacing the NW04.5 "Products"/"For Students"/"Resources"/"About"
+ * dropdown-and-flat-link mix. The brief is explicit: no dropdown grouping
+ * on the main nav, one authoritative array (src/config/site.ts's
+ * MAIN_NAV), exact six-item order, and a role-aware workspace entry
+ * (WorkspaceEntryLink) alongside the account menu rather than buried
+ * inside a "For Students" link. Every href this replaces was already
+ * reachable before — see MAIN_NAV's own docblock for the full mapping and
+ * docs/milestones/NW08.5/NW085_02_NAVIGATION_ARCHITECTURE.md for the
+ * before/after comparison.
+ *
  * UX10A — restrained "Apple-like" active-nav treatment: active text reads
  * slightly stronger/darker (text-primary + font-semibold vs. the default
  * font-medium text-text-soft) and carries a small Nextwise-blue underline,
- * never a filled pill/background wash (that was the pre-UX10A treatment —
- * replaced here because the task's own brief explicitly asks for
- * something quieter: "Do NOT use a heavy navigation pill for every item").
- * The underline previews on hover too (scale-x-0 -> scale-x-100), so
- * hovering any item gives the same quiet, smooth 200ms feedback whether
- * or not it's the active route — never a sudden snap.
+ * never a filled pill/background wash. The underline previews on hover too
+ * (scale-x-0 -> scale-x-100), so hovering any item gives the same quiet,
+ * smooth 200ms feedback whether or not it's the active route.
  *
- * UX10-H05B "EXACT TOP HOMEPAGE REFERENCE REPRODUCTION" — the reference
- * shows a search glyph between the primary nav and the language/account
- * group. Rather than fabricate a non-functional search widget (a standing
- * project rule), this links to /courses — `src/app/(site)/courses/page.tsx`
- * already runs a real server-side keyword search via its `q` searchParam
- * (`searchCourses()`), so the icon points at genuine, pre-existing search
- * functionality, not a decoration. `LanguageSelector` and `AccountMenu`'s
- * own established "Sign In"/"Get Started" labels (a documented UX03-04
- * sitewide decision) are intentionally left unchanged rather than renamed
- * to chase the reference's own "Log in"/"Get started" casing/wording —
- * see UX10-H05B_REFERENCE_AUDIT.md.
+ * UX10-H05B — the reference shows a search glyph between the primary nav
+ * and the language/account group. Rather than fabricate a non-functional
+ * search widget, this links to /courses — a real, pre-existing server-side
+ * keyword search (`searchCourses()`), so the icon points at genuine
+ * functionality, not a decoration.
  */
 const NAV_LINK_BASE =
   "group relative inline-flex items-center whitespace-nowrap rounded-md px-2.5 py-2 text-sm transition-colors duration-200";
@@ -98,46 +99,29 @@ export function Header() {
                 <NavUnderline active={isNavLinkActive(pathname, HOME_NAV_LINK.href)} />
               </Link>
             </li>
-            {/* NW04.5 — nav-IA restructuring per the brief's target desktop
-                IA: Logo | Products | For Students | Resources | About |
-                search | Sign in | Get Started. PRODUCT_NAV's two entries
-                (previously a flat row right after Home) now live in a
-                "Products" dropdown, backed by the same generic NavDropdown
-                that already powers Resources (formerly "Explore" — see
-                ExploreMenu.tsx). A new plain "For Students" link points at
-                the Studio hub (/studio — the one shared signed-in landing
-                point between the two product workspaces; see
-                src/app/studio/page.tsx). PRIMARY_NAV's four entries (How It
-                Works / Counselling / Pricing / About) now consolidate into
-                an "About" dropdown rather than four separate top-level
-                slots. No href is removed, renamed, or made unreachable —
-                every one of these six destinations was already reachable
-                before this change; only the grouping changed (see
-                NW04_05_NAVIGATION_CONVERSION.md for the full rationale). */}
-            <li>
-              <NavDropdown id="products" label="Products" items={PRODUCT_NAV} />
-            </li>
-            <li>
-              <Link
-                href="/studio"
-                aria-current={isNavLinkActive(pathname, "/studio") ? "page" : undefined}
-                className={cn(
-                  NAV_LINK_BASE,
-                  isNavLinkActive(pathname, "/studio")
-                    ? "font-semibold text-primary"
-                    : "font-medium text-text-soft hover:text-primary"
-                )}
-              >
-                For Students
-                <NavUnderline active={isNavLinkActive(pathname, "/studio")} />
-              </Link>
-            </li>
-            <li>
-              <ExploreMenu />
-            </li>
-            <li>
-              <NavDropdown id="about" label="About" items={PRIMARY_NAV} />
-            </li>
+            {/* NW08.5 — the exact six-item primary order, flat, no
+                dropdown grouping. MAIN_NAV_ITEMS is MAIN_NAV minus Home
+                (rendered above), already in the brief's required order:
+                Explore Careers, Career Intelligence, Study Abroad,
+                Universities, Courses. */}
+            {MAIN_NAV_ITEMS.map((link) => {
+              const active = isNavLinkActive(pathname, link.href);
+              return (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      NAV_LINK_BASE,
+                      active ? "font-semibold text-primary" : "font-medium text-text-soft hover:text-primary"
+                    )}
+                  >
+                    {link.label}
+                    <NavUnderline active={active} />
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </nav>
 
@@ -150,6 +134,7 @@ export function Header() {
             <Search aria-hidden="true" className="h-[1.1rem] w-[1.1rem]" />
           </Link>
           <LanguageSelector />
+          <WorkspaceEntryLink />
           <AccountMenu />
         </div>
 

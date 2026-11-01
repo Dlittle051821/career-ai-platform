@@ -1,12 +1,13 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { ArrowRight, Globe2, ShieldCheck, Sparkles, UserCheck } from "lucide-react";
+import { ArrowRight, Globe2, Search, ShieldCheck, Sparkles, UserCheck } from "lucide-react";
 import { Container } from "@/components/layout/Container";
 import { LinkButton } from "@/components/ui/Button";
 import { FADE_UP_CLASSES, HOVER_LIFT_CLASSES } from "@/lib/ui/motion";
 import { HOMEPAGE_WIDE_CONTAINER_CLASSNAME } from "./homepage-layout";
 import { OrbitJourney } from "./OrbitJourney";
 import { getGraphicAriaProps } from "@/lib/graphics/accessible-graphic";
+import { BRAND_TAGLINE } from "@/config/site";
 import { cn } from "@/lib/utils";
 
 /**
@@ -315,6 +316,36 @@ import { cn } from "@/lib/utils";
  * See hero-composition-audit.test.ts's own UX10-EU02 update for the
  * regression-guard side of this change (the same file that has guarded
  * every prior hero copy revision since UX10-H01B).
+ *
+ * NW08.5 "GLOBAL PUBLIC UX, NAVIGATION, SEO & CONVERSION REFINEMENT" — a
+ * further, explicit, documented copy reversal of UX10-EU02's own headline
+ * (the same kind of deliberate supersession this file's own docblock has
+ * recorded for every prior hero pass — H03/H04/H05B/EU02 each overrode an
+ * earlier decision when a newer, more specific brief called for it).
+ * This milestone's brief gives the exact headline/support copy to use —
+ * `BRAND_TAGLINE` ("Know What's Next.", the same text already on the
+ * logo lockup itself) plus "Explore careers. Discover opportunities.
+ * Plan your future." — and separately requires the hero to carry "a REAL
+ * functional search, never fake." Changes, scoped only to the left
+ * column's copy and a new search form; the grid split, student photo,
+ * orbit, and trust cues (still factual, still not touched) are
+ * unaffected:
+ *  - H1 becomes `BRAND_TAGLINE` (imported from src/config/site.ts rather
+ *    than re-typed, so the hero can never drift from the one authoritative
+ *    tagline string), two-tone kept by coloring only the word "Next." in
+ *    primary blue — the decorative scribble accent moves to sit after
+ *    that final word, same as every prior headline revision in this file.
+ *  - Body copy becomes the brief's own exact support line.
+ *  - A real search form is added between the body copy and the CTA row:
+ *    a GET form to `/careers` with `name="q"` — `/careers` already runs a
+ *    real server-side keyword search over its `q` searchParam
+ *    (`searchCareers()`, see `src/app/(site)/careers/page.tsx`), so
+ *    submitting it is genuine search, not a decorative input that goes
+ *    nowhere.
+ *  - CTAs/trust cues are NOT part of this brief's exact-text requirements
+ *    and are left as UX10-EU02 set them ("Explore Careers" ->
+ *    /career-discovery, "Study in Europe" -> /study-europe) — both already
+ *    real, honest, working destinations.
  */
 const HERO_CAMPUS_BACKDROP_SRC = "/hero/campus-sky-backdrop.png";
 const HERO_STUDENT_IMAGE_SRC = "/hero/nextwise-student-cutout.png";
@@ -366,15 +397,20 @@ export function HomeHero() {
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-secondary">Explore · Plan · Learn · Grow</p>
 
             <h1 className="mt-5 font-sans text-[2.5rem] font-bold leading-[1.08] tracking-tight balance sm:text-[2.75rem] lg:text-[3.25rem] lg:leading-[1.05]">
-              <span className="text-text">Make smarter education decisions</span>{" "}
+              {/* NW08.5 — BRAND_TAGLINE ("Know What's Next.") is this
+                  milestone's required exact headline, imported rather than
+                  re-typed so this can never drift from the one
+                  authoritative tagline string. Split on the final word for
+                  the same two-tone treatment every prior headline here has
+                  used. */}
+              <span className="text-text">{BRAND_TAGLINE.replace(/\s*Next\.$/, "")}</span>{" "}
               <span className="text-primary">
-                in India and Europe.
+                Next.
                 {/* Small decorative scribble accent, matching the H06
-                    reference's own flourish beside "possibilities." —
-                    purely decorative, no new copy. Moved to sit after the
-                    new headline's own final word for UX10-EU02. See this
-                    file's UX10-H06 docblock, item 4, and the UX10-EU02
-                    docblock above. */}
+                    reference's own flourish — purely decorative, no new
+                    copy. Sits after the headline's final word, same as
+                    every prior revision. See this file's UX10-H06
+                    docblock, item 4. */}
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 40 22"
@@ -390,13 +426,40 @@ export function HomeHero() {
                 darkened from text-muted (#5b6472) to the already-existing
                 text-text-soft (#333c4d) token for "hero body copy darker".
                 UX10-H02 narrows the measure (max-w-xl -> max-w-lg) for
-                better reading rhythm, per this pass's own instruction —
-                same copy, same color, just a tighter line length. UX10-EU02
-                updates the copy itself to the brief's own India+Europe
-                supporting line, same color/measure. */}
+                better reading rhythm. NW08.5 updates the copy itself to
+                the brief's own exact support line, same color/measure. */}
             <p className="mt-6 max-w-lg text-lg leading-relaxed text-text-soft">
-              Explore careers, compare courses and universities, and get personalised guidance for your future.
+              Explore careers. Discover opportunities. Plan your future.
             </p>
+
+            {/* NW08.5 — a REAL functional search, not a decorative input:
+                a plain GET form to /careers with name="q". /careers
+                already runs a real server-side keyword search over that
+                exact searchParam (searchCareers(), see
+                src/app/(site)/careers/page.tsx) — submitting this takes a
+                visitor straight to real, filtered results, the same way
+                the header's own search icon already does for /courses. */}
+            <form action="/careers" method="GET" className="mt-6 max-w-lg" role="search">
+              <label htmlFor="hero-career-search" className="sr-only">
+                Search careers
+              </label>
+              <div className="relative">
+                <Search aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                <input
+                  id="hero-career-search"
+                  type="search"
+                  name="q"
+                  placeholder="Search careers — e.g. “data analyst”, “design”"
+                  className="w-full rounded-full border border-border-strong bg-surface/95 py-3 pl-11 pr-24 text-sm text-text shadow-soft backdrop-blur-sm placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+                <button
+                  type="submit"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-on-primary transition-colors hover:bg-primary-light"
+                >
+                  Search
+                </button>
+              </div>
+            </form>
 
             {/* flex-wrap rather than a breakpoint-based flex-col/flex-row
                 swap: this row sits inside a partial-width lg: column, so a

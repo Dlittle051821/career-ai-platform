@@ -72,94 +72,116 @@ export const BRAND_DARK_BG = "#0b1f3a";
 export const CURRENT_YEAR = new Date().getFullYear();
 
 /**
- * UX03-04 — public header navigation IA.
+ * NW08.5 — single authoritative primary-navigation config.
  *
- * Restructured from a flat 9-item list into: an "Explore" dropdown (the
- * four real exploration entry points, each with a one-line description)
- * plus a short row of top-level destinations. This is a presentation-layer
- * regrouping only — every href below already existed and was already
- * reachable before this change; nothing was invented and nothing was
- * removed from the site, only reorganized (see
- * docs/ux/UX03-04_NAVIGATION_PUBLIC_WEBSITE.md for the full audit and the
- * reasoning behind every inclusion/omission decision).
+ * Supersedes the UX03-04/NW03.2/NW04.5 structure (a flat "Explore"
+ * dropdown + a separate PRODUCT_NAV row + a separate PRIMARY_NAV row,
+ * each rendered slightly differently by Header.tsx vs MobileNav.tsx).
+ * NW08.5's own brief is explicit: the public primary desktop nav must be
+ * exactly six flat items in exactly this order, with no "Products" /
+ * "For Students" / "Resources" / "About" dropdown grouping on the main
+ * nav — and there must be ONE array both Header.tsx and MobileNav.tsx
+ * read, not independently-maintained lists. MAIN_NAV is that one array.
  *
- * Two previously top-level links intentionally do NOT get a slot in this
- * lean header (per the spec's own "do not overcrowd it" instruction) but
- * remain fully reachable elsewhere:
- * - Career Discovery (/career-discovery) — already the site's primary
- *   hero CTA ("Find My Direction") and listed under "Nextwise" in the
- *   footer.
- * - Compare Careers (/compare) — listed under "Explore" in the footer.
- * - For Parents (/parents) and Trust Center (/trust) — listed under
- *   "For Families" in the footer; not part of the spec's target IA for
- *   the primary student-facing nav, but never removed from the site.
+ * Label choices follow the brief's own explicit product-naming
+ * distinction (section "Product & Navigation Philosophy"): "Explore
+ * Careers" is the plain public directory (/careers), "Career
+ * Intelligence" is the guided product (/career), and the nav slot for
+ * /abroad is labelled "Study Abroad" (the public entry point) rather than
+ * the branded product name "Nextwise Abroad" (which still appears on the
+ * page itself and in FOOTER_NAV's "Products" group — the product's brand
+ * name, not the nav entry point's label).
+ *
+ * No href below is new: every one of these six routes already existed
+ * and was already reachable before this change.
  */
-export const EXPLORE_NAV: NavLink[] = [
-  { label: "Careers", href: "/careers", description: "Browse careers, what they involve, and how to get there." },
-  { label: "Courses", href: "/courses", description: "Find courses across universities that match a path you're considering." },
+export const MAIN_NAV: NavLink[] = [
+  { label: "Home", href: "/" },
+  { label: "Explore Careers", href: "/careers", description: "Browse careers, what they involve, and how to get there." },
+  { label: "Career Intelligence", href: "/career", description: "Guided career discovery, planning, and counselling in India." },
+  { label: "Study Abroad", href: "/abroad", description: "Research and plan studying abroad across six countries." },
   { label: "Universities", href: "/universities", description: "Explore universities and compare what each one offers." },
-  { label: "Study Options", href: "/study-options", description: "Compare studying in India against studying abroad." },
+  { label: "Courses", href: "/courses", description: "Find courses across universities that match a path you're considering." },
 ];
 
 /**
- * NW03.2 — the two top-level product entry points (Career Intelligence,
- * Abroad). Added ahead of the pre-existing PRIMARY_NAV items, matching
- * HOME_NAV_LINK's own precedent of a small, separately-tracked constant
- * rather than folding into PRIMARY_NAV itself — Header.tsx and
- * MobileNav.tsx render this row distinctly from the rest of PRIMARY_NAV
- * (see NW03_02_ROUTES.md). Purely additive: no existing nav link below is
- * removed, renamed, or reordered.
+ * UX10A — the header's explicit "Home" link, kept as its own named export
+ * (rather than requiring every caller to read MAIN_NAV[0]) since several
+ * existing call sites (Header.tsx, MobileNav.tsx, this file's own tests)
+ * already address it by name. Always the same object as MAIN_NAV[0] — not
+ * a second, independently-maintained copy of the label/href.
  */
-export const PRODUCT_NAV: NavLink[] = [
-  { label: "Career Intelligence", href: "/career", description: "Career discovery, courses, and counselling in India." },
-  { label: "Nextwise Abroad", href: "/abroad", description: "Research and plan studying abroad across six countries." },
-];
+export const HOME_NAV_LINK: NavLink = MAIN_NAV[0];
 
-export const PRIMARY_NAV: NavLink[] = [
+/**
+ * NW08.5 — every primary-nav item except Home, in the same order, for
+ * callers (Header.tsx's desktop row, MobileNav.tsx's drawer) that render
+ * Home separately from the rest of the row.
+ */
+export const MAIN_NAV_ITEMS: NavLink[] = MAIN_NAV.slice(1);
+
+/**
+ * NW08.5 — secondary public pages. Per the brief: these do NOT get a
+ * top-level primary-nav slot, but stay fully reachable via the footer (and
+ * via in-page sections/CTAs/breadcrumbs) — nothing below is deleted or
+ * made unreachable, only moved out of the primary header row. Previously
+ * split across PRIMARY_NAV (How It Works/Counselling/Pricing/About) and
+ * assorted footer-only entries (Career Discovery/Compare Careers/Study
+ * Options/Parents/Trust/Contact); now one list, which FOOTER_NAV below
+ * reads from directly rather than re-declaring its own copies.
+ */
+export const SECONDARY_NAV: NavLink[] = [
   { label: "How It Works", href: "/how-it-works" },
   { label: "Counselling", href: "/book-counselling" },
   { label: "Pricing", href: "/pricing" },
   { label: "About", href: "/about" },
+  { label: "Career Discovery", href: "/career-discovery" },
+  { label: "Compare Careers", href: "/compare" },
+  { label: "Study Options", href: "/study-options" },
+  { label: "For Parents", href: "/parents" },
+  { label: "Trust Center", href: "/trust" },
+  { label: "Contact", href: "/contact" },
 ];
 
 /**
- * UX10A — the header's explicit "Home" link, kept separate from
- * PRIMARY_NAV (rather than prepended into it) because Header.tsx renders
- * Home before the Explore dropdown, not interleaved with the rest of
- * PRIMARY_NAV, and FOOTER_NAV is hand-authored independently of
- * PRIMARY_NAV — adding a row here does not change what the footer shows.
- * One new link, matching the approved UX10A reference image's own header
- * (which shows Home as the first item); every other existing link is
- * unchanged. Both Header.tsx and MobileNav.tsx import this single
- * constant, so route-aware active-state (src/lib/navigation/active-nav.ts)
- * stays correct in both places from one source of truth.
+ * NW08.5 — footer navigation, now sourced from MAIN_NAV/SECONDARY_NAV
+ * rather than independently hand-typed hrefs/labels (the brief's own "one
+ * authoritative navigation config... not independent arrays" instruction).
+ * Group HEADINGS stay hand-authored (the brief explicitly allows "Products"
+ * / "For Students" / "Resources" / "About" to remain as footer headings
+ * even though they're gone from the primary nav) and the "Products" group
+ * keeps the branded product name "Nextwise Abroad" (a product-naming
+ * choice, distinct from the primary nav's "Study Abroad" entry-point
+ * label — see MAIN_NAV's own docblock) since nothing requires the footer
+ * and header to use identical label text for the same href, only that
+ * both read from the same underlying route data.
  */
-export const HOME_NAV_LINK: NavLink = { label: "Home", href: "/" };
+function findNav(href: string): NavLink {
+  const found = [...MAIN_NAV, ...SECONDARY_NAV].find((link) => link.href === href);
+  if (!found) throw new Error(`findNav: no nav entry registered for ${href}`);
+  return found;
+}
 
 export const FOOTER_NAV: Record<string, NavLink[]> = {
   Products: [
-    { label: "Career Intelligence", href: "/career" },
-    { label: "Nextwise Abroad", href: "/abroad" },
+    { ...findNav("/career"), label: "Career Intelligence" },
+    { ...findNav("/abroad"), label: "Nextwise Abroad" },
   ],
   Explore: [
-    { label: "Careers", href: "/careers" },
-    { label: "Courses", href: "/courses" },
-    { label: "Universities", href: "/universities" },
-    { label: "Study Options", href: "/study-options" },
-    { label: "Compare Careers", href: "/compare" },
+    { ...findNav("/careers"), label: "Careers" },
+    findNav("/courses"),
+    findNav("/universities"),
+    findNav("/study-options"),
+    findNav("/compare"),
   ],
   Nextwise: [
-    { label: "How It Works", href: "/how-it-works" },
-    { label: "Counselling", href: "/book-counselling" },
-    { label: "Pricing", href: "/pricing" },
-    { label: "About", href: "/about" },
-    { label: "Career Discovery", href: "/career-discovery" },
+    findNav("/how-it-works"),
+    findNav("/book-counselling"),
+    findNav("/pricing"),
+    findNav("/about"),
+    findNav("/career-discovery"),
   ],
-  "For Families": [
-    { label: "For Parents", href: "/parents" },
-    { label: "Trust Center", href: "/trust" },
-    { label: "Contact", href: "/contact" },
-  ],
+  "For Families": [findNav("/parents"), findNav("/trust"), findNav("/contact")],
   Legal: [
     { label: "Privacy Policy", href: "/privacy" },
     { label: "Terms of Service", href: "/terms" },
@@ -175,9 +197,17 @@ export const FOOTER_NAV: Record<string, NavLink[]> = {
  * Contact details are placeholders until verified information is supplied
  * by the business owner. Never invent an address, phone number, or
  * registration ID — surface the placeholder state instead.
+ *
+ * NW08.5 — `hello@nextwise.example` (an RFC 2606 reserved "example" domain
+ * that cannot route real mail) was removed per this milestone's explicit
+ * instruction not to present a fabricated-looking business email address
+ * as if it were a real contact method. No real, approved email address has
+ * been supplied, so this now states that plainly — the same honest
+ * "coming soon" / "not yet published" treatment already used below for
+ * phone support and the physical office, not a guessed replacement address.
  */
 export const CONTACT = {
-  emailLabel: "hello@nextwise.example (placeholder)",
+  emailLabel: "Email support — coming soon",
   phoneLabel: "Phone support — coming soon",
   cityStatement:
     "Built for students and families across Odisha. We operate as a remote-first guidance team; a physical office is not yet published.",

@@ -89,12 +89,27 @@ export default function AboutPage() {
 
       <Section tone="muted">
         <Card>
+          {/* NW08.5 — this section's copy previously said "This website
+              reflects our Milestone 1 build... frontend-only interactions,"
+              which was accurate when first written but became stale as
+              real accounts, applications, payments, counselling, and an
+              admin system shipped in later milestones (confirmed against
+              this page's own now-functional "/applications", "/dashboard",
+              "/saved" routes and the real Supabase-backed auth this site
+              runs on). Understating what already works is still a content-
+              accuracy problem the brief's audit explicitly asks to fix —
+              not as risky as overclaiming, but still not honest. Updated to
+              describe what is actually true right now, while keeping the
+              one disclosure that is still accurate and still the real
+              constraint: a student-facing AI recommendation engine is not
+              yet live (that is NW09's own, separate, not-yet-started
+              milestone — see docs/milestones/NW08.5/NW085_04_DISCOVERY_PAGE_REDESIGN.md). */}
           <h2 className="text-lg font-semibold text-primary">Mission versus what&apos;s live today</h2>
           <p className="mt-2 text-sm leading-relaxed text-text-soft">
-            This website reflects our Milestone 1 build: a public website and UI foundation with mock content and
-            frontend-only interactions. Features described as future plans — like the full career assessment, an
-            application tracker, or an AI recommendation engine — are not yet functional. We&apos;d rather be clear about
-            that than let the site imply otherwise.
+            Account creation, student applications, discovery sessions, counselling, and payments on this site are
+            real, not a mock-up. What is not yet live is a student-facing AI recommendation engine — the career
+            discovery preview on this site today reflects your own answers back to you; it does not run a scored,
+            personalised AI assessment yet. We&apos;d rather be clear about that than let the site imply otherwise.
           </p>
           <p className="mt-4 text-sm text-text-soft">
             Read more about how we intend to earn trust on our{" "}

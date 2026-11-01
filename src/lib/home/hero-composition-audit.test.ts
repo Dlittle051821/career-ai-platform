@@ -85,26 +85,32 @@ describe("hero composition — right column rebalanced to the UX10-H03 reference
     expect(rightShare).toBeLessThanOrEqual(0.65);
   });
 
-  it("UX10-EU02 — the left column's headline, both CTAs, and all four trust cues carry this milestone's India+Europe copy; the grid split, orbit, and photo are otherwise untouched", () => {
-    // Originally asserted the UX10-H01B/H03 "Your future has possibilities.
-    // Find the right one." headline, "Explore Your Future — Free" /
-    // "Book a Free Discovery Session" CTAs, and a three-item trust row
-    // ("Trusted study sources" / "Personalised guidance" / "Student-first
-    // approach"). UX10-EU02's own brief explicitly instructs a content-only
-    // copy change to India+Europe positioning — the same kind of
-    // deliberate, documented reversal this file has already recorded for
-    // every prior hero milestone (see the annotation-images describe block
-    // above). See HomeHero.tsx's own UX10-EU02 docblock entry for the full
-    // reasoning. The right-column grid split, the student photo, and the
-    // orbit (covered by the describe blocks below) are unaffected.
-    expect(HERO_SOURCE).toContain("Make smarter education decisions");
-    expect(HERO_SOURCE).toContain("in India and Europe.");
+  it("NW08.5 — the left column's headline is BRAND_TAGLINE, support copy/search/CTAs/trust cues match this milestone's exact required copy; the grid split, orbit, and photo are otherwise untouched", () => {
+    // Originally asserted the UX10-EU02 "Make smarter education decisions
+    // in India and Europe." headline. NW08.5's own brief gives an exact
+    // required headline/support line ("Know What's Next." / "Explore
+    // careers. Discover opportunities. Plan your future.") and requires a
+    // real functional search in the hero — the same kind of deliberate,
+    // documented reversal this file has already recorded for every prior
+    // hero milestone (see the annotation-images describe block above). See
+    // HomeHero.tsx's own NW08.5 docblock entry for the full reasoning. The
+    // right-column grid split, the student photo, and the orbit (covered
+    // by the describe blocks below) are unaffected; CTAs/trust cues are
+    // unchanged from UX10-EU02 since the brief does not mandate different
+    // exact text for those.
+    expect(HERO_CODE_ONLY).toContain("BRAND_TAGLINE");
+    expect(HERO_SOURCE).toContain("Explore careers. Discover opportunities. Plan your future.");
     expect(HERO_SOURCE).toContain("Explore Careers");
     expect(HERO_SOURCE).toContain("Study in Europe");
     expect(HERO_SOURCE).toContain("Trusted information");
     expect(HERO_SOURCE).toContain("Personalised guidance");
     expect(HERO_SOURCE).toContain("Focused on India & Europe");
     expect(HERO_SOURCE).toContain("Support at every step");
+  });
+
+  it("NW08.5 — the hero's search form is real (a GET form to /careers with name=\"q\"), not a decorative input that goes nowhere", () => {
+    expect(HERO_CODE_ONLY).toMatch(/<form\s+action="\/careers"\s+method="GET"/);
+    expect(HERO_CODE_ONLY).toMatch(/name="q"/);
   });
 });
 

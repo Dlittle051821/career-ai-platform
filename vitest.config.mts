@@ -358,6 +358,34 @@ export default defineConfig({
       // untested here for the same reason as every other src/lib/supabase/-
       // adjacent I/O wrapper in this file.
       "src/lib/products/**/*.test.ts",
+      // NW05.3 "Shared Profile and Onboarding" — a sixth, equally narrow
+      // exception to the "src/lib/supabase/ is untested here" convention
+      // (see the refunds.test.ts/applications.test.ts/application-
+      // documents.test.ts/application-checklist.test.ts/application-
+      // submissions.test.ts entries above for the same reasoning): the
+      // provenance-downgrade RPC call layered onto every one of
+      // student-profile-actions.ts's 11 save functions is STATEFUL
+      // ORCHESTRATION (an RPC call + safe-fallback-on-error) that cannot be
+      // exercised as a pure function. Mocks the same kind of I/O boundary
+      // (createClient) behind a hand-rolled in-memory Supabase fake.
+      "src/lib/supabase/student-profile-actions-provenance.test.ts",
+      // NW05.5 "Abroad Workspace" — the pure, framework-free Abroad-scope
+      // matcher (src/lib/abroad/scope.ts: isAbroadDestinationName() /
+      // getAbroadDestinationPreferences()), derived entirely from the real
+      // EUROPE_COUNTRIES registry, same "pure logic" convention as every
+      // directory above.
+      "src/lib/abroad/**/*.test.ts",
+      // NW08.5 — Smart Student Registration Prompt. Pure eligibility/
+      // timing logic (src/lib/registration-prompt/eligibility.ts) and a
+      // static source-text audit of the React component + its single
+      // mount point (same "no React Testing Library/jsdom in this
+      // project" convention as src/lib/navigation/**/*.test.ts and
+      // src/lib/home/**/*.test.ts above). The storage I/O wrapper
+      // (src/lib/registration-prompt/storage.ts, all real localStorage/
+      // sessionStorage calls) is untested here for the same reason every
+      // other thin I/O wrapper in this file is — reviewed structurally
+      // instead.
+      "src/lib/registration-prompt/**/*.test.ts",
     ],
   },
 });

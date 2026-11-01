@@ -26,12 +26,18 @@ describe("central brand configuration (src/config/site.ts)", () => {
     }
   });
 
-  it("never presents the placeholder support email as if it were a real, monitored address", () => {
-    // This must never be silently "promoted" to a bare address by a future
-    // edit — the placeholder marker is what tells every caller (footer,
-    // contact page) not to treat it as a real inbox.
-    expect(CONTACT.emailLabel).toContain("(placeholder)");
+  it("never presents a fabricated-looking email address as if it were a real, monitored one", () => {
+    // NW08.5 — superseded the old "(placeholder)"-suffixed fake address
+    // (hello@nextwise.example) per that milestone's explicit instruction
+    // not to leave a fabricated business email address live anywhere on
+    // the site, even behind a disclaimer suffix. The stricter, still-valid
+    // invariant this test now guards: CONTACT.emailLabel must never
+    // contain an "@" (i.e. must never look like an actual address) until a
+    // real, approved one is supplied — the same honest "coming soon" /
+    // "not yet published" treatment already used for phone/office below.
+    expect(CONTACT.emailLabel).not.toContain("@");
     expect(CONTACT.emailLabel).not.toContain("careerpathai");
+    expect(CONTACT.emailLabel.toLowerCase()).not.toContain("nextwise.example");
   });
 
   it("SITE_URL has no trailing slash when set, and is a plain empty string (not undefined/null) when unset", () => {

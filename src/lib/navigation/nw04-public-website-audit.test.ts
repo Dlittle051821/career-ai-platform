@@ -94,53 +94,86 @@ describe("NW04.3/NW04.4 — ProductSubNav is shared, not duplicated, and both pr
   });
 });
 
-describe("NW04.5 — nav-IA restructuring: Products/For Students/Resources/About, no href lost", () => {
-  it("Header.tsx renders the target desktop order: Home, Products dropdown, For Students, Resources, About dropdown", () => {
+/**
+ * NW08.5 SUPERSESSION NOTICE: the block below replaces the original
+ * "NW04.5 — nav-IA restructuring: Products/For Students/Resources/About"
+ * describe block. NW08.5's own brief explicitly instructs REMOVING the
+ * "Products"/"For Students"/"Resources"/"About" dropdown-and-flat-link
+ * desktop nav grouping NW04.5 introduced, in favor of one flat,
+ * six-item primary nav (Home/Explore Careers/Career Intelligence/Study
+ * Abroad/Universities/Courses) sourced from one authoritative array
+ * (MAIN_NAV in src/config/site.ts) rather than three separate
+ * PRODUCT_NAV/EXPLORE_NAV/PRIMARY_NAV lists. This is intentional,
+ * instructed supersession of the earlier milestone's own IA decision —
+ * the same kind of explicit, documented reversal HomeHero.tsx's own
+ * UX10-H05B docblock describes for an earlier decision it overrode — not
+ * a silently-weakened test. ExploreMenu.tsx and NavDropdown.tsx (the two
+ * component files this old nav structure needed) are deleted as dead
+ * code now that nothing imports them; see
+ * docs/milestones/NW08.5/NW085_02_NAVIGATION_ARCHITECTURE.md for the full
+ * before/after comparison and rationale.
+ */
+describe("NW08.5 — nav-IA consolidation: one flat six-item primary nav, no href lost", () => {
+  it("Header.tsx renders MAIN_NAV_ITEMS as a flat row, not a dropdown grouping", () => {
     const code = stripComments(read("components/navigation/Header.tsx"));
-    const homeIdx = code.indexOf("HOME_NAV_LINK.href");
-    const productsIdx = code.indexOf('id="products"');
-    const studentsIdx = code.indexOf("For Students");
-    const resourcesIdx = code.indexOf("<ExploreMenu");
-    const aboutIdx = code.indexOf('id="about"');
-    expect(homeIdx).toBeGreaterThan(-1);
-    expect(productsIdx).toBeGreaterThan(homeIdx);
-    expect(studentsIdx).toBeGreaterThan(productsIdx);
-    expect(resourcesIdx).toBeGreaterThan(studentsIdx);
-    expect(aboutIdx).toBeGreaterThan(resourcesIdx);
+    expect(code).toContain("MAIN_NAV_ITEMS.map");
+    expect(code).not.toMatch(/NavDropdown|ExploreMenu/);
   });
 
-  it("the new 'For Students' link points at the real Studio hub, not a fabricated route", () => {
-    const code = stripComments(read("components/navigation/Header.tsx"));
-    expect(code).toMatch(/href="\/studio"[\s\S]{0,400}For Students/);
-  });
-
-  it("ExploreMenu's visible label is now Resources, but it still renders the unchanged EXPLORE_NAV data", () => {
-    const content = read("components/navigation/ExploreMenu.tsx");
-    expect(content).toContain('label="Resources"');
-    expect(content).toContain("EXPLORE_NAV");
-  });
-
-  it("NavDropdown is the one shared implementation backing Products, Resources (via ExploreMenu), and About — not three separate bespoke dropdowns", () => {
-    const header = read("components/navigation/Header.tsx");
-    const navDropdownOccurrences = header.match(/<NavDropdown\b/g) ?? [];
-    expect(navDropdownOccurrences.length).toBe(2); // Products + About (Resources goes through ExploreMenu's own wrapper)
-  });
-
-  it("MobileNav keeps every pre-NW04 destination (PRODUCT_NAV flat, EXPLORE_NAV collapsible, PRIMARY_NAV flat) and adds For Students", () => {
-    const content = read("components/navigation/MobileNav.tsx");
-    const code = stripComments(content);
-    expect(content).toContain("PRODUCT_NAV.map");
-    expect(content).toContain("EXPLORE_NAV.map");
-    expect(content).toContain("PRIMARY_NAV.map");
-    expect(code).toMatch(/href="\/studio"[\s\S]{0,600}For Students/);
-    expect(code).toContain("Resources");
-  });
-
-  it("no PRODUCT_NAV/PRIMARY_NAV/EXPLORE_NAV href was dropped from site.ts during the restructuring", () => {
+  it("MAIN_NAV in site.ts is the exact six-item brief order: Home, Explore Careers, Career Intelligence, Study Abroad, Universities, Courses", () => {
     const content = read("config/site.ts");
-    for (const href of ["/career", "/abroad", "/careers", "/courses", "/universities", "/study-options", "/how-it-works", "/book-counselling", "/pricing", "/about"]) {
+    const hrefsInOrder = ["/", "/careers", "/career", "/abroad", "/universities", "/courses"];
+    const indices = hrefsInOrder.map((href) => content.indexOf(`href: "${href}"`));
+    for (const idx of indices) expect(idx).toBeGreaterThan(-1);
+    for (let i = 1; i < indices.length; i++) {
+      expect(indices[i], `expected href "${hrefsInOrder[i]}" to appear after "${hrefsInOrder[i - 1]}" in MAIN_NAV`).toBeGreaterThan(indices[i - 1]);
+    }
+  });
+
+  it("the primary nav's /abroad entry is labelled 'Study Abroad' (the public entry point), not the branded product name", () => {
+    const content = read("config/site.ts");
+    expect(content).toMatch(/label:\s*"Study Abroad",\s*href:\s*"\/abroad"/);
+  });
+
+  it("MobileNav renders the same MAIN_NAV_ITEMS array as Header.tsx — one shared source, not an independent list", () => {
+    const content = read("components/navigation/MobileNav.tsx");
+    expect(content).toContain("MAIN_NAV_ITEMS.map");
+    expect(content).not.toMatch(/PRODUCT_NAV|EXPLORE_NAV|PRIMARY_NAV/);
+  });
+
+  it("the role-aware workspace entry (My Studio / Counsellor Workspace / Admin Studio) is rendered on both desktop and mobile from the one WorkspaceEntryLink component", () => {
+    const header = read("components/navigation/Header.tsx");
+    const mobile = read("components/navigation/MobileNav.tsx");
+    expect(header).toContain("<WorkspaceEntryLink");
+    expect(mobile).toContain("<WorkspaceEntryLink");
+  });
+
+  it("no pre-NW08.5 primary/secondary nav href was dropped from site.ts during the restructuring", () => {
+    const content = read("config/site.ts");
+    for (const href of [
+      "/career",
+      "/abroad",
+      "/careers",
+      "/courses",
+      "/universities",
+      "/study-options",
+      "/how-it-works",
+      "/book-counselling",
+      "/pricing",
+      "/about",
+      "/career-discovery",
+      "/compare",
+      "/parents",
+      "/trust",
+      "/contact",
+    ]) {
       expect(content, `expected site.ts to still declare href: "${href}"`).toContain(`href: "${href}"`);
     }
+  });
+
+  it("FOOTER_NAV is derived from MAIN_NAV/SECONDARY_NAV (findNav), not a second independently-typed set of hrefs", () => {
+    const content = read("config/site.ts");
+    expect(content).toContain("findNav(");
   });
 });
 

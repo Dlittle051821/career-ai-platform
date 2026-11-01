@@ -91,8 +91,15 @@ export default async function AdminCounsellorsPage({ searchParams }: Counsellors
                         <span className="text-text-soft">—</span>
                       ) : (
                         <span className="flex flex-wrap gap-1">
-                          {c.specializations.slice(0, 3).map((s) => (
-                            <Badge key={s} tone="accent">
+                          {/* NW08.5 — keyed by index, not by the specialization
+                              string itself: specializations are free admin-
+                              entered text (src/app/admin/counsellors/.../CounsellorForm),
+                              so two identical entries for one counsellor are
+                              possible and would otherwise produce the same
+                              class of duplicate-key warning AdminTable.tsx's
+                              own fix addresses — see that file's docblock. */}
+                          {c.specializations.slice(0, 3).map((s, index) => (
+                            <Badge key={index} tone="accent">
                               {s}
                             </Badge>
                           ))}

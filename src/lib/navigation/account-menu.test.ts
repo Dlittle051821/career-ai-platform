@@ -69,9 +69,23 @@ describe("getAccountMenuLinks", () => {
     expect(links.some((l) => l.href === "/payments")).toBe(false);
   });
 
-  it("gives a counsellor the Counsellor Workspace link, using the real existing /admin route", () => {
+  // NW08.5 FIX — supersedes the old assertion that counsellors route to
+  // /admin. That was correct when this test was written (no separate
+  // counsellor route existed yet) but went stale once NW07 built a real,
+  // separate, permission-gated Counsellor Studio at src/app/counsellor/**
+  // — see account-menu.ts's COUNSELLOR_LINKS docblock for the full
+  // explanation. This milestone's authenticated-area audit caught the
+  // mismatch and fixed both the source and this pinned assertion together,
+  // per this codebase's "document the supersession, never silently weaken a
+  // test" convention.
+  it("gives a counsellor the Counsellor Workspace link, routed to their own /counsellor studio", () => {
     const links = getAccountMenuLinks("counsellor");
-    expect(links).toEqual([{ kind: "counsellor-workspace", label: "Counsellor Workspace", href: "/admin" }]);
+    expect(links).toEqual([{ kind: "counsellor-workspace", label: "Counsellor Workspace", href: "/counsellor" }]);
+  });
+
+  it("never gives a counsellor the admin dashboard link — /admin is a different, admin-only entry point", () => {
+    const links = getAccountMenuLinks("counsellor");
+    expect(links.some((l) => l.href === "/admin")).toBe(false);
   });
 
   it("never gives a counsellor the student Dashboard/Payments links", () => {

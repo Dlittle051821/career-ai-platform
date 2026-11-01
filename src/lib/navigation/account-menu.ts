@@ -87,16 +87,26 @@ const ADMIN_LINKS: readonly AccountMenuLink[] = [
   { kind: "admin-dashboard", label: "Admin Dashboard", href: "/admin" },
 ];
 
-// There is no separate /counsellor route in this codebase. Counsellors are
-// one of the six `admin_roles` values (src/types/admin.ts ADMIN_ROLES) and
-// sign in to the same /admin shell as every other admin, seeing a
-// role-scoped subset of it via src/lib/admin/permissions.ts
-// (ROLE_PERMISSIONS.counsellor) and src/components/admin/AdminShell.tsx.
-// Pointing here reuses that real, existing route rather than fabricating a
-// new one (spec: "if no dedicated counsellor route exists, do not
-// fabricate one").
+// NW08.5 FIX — stale route. This used to point counsellors at /admin with a
+// comment claiming "there is no separate /counsellor route in this
+// codebase." That was true when this module was written but is stale now:
+// NW07 built a genuinely separate, permission-gated Counsellor Studio at
+// src/app/counsellor/** (its own layout.tsx gate — getCurrentAdmin() +
+// hasPermission(admin.role, "counsellor-studio:read") — and its own
+// CounsellorShell), discovered during this milestone's authenticated-area
+// audit while re-verifying this exact claim against the current tree (the
+// same "verify, don't just restate" discipline applied to sitemap.ts's own
+// stale noindex comment — see NW085_01_PUBLIC_PAGE_AUDIT.md §5). Counsellors
+// also retain real, scoped access to several /admin features (counsellors
+// have specific ROLE_PERMISSIONS.counsellor entries in
+// src/lib/admin/permissions.ts — counsellors:read, discovery-sessions,
+// recommendation verification, document review, task management, plus
+// counsellor-studio:read itself), so /admin is not WRONG for a counsellor to
+// visit — but it is no longer their primary workspace, so this link (and
+// WorkspaceEntryLink.tsx's matching entry, which must stay in sync) now
+// points to their own studio instead.
 const COUNSELLOR_LINKS: readonly AccountMenuLink[] = [
-  { kind: "counsellor-workspace", label: "Counsellor Workspace", href: "/admin" },
+  { kind: "counsellor-workspace", label: "Counsellor Workspace", href: "/counsellor" },
 ];
 
 /**

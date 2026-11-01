@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Header } from "@/components/navigation/Header";
 import { Footer } from "@/components/navigation/Footer";
 import { AppMobileTabBarSlot } from "@/components/navigation/AppMobileTabBarSlot";
+import { RegistrationPrompt } from "@/components/registration-prompt/RegistrationPrompt";
 import { BRAND_LOGO, BRAND_NAME, BRAND_SHORT_DESCRIPTION, BRAND_TAGLINE, SITE_URL } from "@/config/site";
 import { fontVariables } from "@/lib/fonts";
 import { getOrganizationJsonLd, getWebsiteJsonLd, toSafeJsonLdString } from "@/lib/seo/structured-data";
@@ -112,6 +113,11 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
         <main id="main-content">{children}</main>
         <AppMobileTabBarSlot />
         <Footer />
+        {/* NW08.5 — mounted once, centrally, for the whole public site;
+            see RegistrationPrompt.tsx's own docblock. Renders nothing
+            (a closed <dialog>) until its own timer/contextual-trigger
+            logic decides to open. */}
+        <RegistrationPrompt />
       </body>
     </html>
   );

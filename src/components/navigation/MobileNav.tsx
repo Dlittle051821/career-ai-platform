@@ -3,40 +3,38 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { ChevronDown, Compass, GraduationCap, LayoutDashboard, LogIn, LogOut, Menu, UserPlus, X } from "lucide-react";
-import { EXPLORE_NAV, HOME_NAV_LINK, PRIMARY_NAV, PRODUCT_NAV } from "@/config/site";
+import { LayoutDashboard, LogIn, LogOut, Menu, UserPlus, X } from "lucide-react";
+import { HOME_NAV_LINK, MAIN_NAV_ITEMS } from "@/config/site";
 import { LinkButton } from "@/components/ui/Button";
 import { logout } from "@/lib/supabase/actions";
 import { firstNameOf, useAuthUser } from "@/lib/supabase/use-auth-user";
-import { isAnyNavLinkActive, isNavLinkActive } from "@/lib/navigation/active-nav";
+import { isNavLinkActive } from "@/lib/navigation/active-nav";
 import { LanguageSelector } from "./LanguageSelector";
+import { WorkspaceEntryLink } from "./WorkspaceEntryLink";
 import { Logo } from "./Logo";
 import { cn } from "@/lib/utils";
 
 /**
- * UX03-04 — mobile public navigation.
- *
- * Rebuilt around an intentional hierarchy rather than the desktop nav
- * simply compressed into a list: Home → the two product entry points
- * (Career Intelligence / Nextwise Abroad, kept flat here rather than
- * tucked into a collapsible "Products" section — the brief's own mobile
- * IA spec asks for these as direct links) → For Students (added in
- * NW04.5, mirrors Header.tsx's new desktop link to /studio) → Resources
- * (expandable, matching the desktop dropdown's four entries; labelled
- * "Explore" before NW04.5 — see ExploreMenu.tsx's docblock) → the same
- * short top-level row shown on desktop (How It Works / Counselling /
- * Pricing / About, kept flat on mobile rather than mirroring the desktop
- * "About" dropdown — mobile doesn't have the same horizontal-space
- * pressure a dropdown exists to relieve) → Account (Sign In / Get
- * Started, or Dashboard / Log out when signed in) → Language. The drawer
- * mechanics (native <dialog>, body-scroll lock, close on
- * Escape/outside/route-change) are unchanged from the prior
- * implementation — only the content structure inside it changed.
+ * NW08.5 — mobile public navigation, flattened to match the new desktop
+ * IA one-for-one: Home → the same five MAIN_NAV_ITEMS in the same order
+ * (Explore Careers / Career Intelligence / Study Abroad / Universities /
+ * Courses) → Account (role-aware workspace link + Sign In/Get Started, or
+ * Dashboard/Log out when signed in) → Language. The brief's own
+ * instruction — "Mobile should prioritize the same 6 items plus Sign
+ * In/Get Started, not 6 tiny tabs" — and its removal of "Products"/"For
+ * Students"/"Resources"/"About" as nav groupings apply equally to the
+ * mobile drawer, so the prior collapsible "Resources" section and the
+ * flat secondary-page row (How It Works/Counselling/Pricing/About) are
+ * removed from here; those pages remain fully reachable via the footer,
+ * which still renders on every page at every breakpoint (see
+ * src/config/site.ts's SECONDARY_NAV/FOOTER_NAV). The drawer mechanics
+ * (native <dialog>, body-scroll lock, close on Escape/outside/
+ * route-change) are unchanged from the prior implementation — only the
+ * content structure inside it changed.
  */
 export function MobileNav() {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
-  const [exploreOpen, setExploreOpen] = useState(false);
   const pathname = usePathname();
   const [lastPathname, setLastPathname] = useState(pathname);
   const { user, ready } = useAuthUser();
@@ -69,15 +67,6 @@ export function MobileNav() {
     dialog.addEventListener("close", handleClose);
     return () => dialog.removeEventListener("close", handleClose);
   }, []);
-
-  // Collapse the Explore section fresh each time the drawer opens (adjust
-  // state during render rather than in an effect, matching the pathname
-  // tracking above and https://react.dev/learn/you-might-not-need-an-effect).
-  const [lastOpen, setLastOpen] = useState(open);
-  if (open !== lastOpen) {
-    setLastOpen(open);
-    if (open) setExploreOpen(false);
-  }
 
   return (
     <div className="xl:hidden">
@@ -125,10 +114,12 @@ export function MobileNav() {
                   {HOME_NAV_LINK.label}
                 </Link>
               </li>
-              {/* NW03.2 — the two product entry points, shown right after
-                  Home and before Explore, matching the desktop ordering in
-                  Header.tsx. */}
-              {PRODUCT_NAV.map((link) => {
+              {/* NW08.5 — the exact same five MAIN_NAV_ITEMS (Explore
+                  Careers, Career Intelligence, Study Abroad, Universities,
+                  Courses), flat, in the same order as Header.tsx's desktop
+                  row. No collapsible groups, no separate "For Students"/
+                  "Resources" sections. */}
+              {MAIN_NAV_ITEMS.map((link) => {
                 const active = isNavLinkActive(pathname, link.href);
                 return (
                   <li key={link.href}>
@@ -148,80 +139,6 @@ export function MobileNav() {
                   </li>
                 );
               })}
-              {/* NW04.5 — "For Students" points at the Studio hub (/studio),
-                  mirroring the new desktop link in Header.tsx. */}
-              <li>
-                <Link
-                  href="/studio"
-                  aria-current={isNavLinkActive(pathname, "/studio") ? "page" : undefined}
-                  className={cn(
-                    "flex items-center gap-2.5 rounded-md px-3 py-3 text-base font-medium hover:bg-surface-alt",
-                    isNavLinkActive(pathname, "/studio") ? "bg-surface-alt text-primary font-semibold" : "text-text"
-                  )}
-                >
-                  <GraduationCap aria-hidden="true" className="h-4 w-4 text-secondary" />
-                  For Students
-                </Link>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => setExploreOpen((v) => !v)}
-                  aria-expanded={exploreOpen}
-                  aria-controls="mobile-explore-panel"
-                  className={cn(
-                    "flex w-full items-center justify-between gap-2 rounded-md px-3 py-3 text-base font-medium hover:bg-surface-alt",
-                    isAnyNavLinkActive(pathname, EXPLORE_NAV.map((l) => l.href)) ? "text-primary" : "text-text"
-                  )}
-                >
-                  <span className="flex items-center gap-2.5">
-                    <Compass aria-hidden="true" className="h-4 w-4 text-secondary" />
-                    Resources
-                  </span>
-                  <ChevronDown aria-hidden="true" className={cn("h-4 w-4 transition-transform", exploreOpen && "rotate-180")} />
-                </button>
-                {exploreOpen ? (
-                  <ul id="mobile-explore-panel" className="ml-3 mt-1 space-y-1 border-l border-border pl-4">
-                    {EXPLORE_NAV.map((link) => {
-                      const active = isNavLinkActive(pathname, link.href);
-                      return (
-                        <li key={link.href}>
-                          <Link
-                            href={link.href}
-                            aria-current={active ? "page" : undefined}
-                            className={cn(
-                              "block rounded-md px-3 py-2.5 text-sm font-medium hover:bg-surface-alt hover:text-primary",
-                              active ? "bg-surface-alt text-primary" : "text-text-soft"
-                            )}
-                          >
-                            {link.label}
-                            {link.description ? (
-                              <span className="mt-0.5 block text-xs font-normal text-muted">{link.description}</span>
-                            ) : null}
-                          </Link>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : null}
-              </li>
-              {PRIMARY_NAV.map((link) => {
-                const active = isNavLinkActive(pathname, link.href);
-                return (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      aria-current={active ? "page" : undefined}
-                      className={cn(
-                        "block rounded-md px-3 py-3 text-base font-medium hover:bg-surface-alt",
-                        active ? "bg-surface-alt text-primary font-semibold" : "text-text"
-                      )}
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                );
-              })}
             </ul>
 
             {ready ? (
@@ -232,6 +149,11 @@ export function MobileNav() {
                     <p className="truncate px-3 text-sm text-muted">
                       Signed in as <span className="font-medium text-text">{firstNameOf(user)}</span>
                     </p>
+                    {/* NW08.5 — role-aware workspace entry, same data
+                        WorkspaceEntryLink uses on desktop, rendered inline
+                        in the drawer's own list style rather than that
+                        component's compact pill. */}
+                    <WorkspaceEntryLink forceLabel className="!border-0 !px-3 !py-3 !text-base" />
                     <Link
                       href="/dashboard"
                       className="flex items-center gap-2.5 rounded-md px-3 py-3 text-base font-medium text-text hover:bg-surface-alt"
