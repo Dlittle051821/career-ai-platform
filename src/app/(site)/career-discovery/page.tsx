@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "@/config/seo";
 import Link from "next/link";
 import { GitBranch, Lock, TrendingUp } from "lucide-react";
 import { Section } from "@/components/layout/Section";
@@ -15,14 +16,11 @@ import { WaitlistForm } from "@/components/sections/career-discovery/WaitlistFor
 import { DISCOVERY_FACTORS } from "@/data/career-discovery";
 import { CAREER_DISCOVERY_FAQS } from "@/data/faqs";
 
-export const metadata: Metadata = {
-  title: "Career Discovery",
-  description:
-    "A short, interactive orientation to help you get your bearings before choosing a career and course — plus a preview of the fuller assessment engine we're building.",
-  alternates: {
-    canonical: "/career-discovery",
-  },
-};
+export const metadata: Metadata = publicPageMetadata(
+  "/career-discovery",
+  "Career Discovery for Students",
+  "Explore your interests and possible career directions with guided career discovery. Learn what to research next and when counselling may help.",
+);
 
 export default function CareerDiscoveryPage() {
   return (

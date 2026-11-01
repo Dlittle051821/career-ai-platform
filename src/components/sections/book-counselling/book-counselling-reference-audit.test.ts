@@ -221,8 +221,8 @@ describe("DS02 — accessibility and structure invariants", () => {
 
 describe("DS02 — metadata", () => {
   it("the public landing's title/description match the brief's direction, and canonical is preserved", () => {
-    expect(PAGE).toContain("Free Discovery Session | Nextwise");
-    expect(PAGE).toMatch(/Start with a free Nextwise Discovery Session/);
-    expect(PAGE).toContain('alternates: { canonical: "/book-counselling" }');
+    expect(PAGE).toContain("Free Career & Study Discovery Session");
+    expect(PAGE).toMatch(/Book a free NextWise discovery session/);
+    expect(PAGE).toMatch(/publicPageMetadata\(\s*"\/book-counselling"/);
   });
 });

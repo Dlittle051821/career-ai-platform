@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "@/config/seo";
 import Link from "next/link";
 import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
@@ -29,11 +30,11 @@ import { cn } from "@/lib/utils";
 // subjectArea, qualificationLevel, studyMode, teachingLanguage, currency,
 // minTuition, maxTuition, durationUnit, intakePeriod, page, ...). Every
 // variant canonicalizes back to `/courses`; see M17A_STEP5_REPORT.md.
-export const metadata: Metadata = {
-  title: "Courses",
-  description: "Browse and search a starter dataset of university courses worldwide — subjects, tuition, intakes, and verified detail pages.",
-  alternates: { canonical: "/courses" },
-};
+export const metadata: Metadata = publicPageMetadata(
+  "/courses",
+  "Explore University Courses in India & Abroad",
+  "Explore university courses by subject, study level and destination. Review available course details and follow trusted sources to check your options.",
+);
 
 function toStringArray(value: string | string[] | undefined): string[] {
   if (!value) return [];

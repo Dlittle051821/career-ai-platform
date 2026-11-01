@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "@/config/seo";
 import Link from "next/link";
 import { ArrowRight, Globe2, MessageCircle, Scale, Sparkles } from "lucide-react";
 import { Section } from "@/components/layout/Section";
@@ -47,12 +48,11 @@ const ABROAD_SUBNAV = [
  * from the existing /study-europe allowlist. The country deep dive itself
  * stays on /study-europe; this page only teases the list and links out.
  */
-export const metadata: Metadata = {
-  title: "Nextwise Abroad",
-  description:
-    "Research and plan studying abroad across six European countries — Germany, Ireland, Netherlands, France, Sweden, and Denmark — without needing a career assessment first.",
-  alternates: { canonical: "/abroad" },
-};
+export const metadata: Metadata = publicPageMetadata(
+  "/abroad",
+  "Study Abroad in Europe: Courses & Guidance",
+  "Explore study options in Germany, Ireland, the Netherlands, France, Sweden and Denmark. Compare destinations and plan your next steps with NextWise.",
+);
 
 export default function AbroadProductPage() {
   return (

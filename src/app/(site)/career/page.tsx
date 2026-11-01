@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "@/config/seo";
 import Link from "next/link";
 import { ArrowRight, Compass, GraduationCap, MessageCircle, Sparkles, Target } from "lucide-react";
 import { Section } from "@/components/layout/Section";
@@ -28,12 +29,11 @@ import { ProductSubNav } from "@/components/sections/ProductSubNav";
  * src/app/(site)/career-discovery/page.tsx and
  * src/app/(site)/study-europe/page.tsx.
  */
-export const metadata: Metadata = {
-  title: "Career Intelligence",
-  description:
-    "Explore careers, compare paths, get a guided career discovery orientation, and talk to a counsellor — all in one place, whether or not you ever study abroad.",
-  alternates: { canonical: "/career" },
-};
+export const metadata: Metadata = publicPageMetadata(
+  "/career",
+  "Career Guidance & Counselling for Students",
+  "Explore career paths, compare options and get career guidance for students in India. Start with guided discovery or talk to a NextWise counsellor.",
+);
 
 const CAREER_LINKS = [
   {

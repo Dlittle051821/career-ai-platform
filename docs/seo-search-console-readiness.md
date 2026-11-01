@@ -1,3 +1,16 @@
+# SEO maintenance update — November 1, 2026
+
+This section supersedes conflicting M17B implementation details below, which remain as historical reference.
+
+- `src/config/seo.ts` now owns `SEO_ORIGIN=https://www.nextwise.world`. Public layout metadata, JSON-LD, sitemap and robots use that constant. `NEXT_PUBLIC_APP_URL` still serves application/auth/payment configuration; it no longer overrides SEO identity.
+- Nine public entry pages use `publicPageMetadata` for matching search, Open Graph and Twitter titles/descriptions, canonical URLs and share images. The booking title receives the brand once.
+- `/study-europe` is included in the sitemap. The public production sitemap had 134 URLs during this audit; expected static inventory increases by one, while dynamic counts depend on published data.
+- `/studio` and `/counsellor` supplement the existing private crawl exclusions. Their noindex layouts and authentication remain independent. Comparison pages stay crawlable/noindex.
+- Deployment: build and test the source, deploy through the established release workflow, then inspect rendered canonical/social metadata on `/`, `/career`, `/abroad`, `/book-counselling` and `/study-europe`. Confirm the Europe URL in the sitemap and the two new exclusions in robots.txt.
+- This code change does not verify Search Console ownership, submit sitemaps, demonstrate Google-selected canonicals, measure Core Web Vitals or promise indexing/rankings. Confirm those separately in the appropriate tools.
+
+---
+
 # Search Console Readiness (Milestone 17B)
 
 This document is the operational reference for taking Nextwise's public

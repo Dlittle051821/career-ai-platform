@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "@/config/seo";
 import Link from "next/link";
 import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
@@ -21,11 +22,11 @@ import { cn } from "@/lib/utils";
 // M17A Step 5 — canonical is deliberately static and points at the clean
 // list URL regardless of the q/country/city/studyMode/page query params
 // this page reads from `searchParams`. See M17A_STEP5_REPORT.md.
-export const metadata: Metadata = {
-  title: "Universities",
-  description: "Browse and search a starter dataset of universities worldwide — locations, study levels, and verified detail pages.",
-  alternates: { canonical: "/universities" },
-};
+export const metadata: Metadata = publicPageMetadata(
+  "/universities",
+  "Explore Universities in India & Abroad",
+  "Explore universities by destination and study level. Review available profiles, discover courses and use trusted sources to research your shortlist.",
+);
 
 function toStringArray(value: string | string[] | undefined): string[] {
   if (!value) return [];

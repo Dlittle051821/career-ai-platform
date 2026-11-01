@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "@/config/seo";
 import { HomeHero } from "@/components/sections/home/HomeHero";
 import { ProductEntryCards } from "@/components/sections/home/ProductEntryCards";
 import { StudioIntro } from "@/components/sections/home/StudioIntro";
@@ -8,9 +9,7 @@ import { HowItWorks } from "@/components/sections/home/HowItWorks";
 import { WhyNextwise } from "@/components/sections/home/WhyNextwise";
 import { HomeFinalCTA } from "@/components/sections/home/HomeFinalCTA";
 
-// M17A Step 5 — self-referencing canonical only. Title/description are
-// deliberately left untouched (still inherited from the layout's
-// DEFAULT_TITLE/BRAND_SHORT_DESCRIPTION) — this step does not rewrite copy.
+// Public search and sharing metadata describe the services on this page.
 //
 // UX10A — the homepage's section COMPOSITION below was rebuilt to match
 // the approved premium-homepage reference image's own six-section
@@ -43,9 +42,11 @@ import { HomeFinalCTA } from "@/components/sections/home/HomeFinalCTA";
 // instruction ("Preserve all existing tests") does not permit working
 // around. See docs/ux10a-premium-homepage-design-system.md for the full
 // reasoning and the complete list of files left in place unreferenced.
-export const metadata: Metadata = {
-  alternates: { canonical: "/" },
-};
+export const metadata: Metadata = publicPageMetadata(
+  "/",
+  "Career Guidance & Study Abroad",
+  "Explore careers, compare courses and universities, and plan study in India or Europe. Start with a free discovery session with NextWise.",
+);
 
 export default function HomePage() {
   return (

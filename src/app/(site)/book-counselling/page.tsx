@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "@/config/seo";
 import { DiscoveryEntryHero } from "@/components/sections/book-counselling/DiscoveryEntryHero";
 import { DiscoveryEntryExplainerCards } from "@/components/sections/book-counselling/DiscoveryEntryExplainerCards";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = {
-  title: "Free Discovery Session | Nextwise",
-  description:
-    "Start with a free Nextwise Discovery Session to discuss your career and study options in India and Europe.",
-  alternates: { canonical: "/book-counselling" },
-};
+export const metadata: Metadata = publicPageMetadata(
+  "/book-counselling",
+  "Free Career & Study Discovery Session",
+  "Book a free NextWise discovery session to discuss your career and study options in India or Europe, and understand your next steps.",
+);
 
 /**
  * UX10-DS02 "Public Discovery Entry & Auth Flow" — `/book-counselling`

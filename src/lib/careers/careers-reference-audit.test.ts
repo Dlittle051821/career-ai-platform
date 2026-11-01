@@ -137,7 +137,7 @@ describe("UX10-C01 — real data-fetching usage in page.tsx", () => {
 
   it("canonical metadata still points at the clean /careers URL regardless of filters", () => {
     const source = stripComments(PAGE_SOURCE);
-    expect(source).toMatch(/alternates:\s*\{\s*canonical:\s*"\/careers"\s*\}/);
+    expect(source).toMatch(/publicPageMetadata\(\s*"\/careers"/);
   });
 
   it("no explicit grid-row/-column pin on the results/insights children (the grid-placement-inversion bug fixed this milestone must not come back)", () => {

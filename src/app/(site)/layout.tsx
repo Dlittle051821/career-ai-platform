@@ -1,41 +1,19 @@
 import type { Metadata } from "next";
+import { SEO_ORIGIN } from "@/config/seo";
 import { Header } from "@/components/navigation/Header";
 import { Footer } from "@/components/navigation/Footer";
 import { AppMobileTabBarSlot } from "@/components/navigation/AppMobileTabBarSlot";
 import { RegistrationPrompt } from "@/components/registration-prompt/RegistrationPrompt";
-import { BRAND_LOGO, BRAND_NAME, BRAND_SHORT_DESCRIPTION, BRAND_TAGLINE, SITE_URL } from "@/config/site";
+import { BRAND_LOGO, BRAND_NAME, BRAND_SHORT_DESCRIPTION, BRAND_TAGLINE } from "@/config/site";
 import { fontVariables } from "@/lib/fonts";
 import { getOrganizationJsonLd, getWebsiteJsonLd, toSafeJsonLdString } from "@/lib/seo/structured-data";
 import "../globals.css";
 
 const DEFAULT_TITLE = `${BRAND_NAME} — ${BRAND_TAGLINE}`;
 
-/**
- * M17A Step 5 — production fallback for `metadataBase`. `SITE_URL` (from
- * src/config/site.ts) reads `NEXT_PUBLIC_APP_URL`, which is unset in this
- * repo's own env files and, per the audit, cannot be assumed to be reliably
- * configured to the production origin in every environment this builds in
- * — exactly why every build this milestone has produced logs Next.js's own
- * "metadataBase ... using http://localhost:3000" warning. Every canonical
- * URL added in this step (via `alternates.canonical`) is a *relative* path
- * resolved against this value, so an unset/misconfigured env var would
- * silently turn every canonical tag into a `localhost:3000` URL in
- * production — a real regression, not a cosmetic warning. This mirrors the
- * same reliability reasoning already applied to `src/app/sitemap.ts` and
- * `src/app/robots.ts` (Steps 3-4): prefer `SITE_URL` when it is genuinely
- * set to something, but never fall through to `undefined`/localhost for
- * the one deployment that matters.
- *
- * M17B FINAL — corrected from the non-www `https://nextwise.world` used
- * throughout M17A to the canonical production origin
- * `https://www.nextwise.world` (WITH www), matching the same www-prefixed
- * value fixed at the same time in `src/app/robots.ts`,
- * `src/app/sitemap.ts`, and `src/lib/seo/structured-data.ts`.
- */
-const PRODUCTION_ORIGIN = "https://www.nextwise.world";
-
+// Canonical identity must agree with the sitemap and structured data.
 export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL || PRODUCTION_ORIGIN),
+  metadataBase: new URL(SEO_ORIGIN),
   applicationName: BRAND_NAME,
   title: {
     default: DEFAULT_TITLE,

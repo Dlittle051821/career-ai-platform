@@ -1,47 +1,7 @@
 import type { MetadataRoute } from "next";
+import { SEO_ORIGIN } from "@/config/seo";
 
-/**
- * M17A Step 4 — production robots.txt, served at /robots.txt via Next.js's
- * App Router robots convention (this file's default export). See
- * M17A_SEO_AUDIT.md and M17A_STEP4_REPORT.md for the full reasoning behind
- * every rule below.
- *
- * CRITICAL DISTINCTION this file must not blur (per this step's own
- * instruction): robots.txt controls CRAWLING (whether a bot may fetch a
- * URL at all); it is not a substitute for the permanent, page-level
- * `robots: { index: false, follow: false }` metadata added in Step 2
- * (which controls INDEXING). Every path disallowed below is disallowed
- * because it is genuinely private/internal and there is nothing there for
- * a crawler to usefully fetch — not as a way to hide something that should
- * instead carry its own noindex tag. robots.txt is publicly world-readable
- * and is never treated as a security mechanism.
- *
- * SITEMAP_BASE_URL mirrors src/app/sitemap.ts exactly — a hardcoded
- * literal, not derived from the environment-dependent SITE_URL, so this
- * file always points at the real production domain regardless of how
- * NEXT_PUBLIC_APP_URL happens to be configured wherever this builds. Kept
- * as a single duplicated constant (rather than importing it from
- * sitemap.ts) so this file has no import-time dependency on that one —
- * two tiny literal strings that must simply be kept in sync by inspection,
- * simpler than adding a shared module for a single string used twice.
- */
-const SITEMAP_BASE_URL = "https://www.nextwise.world";
-
-/**
- * Every one of these is deliberately written WITHOUT a trailing slash,
- * even though this step's own instruction listed illustrative examples
- * with one (e.g. "/dashboard/"). A trailing-slash-only prefix only matches
- * a URL that has something after the slash — it would fail to disallow
- * the bare private page itself (e.g. "/dashboard/" does not match
- * "/dashboard"). Every path below is a route that exists both as a bare
- * page and, in most cases, with children (e.g. /profile and
- * /profile/onboarding; /applications and /applications/[id]) — omitting
- * the trailing slash correctly disallows both the bare path and everything
- * nested under it, via ordinary robots.txt string-prefix matching. Cross-
- * checked against M17A_SEO_AUDIT.md's route table: none of these prefixes
- * is a string-prefix of any public route (see M17A_STEP4_REPORT.md for the
- * full collision check).
- */
+// Crawl exclusions supplement authentication and private-layout noindex rules.
 const DISALLOWED_PATHS = [
   // Authenticated/private student routes (Group C in the audit) — each of
   // these is also independently protected by its own permanent noindex
@@ -49,6 +9,8 @@ const DISALLOWED_PATHS = [
   // never spending crawl budget on pages middleware will redirect away
   // from anonymous requests anyway, not the primary defense.
   "/dashboard",
+  "/studio",
+  "/counsellor",
   "/profile",
   "/saved",
   "/applications",
@@ -116,6 +78,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: DISALLOWED_PATHS,
     },
-    sitemap: `${SITEMAP_BASE_URL}/sitemap.xml`,
+    sitemap: `${SEO_ORIGIN}/sitemap.xml`,
   };
 }

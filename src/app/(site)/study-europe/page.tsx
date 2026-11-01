@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "@/config/seo";
 import { Section } from "@/components/layout/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { CTASection } from "@/components/sections/CTASection";
@@ -34,12 +35,11 @@ import { EuropeHowNextwiseHelps } from "@/components/sections/europe-explorer/Eu
  * links are plain, verified external links rather than routed through the
  * DB-backed M20 `/go/course-search/**` redirect.
  */
-export const metadata: Metadata = {
-  title: "Study in Europe — Country Explorer",
-  description:
-    "Compare Germany, Ireland, Netherlands, France, Sweden, and Denmark on tuition, English-taught programmes, admissions, and post-study options, then go directly to each country's trusted official source.",
-  alternates: { canonical: "/study-europe" },
-};
+export const metadata: Metadata = publicPageMetadata(
+  "/study-europe",
+  "Study in Europe: Compare Six Destinations",
+  "Compare Germany, Ireland, the Netherlands, France, Sweden and Denmark. Explore tuition, admissions and study options through trusted official sources.",
+);
 
 export default function StudyEuropePage() {
   return (

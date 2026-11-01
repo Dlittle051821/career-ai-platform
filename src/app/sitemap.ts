@@ -1,63 +1,10 @@
 import type { MetadataRoute } from "next";
+import { SEO_ORIGIN } from "@/config/seo";
 import { getCareerOptionsForComparison } from "@/lib/supabase/careers";
 import { getPublishedUniversitySlugsForSitemap } from "@/lib/supabase/education/universities";
 import { getPublishedCourseSlugPairsForSitemap } from "@/lib/supabase/education/courses";
 
-/**
- * M17A Step 3 — production sitemap, served at /sitemap.xml via Next.js's
- * App Router sitemap convention (this file's default export). See
- * M17A_SEO_AUDIT.md and M17A_STEP3_REPORT.md for the full route inventory
- * and the reasoning behind every inclusion/exclusion below.
- *
- * SITEMAP_BASE_URL is deliberately a hardcoded literal, NOT derived from
- * src/config/site.ts's SITE_URL (which reads NEXT_PUBLIC_APP_URL and can be
- * unset, empty, or a localhost/preview value depending on environment) —
- * this file's one job is to always emit the real production domain,
- * independent of how that environment variable happens to be configured
- * wherever this builds. Do not change this to SITE_URL without first
- * verifying NEXT_PUBLIC_APP_URL is reliably https://www.nextwise.world in
- * every environment this can build in.
- *
- * M17B FINAL — corrected from the non-www `https://nextwise.world` used
- * throughout M17A to the canonical production origin
- * `https://www.nextwise.world` (WITH www), matching the www-prefixed value
- * fixed at the same time in src/app/robots.ts and
- * src/app/(site)/layout.tsx's PRODUCTION_ORIGIN, and in
- * src/lib/seo/structured-data.ts.
- *
- * Included:
- *  - Every Group A (PUBLIC + INDEXABLE) static page from the audit.
- *  - The three content hubs' clean base URLs only (/careers, /courses,
- *    /universities) — never a filtered/paginated/query-string variant.
- *  - Every career/university/course detail page backed by a real,
- *    published+active database row at build/request time.
- *
- * Excluded (see the audit for the full reasoning per route):
- *  - Everything authenticated/private: /dashboard, /profile(/onboarding),
- *    /saved, /applications(/[id]), /payments(/[invoiceId]),
- *    /agreements/[id], /pricing/checkout(/[slug]), /welcome,
- *    /discovery-session/book, /recommendations, /roadmap.
- *  - /pay/[token] (tokenized, private) and every auth-utility page
- *    (/login, /register, /forgot-password, /reset-password).
- *  - /admin and everything under it.
- *  - /compare and /courses/compare — public but query-driven/combinatorial,
- *    classified NOINDEX in the audit (Group B); not appropriate for a
- *    sitemap regardless of the temporary blanket noindex.
- *  - Auth callbacks, webhook routes, and every other API/route-handler
- *    endpoint — these return JSON/redirects/files, never indexable HTML.
- *
- * IMPORTANT — this file does NOT change indexability by itself. The
- * temporary site-wide `robots: { index: false, follow: false }` on
- * src/app/(site)/layout.tsx is untouched (per this step's explicit
- * instruction) and still applies to every page below. Submitting this
- * sitemap to Search Console before that blanket noindex is lifted will
- * correctly show every URL as "Excluded by noindex tag" — expected, not a
- * sign this file is broken. See M17A_SEO_AUDIT.md §J for the intended
- * sequencing.
- */
-
-const SITEMAP_BASE_URL = "https://www.nextwise.world";
-
+// Published public URLs only; private and combinatorial routes stay excluded.
 type ChangeFrequency = NonNullable<MetadataRoute.Sitemap[number]["changeFrequency"]>;
 
 interface StaticEntry {
@@ -90,6 +37,7 @@ const STATIC_ENTRIES: StaticEntry[] = [
   { path: "/how-it-works", changeFrequency: "monthly", priority: 0.7 },
   { path: "/book-counselling", changeFrequency: "monthly", priority: 0.7 },
   { path: "/study-options", changeFrequency: "monthly", priority: 0.7 },
+  { path: "/study-europe", changeFrequency: "monthly", priority: 0.7 },
 
   // Lower-priority informational/trust pages.
   { path: "/about", changeFrequency: "monthly", priority: 0.5 },
@@ -112,7 +60,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // sitemap type treats `lastModified` as optional; omitting it is the
   // honest choice here, not an oversight.
   const staticUrls: MetadataRoute.Sitemap = STATIC_ENTRIES.map(({ path, changeFrequency, priority }) => ({
-    url: `${SITEMAP_BASE_URL}${path}`,
+    url: `${SEO_ORIGIN}${path}`,
     changeFrequency,
     priority,
   }));
@@ -129,20 +77,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]);
 
   const careerUrls: MetadataRoute.Sitemap = careerOptions.map(({ slug }) => ({
-    url: `${SITEMAP_BASE_URL}/careers/${slug}`,
+    url: `${SEO_ORIGIN}/careers/${slug}`,
     changeFrequency: "monthly",
     priority: 0.6,
   }));
 
   const universityUrls: MetadataRoute.Sitemap = universityEntries.map(({ slug, lastVerifiedAt }) => ({
-    url: `${SITEMAP_BASE_URL}/universities/${slug}`,
+    url: `${SEO_ORIGIN}/universities/${slug}`,
     ...(lastVerifiedAt ? { lastModified: new Date(lastVerifiedAt) } : {}),
     changeFrequency: "monthly",
     priority: 0.6,
   }));
 
   const courseUrls: MetadataRoute.Sitemap = courseEntries.map(({ universitySlug, courseSlug, lastVerifiedAt }) => ({
-    url: `${SITEMAP_BASE_URL}/courses/${universitySlug}/${courseSlug}`,
+    url: `${SEO_ORIGIN}/courses/${universitySlug}/${courseSlug}`,
     ...(lastVerifiedAt ? { lastModified: new Date(lastVerifiedAt) } : {}),
     changeFrequency: "monthly",
     priority: 0.5,

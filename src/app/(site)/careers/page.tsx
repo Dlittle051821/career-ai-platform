@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "@/config/seo";
 import Link from "next/link";
 import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
@@ -12,18 +13,17 @@ import { CareerInsightsPanel } from "@/components/sections/careers/CareerInsight
 import { Pagination } from "@/components/sections/careers/Pagination";
 import { searchCareers, getCareerFamilies, getIndustries, getCareerTags } from "@/lib/supabase/careers";
 import { resolveListEmptyState } from "@/lib/ui/list-state";
-import { BRAND_NAME } from "@/config/site";
 import { GeometricBackdrop } from "@/components/graphics/GeometricBackdrop";
 
 // M17A Step 5 — canonical is deliberately static and points at the clean
 // list URL regardless of any q/family/industry/tag/page query params this
 // page reads from `searchParams`. Every filtered/sorted/paginated variant
 // of this page canonicalizes back to `/careers`; see M17A_STEP5_REPORT.md.
-export const metadata: Metadata = {
-  title: "Career Explorer",
-  description: `Browse and search the ${BRAND_NAME} career library — structured profiles for careers relevant to Indian students.`,
-  alternates: { canonical: "/careers" },
-};
+export const metadata: Metadata = publicPageMetadata(
+  "/careers",
+  "Explore Career Paths for Students in India",
+  "Explore career profiles for Indian students. Understand the work, skills and education pathways, then compare careers that interest you.",
+);
 
 interface CareersPageProps {
   searchParams: Promise<{ q?: string; family?: string; industry?: string; tag?: string; page?: string }>;
