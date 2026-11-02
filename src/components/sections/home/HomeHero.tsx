@@ -1,3 +1,4 @@
+import { getHomepageImageProps } from "@/lib/home/responsive-image";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { ArrowRight, Globe2, Search, ShieldCheck, Sparkles, UserCheck } from "lucide-react";
@@ -375,7 +376,7 @@ export function HomeHero() {
           docblock above. */}
       <img
         {...decorative}
-        src={HERO_CAMPUS_BACKDROP_SRC}
+        {...getHomepageImageProps(HERO_CAMPUS_BACKDROP_SRC, 1672, 941, "100vw")}
         alt=""
         loading="eager"
         className="hero-campus-backdrop"
@@ -537,7 +538,7 @@ export function HomeHero() {
               {HERO_STUDENT_IMAGE_EXISTS ? (
                 <div {...decorative} className="hero-student-portrait">
                   <img
-                    src={HERO_STUDENT_IMAGE_SRC}
+                    {...getHomepageImageProps(HERO_STUDENT_IMAGE_SRC, 1086, 1448, "(max-width: 768px) 320px, (max-width: 1023px) 400px, 460px")}
                     alt=""
                     width={1086}
                     height={1448}
@@ -565,7 +566,7 @@ export function HomeHero() {
               />
               <img
                 {...decorative}
-                src={HERO_ANNOTATION_RIGHT_SRC}
+                {...getHomepageImageProps(HERO_ANNOTATION_RIGHT_SRC, 164, 116, "(max-width: 768px) 110px, 148px")}
                 alt=""
                 loading="eager"
                 className="hero-annotation hero-annotation-right"

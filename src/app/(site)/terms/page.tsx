@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "@/config/seo";
 import { LegalPlaceholder } from "@/components/sections/legal/LegalPlaceholder";
 import { BRAND_NAME } from "@/config/site";
 
-export const metadata: Metadata = {
-  title: "Terms of Service",
-  description: "What our future Terms of Service will cover — pending professional legal review before launch.",
-  alternates: { canonical: "/terms" },
-};
+export const metadata: Metadata = publicPageMetadata(
+  "/terms",
+  "Terms of Service",
+  "What our future Terms of Service will cover — pending professional legal review before launch.",
+);
 
 const CATEGORIES = [
   { title: "Acceptance of terms", description: "How using the site or services indicates agreement to the terms." },

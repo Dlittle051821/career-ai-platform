@@ -60,6 +60,7 @@ export function Logo({ onDark = false }: { onDark?: boolean }) {
             alt=""
             width={BRAND_LOGO.horizontalDarkWidth}
             height={BRAND_LOGO.horizontalDarkHeight}
+            sizes="64px"
             className="h-9 w-auto"
             priority
           />
@@ -79,6 +80,7 @@ export function Logo({ onDark = false }: { onDark?: boolean }) {
         alt=""
         width={BRAND_LOGO.horizontalWidth}
         height={BRAND_LOGO.horizontalHeight}
+        sizes="(max-width: 639px) 115px, 127px"
         className="h-10 w-auto sm:h-11"
         priority
       />

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "@/config/seo";
 import Link from "next/link";
 import { Download, Fingerprint, Handshake, Lock, ScrollText, ShieldOff, Siren } from "lucide-react";
 import { Section } from "@/components/layout/Section";
@@ -24,12 +25,11 @@ import {
 import { TRUST_FAQS } from "@/data/faqs";
 import { LEGAL_STATUS } from "@/config/site";
 
-export const metadata: Metadata = {
-  title: "Trust Center",
-  description:
-    "Verification status, payment protection, refund and escalation processes, and our no-guarantees policy — trust made visible, not just claimed.",
-  alternates: { canonical: "/trust" },
-};
+export const metadata: Metadata = publicPageMetadata(
+  "/trust",
+  "Trust Center",
+  "Verification status, payment protection, refund and escalation processes, and our no-guarantees policy — trust made visible, not just claimed.",
+);
 
 export default function TrustCenterPage() {
   return (

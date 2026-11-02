@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "@/config/seo";
 import { LegalPlaceholder } from "@/components/sections/legal/LegalPlaceholder";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy",
-  description: "What our future Privacy Policy will cover — pending professional legal review before launch.",
-  alternates: { canonical: "/privacy" },
-};
+export const metadata: Metadata = publicPageMetadata(
+  "/privacy",
+  "Privacy Policy",
+  "What our future Privacy Policy will cover — pending professional legal review before launch.",
+);
 
 const CATEGORIES = [
   { title: "What we collect", description: "The categories of information collected through forms, browsing, and counselling conversations." },

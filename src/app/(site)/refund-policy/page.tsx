@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "@/config/seo";
 import { LegalPlaceholder } from "@/components/sections/legal/LegalPlaceholder";
 
-export const metadata: Metadata = {
-  title: "Refund Policy",
-  description: "What our future Refund Policy will cover — pending professional legal review before launch.",
-  alternates: { canonical: "/refund-policy" },
-};
+export const metadata: Metadata = publicPageMetadata(
+  "/refund-policy",
+  "Refund Policy",
+  "What our future Refund Policy will cover — pending professional legal review before launch.",
+);
 
 const CATEGORIES = [
   { title: "Refund eligibility", description: "The circumstances under which a refund may apply, stage by stage." },

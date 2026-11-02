@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "@/config/seo";
 import { CircleCheck, LifeBuoy, TriangleAlert } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -17,12 +18,11 @@ import {
   PATHWAY_CARDS,
 } from "@/data/study-options";
 
-export const metadata: Metadata = {
-  title: "India and Abroad Study Options",
-  description:
-    "Compare India, Europe, and other international study pathways on career fit, cost, and realistic outcomes — not marketing claims.",
-  alternates: { canonical: "/study-options" },
-};
+export const metadata: Metadata = publicPageMetadata(
+  "/study-options",
+  "India and Abroad Study Options",
+  "Compare India, Europe, and other international study pathways on career fit, cost, and realistic outcomes — not marketing claims.",
+);
 
 export default function StudyOptionsPage() {
   return (

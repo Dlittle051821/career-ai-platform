@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "@/config/seo";
 import { Section } from "@/components/layout/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { CTASection } from "@/components/sections/CTASection";
@@ -31,12 +32,11 @@ import { HOME_FAQS } from "@/data/faqs";
  * page's `DemoNotice`) is preserved via a new `DemoNotice` inside
  * `StudyPathwaysSection` instead of a dedicated two-column section.
  */
-export const metadata: Metadata = {
-  title: "How It Works",
-  description:
-    "A simple, personalised journey from your goals to the right opportunity — across India and our early international focus on Europe. See the 5-step process, free vs. paid support, and the two pathways we guide you through.",
-  alternates: { canonical: "/how-it-works" },
-};
+export const metadata: Metadata = publicPageMetadata(
+  "/how-it-works",
+  "How It Works",
+  "A simple, personalised journey from your goals to the right opportunity — across India and our early international focus on Europe. See the 5-step process, free vs. paid support, and the two pathways we guide you through.",
+);
 
 export default function HowItWorksPage() {
   return (

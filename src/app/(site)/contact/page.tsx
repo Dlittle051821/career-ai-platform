@@ -1,18 +1,20 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "@/config/seo";
 import { GraduationCap, Handshake, Siren, UsersRound } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Card } from "@/components/ui/Card";
 import { PageHero } from "@/components/sections/PageHero";
+import { LinkButton } from "@/components/ui/Button";
 import { ContactForm } from "@/components/sections/contact/ContactForm";
 import { CONTACT_PURPOSES } from "@/data/contact";
 import { BRAND_NAME, CONTACT } from "@/config/site";
 
-export const metadata: Metadata = {
-  title: "Contact",
-  description: `Reach ${BRAND_NAME} for student guidance, parent questions, partnership enquiries, or complaints.`,
-  alternates: { canonical: "/contact" },
-};
+export const metadata: Metadata = publicPageMetadata(
+  "/contact",
+  "Contact",
+  `Reach ${BRAND_NAME} for student guidance, parent questions, partnership enquiries, or complaints.`,
+);
 
 const ICONS = {
   student: GraduationCap,
@@ -52,6 +54,12 @@ export default function ContactPage() {
         <div className="grid gap-10 lg:grid-cols-[1.3fr_1fr]">
           <div>
             <SectionHeading eyebrow="Send a message" title="Tell us what you need" className="max-w-none" />
+            <p className="mt-3 text-sm text-text-soft">
+              For career and study guidance, book a free discovery session. The message form below is a preview and does not send enquiries.
+            </p>
+            <div className="mt-4">
+              <LinkButton href="/book-counselling">Book a free discovery session</LinkButton>
+            </div>
             <div className="mt-6">
               <ContactForm />
             </div>

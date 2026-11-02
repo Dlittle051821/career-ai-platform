@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "@/config/seo";
 import { CircleCheck, ShieldAlert } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -13,11 +14,11 @@ import { isVersionCurrentlyEffective } from "@/lib/pricing/plan-versions";
 import { PRICING_FAQS } from "@/data/faqs";
 import { BRAND_NAME } from "@/config/site";
 
-export const metadata: Metadata = {
-  title: "Pricing",
-  description: `Official ${BRAND_NAME} pricing — from free career exploration through fully-coordinated Bachelor's/Master's abroad guidance. One-time payment, no subscriptions.`,
-  alternates: { canonical: "/pricing" },
-};
+export const metadata: Metadata = publicPageMetadata(
+  "/pricing",
+  "Pricing",
+  `Official ${BRAND_NAME} pricing — from free career exploration through fully-coordinated Bachelor's/Master's abroad guidance. One-time payment, no subscriptions.`,
+);
 
 const MANDATORY_TERMS = [
   "University application fees, visa fees, examination fees, translations, courier costs, credential evaluations, insurance, deposits and other third-party charges are not included.",

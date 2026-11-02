@@ -1,3 +1,4 @@
+import { getHomepageImageProps } from "@/lib/home/responsive-image";
 import Link from "next/link";
 import { ArrowRight, Compass, Globe2, Landmark } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -293,7 +294,7 @@ export function DiscoveryPillars() {
                     entry for why), so this renders nothing for them rather
                     than an <img> with an empty src. */}
                 {illustrationSrc ? (
-                  <img src={illustrationSrc} alt={illustrationAlt} aria-hidden="true" loading="lazy" className={illustrationClassName} />
+                  <img {...getHomepageImageProps(illustrationSrc, 1254, 1254, "(max-width: 639px) 112px, (max-width: 1023px) 128px, (max-width: 1279px) 144px, 176px")} alt={illustrationAlt} aria-hidden="true" loading="lazy" className={illustrationClassName} />
                 ) : null}
 
                 <div className="relative flex h-full flex-col">

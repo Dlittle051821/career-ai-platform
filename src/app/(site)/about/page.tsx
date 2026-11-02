@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "@/config/seo";
 import Link from "next/link";
 import { Compass, Globe2, ScaleIcon, Users } from "lucide-react";
 import { Section } from "@/components/layout/Section";
@@ -10,11 +11,11 @@ import { TrustBadge } from "@/components/ui/TrustBadge";
 import { TEAM_PLACEHOLDERS } from "@/data/trust";
 import { BRAND_NAME } from "@/config/site";
 
-export const metadata: Metadata = {
-  title: "About",
-  description: `Why career-first guidance matters, ${BRAND_NAME}'s Odisha focus, our operating principles, and an honest look at what's built so far.`,
-  alternates: { canonical: "/about" },
-};
+export const metadata: Metadata = publicPageMetadata(
+  "/about",
+  "About",
+  `Why career-first guidance matters, ${BRAND_NAME}'s Odisha focus, our operating principles, and an honest look at what's built so far.`,
+);
 
 const PRINCIPLES = [
   { icon: Compass, title: "Career before course", description: "We start from where a student is headed, not which course is trending this year." },
