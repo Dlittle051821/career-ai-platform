@@ -12,6 +12,7 @@ import { AddNoteForm } from "@/components/admin/students/StudentActionForms";
 import { ProfileProvenanceCard, type ProfileProvenanceSectionRow } from "@/components/admin/students/ProfileProvenanceCard";
 import { RecommendationReadinessCard } from "@/components/admin/students/RecommendationReadinessCard";
 import { NewRecommendationDraftForm } from "@/components/counsellor/NewRecommendationDraftForm";
+import { CareerIntelligencePanel } from "@/components/counsellor/CareerIntelligencePanel";
 import { getStudentDetail } from "@/lib/supabase/admin/students";
 import { getStudentProfileSnapshotForAdmin } from "@/lib/supabase/admin/student-profile";
 import { getSectionProvenanceMap } from "@/lib/supabase/admin/profile-provenance";
@@ -30,6 +31,7 @@ import { DISCOVERY_SESSION_STATUS_LABELS } from "@/types/discovery-session";
 import { RECOMMENDATION_DRAFT_STATUS_LABELS, isRecommendationDraftStatus } from "@/lib/recommendations/drafts";
 import { formatDiscoverySessionDateTime } from "@/lib/discovery-sessions/format";
 import type { RecommendationReadiness, RecommendationType } from "@/types/recommendation-readiness";
+import type { StudentProfileSnapshot } from "@/types/student-profile";
 import {
   addStudentNoteAction,
   setSectionProvenanceAction,
@@ -69,7 +71,10 @@ export default async function CounsellorStudentCasePage({ params }: StudentCaseP
   const canWriteReadiness = hasPermission(admin?.role, "recommendation-readiness:write");
   const canReadRecommendationDrafts = hasPermission(admin?.role, "recommendation-drafts:read");
   const canWriteRecommendationDrafts = hasPermission(admin?.role, "recommendation-drafts:write");
+  // NW09 — AI-assisted first drafts (admins and counsellors; case access re-checked on every request).
+  const canGenerateCareerIntelligence = hasPermission(admin?.role, "career-intelligence:generate") && canWriteRecommendationDrafts;
 
+  let studentSnapshot: StudentProfileSnapshot | null = null;
   let provenanceSections: ProfileProvenanceSectionRow[] = [];
   let recommendationReadiness: Record<RecommendationType, RecommendationReadiness> | null = null;
   let profileCompletionPercent = student.profileCompletionPercent;
@@ -79,6 +84,7 @@ export default async function CounsellorStudentCasePage({ params }: StudentCaseP
       canReadProfile ? getSectionProvenanceMap(studentId) : Promise.resolve(null),
       canReadReadiness ? getRecommendationReadinessForAdmin(studentId) : Promise.resolve(null),
     ]);
+    studentSnapshot = snapshot;
     const completion = calculateCompletion(snapshot);
     profileCompletionPercent = completion.percent;
     if (canReadProfile && provenanceMap) {
@@ -250,6 +256,9 @@ export default async function CounsellorStudentCasePage({ params }: StudentCaseP
           )}
         </Card>
       )}
+
+      {/* NW09 — AI Career Intelligence (first drafts only; same review → approve → release workflow) */}
+      {canGenerateCareerIntelligence && <CareerIntelligencePanel studentUserId={studentId} snapshot={studentSnapshot} />}
 
       {/* Abroad Applications / Applications */}
       <Card className="mb-6">

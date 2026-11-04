@@ -386,6 +386,20 @@ export default defineConfig({
       // other thin I/O wrapper in this file is — reviewed structurally
       // instead.
       "src/lib/registration-prompt/**/*.test.ts",
+      // NW08.7 — Motion Lab (development-only): story/choreography maths,
+      // the production route guard, and source audits for reduced motion,
+      // navigation preservation and route isolation (src/lib/motion-lab/).
+      "src/lib/motion-lab/**/*.test.ts",
+      // NW09 — AI Career Intelligence. The provider-independent AI layer
+      // (config/env resolution, data policy, mock/Gemini/OpenAI adapters
+      // with injected fake clients, retries/timeouts, cost and budget
+      // rules) and the Career Intelligence pipeline (minimisation,
+      // completeness, catalogue-backed candidates, prompt bounds, schema
+      // validation, claim screening, the authorised request service against
+      // an in-memory gateway, fictional-profile evaluation) — pure or
+      // dependency-injected, no network, no Supabase, no API keys.
+      "src/lib/ai/**/*.test.ts",
+      "src/lib/career-intelligence/**/*.test.ts",
     ],
   },
 });

@@ -190,6 +190,14 @@ export const ADMIN_PERMISSIONS = [
   // Deliberately NOT granted to finance/content_editor/analyst.
   "recommendation-drafts:read",
   "recommendation-drafts:write",
+  // NW09 — AI Career Intelligence: requesting an AI-assisted FIRST DRAFT for
+  // a student (src/lib/career-intelligence/service.ts). Granted to admin and
+  // counsellor below (super_admin gets it via ADMIN_PERMISSIONS). Counsellors
+  // are additionally limited to students they are assigned to
+  // (counsellor_has_case_access), re-checked on every request. The result is
+  // an ordinary NW07 draft: approving and releasing it still need
+  // "recommendation-drafts:write" AND an independent reviewer.
+  "career-intelligence:generate",
 ] as const;
 
 export type AdminPermission = (typeof ADMIN_PERMISSIONS)[number];
@@ -286,6 +294,7 @@ export const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
     "counsellor-studio:read",
     "recommendation-drafts:read",
     "recommendation-drafts:write",
+    "career-intelligence:generate",
   ],
   counsellor: [
     "dashboard:read",
@@ -361,6 +370,8 @@ export const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
     "counsellor-studio:read",
     "recommendation-drafts:read",
     "recommendation-drafts:write",
+    // NW09 — AI-assisted first drafts, for assigned students only (service.ts re-checks assignment).
+    "career-intelligence:generate",
   ],
   finance: [
     "dashboard:read",

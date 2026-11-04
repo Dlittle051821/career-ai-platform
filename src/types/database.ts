@@ -1028,6 +1028,52 @@ type RecommendationDraftVersionsRow = {
 };
 
 // ---------------------------------------------------------------------------
+// ai_generation_runs / ai_usage_settings (NW09 — PROPOSED, NOT YET APPLIED:
+// supabase/migrations-proposed/NW09_ai_career_intelligence.sql, which itself
+// depends on NW07). Columns copied from that migration's `create table`
+// statements. RPC-only writes; staff-only reads.
+// ---------------------------------------------------------------------------
+type AiGenerationRunsRow = {
+  id: string;
+  task: string;
+  student_user_id: string;
+  requested_by: string | null;
+  requested_by_role: string | null;
+  idempotency_key: string;
+  provider: string;
+  model: string;
+  prompt_version: string;
+  report_schema_version: string;
+  data_class: string;
+  status: string;
+  reason: string | null;
+  input_tokens: number;
+  output_tokens: number;
+  reserved_cost_usd: number;
+  estimated_cost_usd: number;
+  attempts: number;
+  latency_ms: number;
+  consent_confirmed: boolean;
+  regenerates_run_id: string | null;
+  regeneration_reason: string | null;
+  draft_id: string | null;
+  report: Json | null;
+  report_purged_at: string | null;
+  created_at: string;
+  completed_at: string | null;
+};
+
+type AiUsageSettingsRow = {
+  id: number;
+  per_staff_daily: number;
+  per_student_daily: number;
+  global_daily: number;
+  monthly_budget_usd: number;
+  updated_at: string;
+  updated_by: string | null;
+};
+
+// ---------------------------------------------------------------------------
 // payments (Milestone 7 — operational tracking only, see 0004 migration)
 // ---------------------------------------------------------------------------
 type PaymentsRow = {
@@ -2105,15 +2151,15 @@ export interface Database {
           current_version_id: string | null;
           created_at: string;
           updated_at: string;
-        }[];
+        };
       };
       staff_update_recommendation_draft_content: {
         Args: { p_draft_id: string; p_content: Json };
-        Returns: { id: string; status: string; current_version_id: string | null; updated_at: string }[];
+        Returns: { id: string; status: string; current_version_id: string | null; updated_at: string };
       };
       staff_submit_recommendation_draft_for_review: {
         Args: { p_draft_id: string };
-        Returns: { id: string; status: string; submitted_at: string | null; submitted_by: string | null }[];
+        Returns: { id: string; status: string; submitted_at: string | null; submitted_by: string | null };
       };
       staff_review_recommendation_draft: {
         Args: { p_draft_id: string; p_decision: string; p_review_notes?: string | null };
@@ -2125,19 +2171,19 @@ export interface Database {
           approved_at: string | null;
           approved_by: string | null;
           review_notes: string | null;
-        }[];
+        };
       };
       staff_release_recommendation_draft: {
         Args: { p_draft_id: string };
-        Returns: { id: string; status: string; released_at: string | null; released_by: string | null }[];
+        Returns: { id: string; status: string; released_at: string | null; released_by: string | null };
       };
       staff_withdraw_recommendation_draft: {
         Args: { p_draft_id: string };
-        Returns: { id: string; status: string }[];
+        Returns: { id: string; status: string };
       };
       staff_archive_recommendation_draft: {
         Args: { p_draft_id: string };
-        Returns: { id: string; status: string; archived_at: string | null; archived_by: string | null }[];
+        Returns: { id: string; status: string; archived_at: string | null; archived_by: string | null };
       };
       get_my_recommendation_reports: {
         Args: Record<string, never>;
@@ -2158,6 +2204,50 @@ export interface Database {
           content: Json;
           released_at: string | null;
         }[];
+      };
+      // NW09 — PROPOSED, NOT YET APPLIED (supabase/migrations-proposed/NW09_ai_career_intelligence.sql).
+      staff_reserve_ai_generation_run: {
+        Args: {
+          p_student_user_id: string;
+          p_idempotency_key: string;
+          p_provider: string;
+          p_model: string;
+          p_prompt_version: string;
+          p_report_schema_version: string;
+          p_data_class: string;
+          p_consent_confirmed: boolean;
+          p_worst_case_cost_usd: number;
+          p_limit_staff_daily: number;
+          p_limit_student_daily: number;
+          p_limit_global_daily: number;
+          p_monthly_budget_usd: number;
+          p_regenerates_run_id: string | null;
+          p_regeneration_reason: string | null;
+        };
+        Returns: { run_id: string | null; outcome: string; existing_status: string | null; existing_draft_id: string | null; denial_reason: string | null }[];
+      };
+      staff_complete_ai_generation_run: {
+        Args: {
+          p_run_id: string;
+          p_status: string;
+          p_reason: string | null;
+          p_model: string;
+          p_input_tokens: number;
+          p_output_tokens: number;
+          p_estimated_cost_usd: number;
+          p_attempts: number;
+          p_latency_ms: number;
+          p_report: Json | null;
+        };
+        Returns: AiGenerationRunsRow;
+      };
+      staff_link_ai_generation_run_draft: {
+        Args: { p_run_id: string; p_draft_id: string };
+        Returns: AiGenerationRunsRow;
+      };
+      admin_purge_ai_generation_reports: {
+        Args: { p_older_than_days?: number };
+        Returns: number;
       };
     };
     Tables: {
@@ -2650,6 +2740,21 @@ export interface Database {
         Row: RecommendationDraftsRow;
         Insert: Omit<RecommendationDraftsRow, "id" | "created_at" | "updated_at"> & { id?: string; created_at?: string; updated_at?: string };
         Update: Partial<Omit<RecommendationDraftsRow, "id" | "student_user_id" | "created_at">> & { updated_at?: string };
+        Relationships: [];
+      };
+
+      // NW09 — PROPOSED, NOT YET APPLIED. Staff read through RLS; every write goes through an RPC.
+      ai_generation_runs: {
+        Row: AiGenerationRunsRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+
+      ai_usage_settings: {
+        Row: AiUsageSettingsRow;
+        Insert: never;
+        Update: Partial<Pick<AiUsageSettingsRow, "per_staff_daily" | "per_student_daily" | "global_daily" | "monthly_budget_usd">>;
         Relationships: [];
       };
 

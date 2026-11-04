@@ -15,12 +15,15 @@ import {
 } from "@/components/counsellor/RecommendationDraftActionForms";
 import { getRecommendationDraftWithStudentNameById, listRecommendationDraftVersions } from "@/lib/supabase/admin/recommendation-drafts";
 import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
+import { hasPermission } from "@/lib/admin/permissions";
+import { CareerIntelligenceAnalysisCard } from "@/components/counsellor/CareerIntelligenceAnalysisCard";
 import {
   RECOMMENDATION_DRAFT_STATUS_LABELS,
   isRecommendationDraftStatus,
   getAllowedRecommendationDraftActions,
   canReviewOwnDraft,
   type RecommendationDraftContent,
+  type RecommendationDraftTextKey,
 } from "@/lib/recommendations/drafts";
 import {
   updateRecommendationDraftContentAction,
@@ -37,7 +40,7 @@ interface RecommendationDraftPageProps {
 
 export const metadata: Metadata = { title: "Recommendation Report" };
 
-const CONTENT_FIELD_LABELS: Record<keyof RecommendationDraftContent, string> = {
+const CONTENT_FIELD_LABELS: Record<RecommendationDraftTextKey, string> = {
   summary: "Summary",
   careerGuidance: "Career guidance",
   courseGuidance: "Course guidance",
@@ -67,7 +70,7 @@ export default async function RecommendationDraftPage({ params }: Recommendation
   const versions = await listRecommendationDraftVersions(id);
   const latestVersion = versions[versions.length - 1] ?? null;
   const content: RecommendationDraftContent = latestVersion?.content ?? {};
-  const contentEntries = (Object.keys(CONTENT_FIELD_LABELS) as (keyof RecommendationDraftContent)[]).filter((key) => content[key]);
+  const contentEntries = (Object.keys(CONTENT_FIELD_LABELS) as RecommendationDraftTextKey[]).filter((key) => content[key]);
 
   const allowedActions = status ? getAllowedRecommendationDraftActions(status) : [];
   const viewerMayReview = admin ? canReviewOwnDraft(draft.createdBy, admin.userId) : false;
@@ -116,6 +119,9 @@ export default async function RecommendationDraftPage({ params }: Recommendation
           (never its own author) approves it and it is explicitly released.
         </p>
       </Card>
+
+      {/* NW09 — staff-only evidence behind an AI-assisted draft */}
+      {content.aiAssisted && hasPermission(admin?.role, "career-intelligence:generate") ? <CareerIntelligenceAnalysisCard draftId={id} /> : null}
 
       <Card className="mb-6">
         <h2 className="text-base font-semibold text-primary">Report content {latestVersion ? `(version ${latestVersion.versionNumber})` : ""}</h2>

@@ -1,0 +1,243 @@
+import type { CareerMatchProfile } from "@/types/career";
+import type { StudentProfileSnapshot } from "@/types/student-profile";
+import type { AdminRole } from "@/types/admin";
+import { hasPermission } from "@/lib/admin/permissions";
+import type { AiConfig } from "@/lib/ai/config";
+import { activeModel } from "@/lib/ai/config";
+import { worstCaseCostUsd } from "@/lib/ai/cost";
+import type { AiDataClass, AiProvider, AiProviderName } from "@/lib/ai/types";
+import { checkDataPolicy } from "@/lib/ai/data-policy";
+import type { RecommendationDraftContent } from "@/lib/recommendations/drafts";
+import { generateCareerIntelligence, prepareAnalysis, type PipelineOutcome } from "./pipeline";
+import { PROMPT_VERSION, REPORT_SCHEMA_VERSION, type CareerIntelligenceReport } from "./schema";
+
+/**
+ * NW09 — the authorised "request an AI-assisted first draft" use case.
+ *
+ * Order of checks (each fails closed, and nothing reaches a provider unless
+ * all pass):
+ *  1. signed-in staff with the career-intelligence:generate permission
+ *     (never a student — students have no route to this at all);
+ *  2. case access: admins by role, counsellors only for students they are
+ *     assigned to (counsellor_has_case_access — checked explicitly, never
+ *     inferred from an empty RLS read);
+ *  3. the student holds a PAID career entitlement (Verified/paid plan) —
+ *     unknown counts as no (fictional development accounts are exempt);
+ *  4. the counsellor confirms the student/guardian has been told about
+ *     AI-assisted processing (recorded on the run);
+ *  5. AI is enabled and the data policy allows this provider to see this
+ *     student's data (Gemini: fictional test accounts only);
+ *  6. the profile is complete enough and the catalogue yields candidates
+ *     (deterministic — checks 1–6 cost nothing and record no AI run);
+ *  7. budget, rate limits and idempotency — reserved atomically in the
+ *     ledger BEFORE the call; a repeated request with the same key returns
+ *     the original run instead of calling again.
+ *
+ * The result becomes a NW07 recommendation DRAFT (status "draft") — never
+ * approved or released automatically. Everything else (edit → submit →
+ * independent approval → release) is the unchanged NW07 workflow.
+ *
+ * All I/O is behind CareerIntelligenceGateway, implemented with Supabase in
+ * src/lib/supabase/admin/career-intelligence.ts and with an in-memory fake
+ * in tests.
+ */
+export interface StaffContext {
+  userId: string;
+  role: AdminRole;
+}
+
+export type ReserveResult =
+  | { kind: "reserved"; runId: string }
+  | { kind: "duplicate"; runId: string; status: string; draftId: string | null }
+  | { kind: "denied"; reason: string };
+
+export interface RunCompletion {
+  status: "succeeded" | "failed" | "refused" | "invalid_output" | "blocked";
+  reason: string | null;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  estimatedCostUsd: number;
+  attempts: number;
+  latencyMs: number;
+  report: CareerIntelligenceReport | null;
+}
+
+export interface CareerIntelligenceGateway {
+  getStaff(): Promise<StaffContext | null>;
+  hasCaseAccess(studentUserId: string): Promise<boolean>;
+  /** null = could not be determined (treated as "no"). */
+  hasPaidCareerEntitlement(studentUserId: string): Promise<boolean | null>;
+  loadSnapshot(studentUserId: string): Promise<StudentProfileSnapshot | null>;
+  loadCatalogue(): Promise<CareerMatchProfile[]>;
+  /** "fictional" only for a listed development test account (see isFictionalStudent); otherwise "real_student". */
+  classifyStudentData(studentUserId: string): Promise<AiDataClass>;
+  reserveRun(args: {
+    studentUserId: string;
+    idempotencyKey: string;
+    provider: AiProviderName;
+    model: string;
+    promptVersion: string;
+    reportSchemaVersion: string;
+    dataClass: AiDataClass;
+    worstCaseCostUsd: number;
+    limits: AiConfig["limits"];
+    consentConfirmed: boolean;
+    regeneratesRunId: string | null;
+    regenerationReason: string | null;
+  }): Promise<ReserveResult>;
+  completeRun(runId: string, completion: RunCompletion): Promise<void>;
+  createDraft(args: { studentUserId: string; title: string; content: RecommendationDraftContent }): Promise<string>;
+  linkDraft(runId: string, draftId: string): Promise<void>;
+  audit(action: string, studentUserId: string, context: Record<string, unknown>): Promise<void>;
+}
+
+export interface RequestInput {
+  studentUserId: string;
+  idempotencyKey: string;
+  consentConfirmed: boolean;
+  regeneratesRunId?: string | null;
+  regenerationReason?: string | null;
+}
+
+export type RequestOutcome =
+  | { kind: "draft_created"; runId: string; draftId: string; report: CareerIntelligenceReport }
+  | { kind: "duplicate"; runId: string; draftId: string | null; status: string }
+  | { kind: "not_authorised"; reason: string }
+  | { kind: "not_entitled"; reason: string }
+  | { kind: "needs_consent"; reason: string }
+  | { kind: "invalid_request"; reason: string }
+  | { kind: "limit_reached"; reason: string }
+  | { kind: "not_generated"; runId: string | null; outcome: Exclude<PipelineOutcome, { kind: "ok" }> };
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const IDEMPOTENCY = /^[A-Za-z0-9_-]{16,80}$/;
+
+export function validateRequest(input: RequestInput): string | null {
+  if (!UUID.test(input.studentUserId)) return "Invalid student reference.";
+  if (!IDEMPOTENCY.test(input.idempotencyKey)) return "Invalid request token — reload the page and try again.";
+  if (input.regeneratesRunId != null && !UUID.test(input.regeneratesRunId)) return "Invalid previous-analysis reference.";
+  if (input.regeneratesRunId) {
+    const reason = (input.regenerationReason ?? "").trim();
+    if (reason.length < 10 || reason.length > 500) return "Please give a reason (10–500 characters) for regenerating the analysis.";
+  }
+  return null;
+}
+
+export async function requestCareerAnalysis(input: RequestInput, gw: CareerIntelligenceGateway, deps: { config: AiConfig; provider: AiProvider | null; now?: () => Date }): Promise<RequestOutcome> {
+  const invalid = validateRequest(input);
+  if (invalid) return { kind: "invalid_request", reason: invalid };
+
+  // 1–2. Who is asking, and may they see this student?
+  const staff = await gw.getStaff();
+  if (!staff || !hasPermission(staff.role, "career-intelligence:generate")) return { kind: "not_authorised", reason: "Only authorised counsellors and admins can request an AI analysis." };
+  const isAdmin = staff.role === "super_admin" || staff.role === "admin";
+  if (!isAdmin && !(await gw.hasCaseAccess(input.studentUserId))) return { kind: "not_authorised", reason: "You are not assigned to this student." };
+
+  // Which data class is this student? Real unless it is a listed fictional test account (development only).
+  const dataClass = await gw.classifyStudentData(input.studentUserId);
+
+  // 3. Paid personalised guidance needs a paid Career entitlement (unknown = no). Fictional development accounts are exempt.
+  if (dataClass === "real_student") {
+    const entitled = await gw.hasPaidCareerEntitlement(input.studentUserId);
+    if (entitled !== true) return { kind: "not_entitled", reason: "AI-assisted reports are part of the paid Career guidance plans. This student has no active paid Career plan (or it could not be confirmed)." };
+  }
+  // 4. AI-processing notice confirmed with the student (and guardian, for under-18s).
+  if (!input.consentConfirmed) return { kind: "needs_consent", reason: "Confirm that the student (and a parent or guardian, for under-18s) has been told this analysis is AI-assisted and will be reviewed by a counsellor." };
+
+  // 5. Is AI available, and may this provider see this data? Checked BEFORE anything is reserved or sent.
+  if (deps.config.mode === "disabled" || !deps.provider) return { kind: "not_generated", runId: null, outcome: { kind: "disabled", reason: deps.config.notes[0] ?? "AI is disabled." } };
+  const policy = checkDataPolicy(deps.config.mode, dataClass);
+  if (!policy.allowed) return { kind: "not_generated", runId: null, outcome: { kind: "policy_blocked", reason: policy.reason } };
+
+  // 6. Profile completeness and catalogue candidates — deterministic, free, no AI.
+  const [snapshot, catalogue] = await Promise.all([gw.loadSnapshot(input.studentUserId), gw.loadCatalogue()]);
+  if (!snapshot) return { kind: "not_authorised", reason: "The student's profile could not be loaded with your access." };
+  const { assessment, candidates } = prepareAnalysis({ snapshot, catalogue });
+  if (!assessment.ready) return { kind: "not_generated", runId: null, outcome: { kind: "needs_profile", assessment } };
+  if (candidates.length === 0) return { kind: "not_generated", runId: null, outcome: { kind: "no_candidates", assessment } };
+
+  // 7. Reserve: rate limits, monthly budget and idempotency, atomically, BEFORE the provider call.
+  const model = activeModel(deps.config) ?? "none";
+  const reserve = await gw.reserveRun({
+    studentUserId: input.studentUserId,
+    idempotencyKey: input.idempotencyKey,
+    provider: deps.config.mode,
+    model,
+    promptVersion: PROMPT_VERSION,
+    reportSchemaVersion: REPORT_SCHEMA_VERSION,
+    dataClass,
+    worstCaseCostUsd: worstCaseCostUsd(deps.config.mode, model, deps.config.limits.maxInputChars, deps.config.limits.maxOutputTokens, deps.config),
+    limits: deps.config.limits,
+    consentConfirmed: input.consentConfirmed,
+    regeneratesRunId: input.regeneratesRunId ?? null,
+    regenerationReason: input.regenerationReason?.trim() || null,
+  });
+  if (reserve.kind === "duplicate") return { kind: "duplicate", runId: reserve.runId, draftId: reserve.draftId, status: reserve.status };
+  if (reserve.kind === "denied") return { kind: "limit_reached", reason: reserve.reason };
+
+  // 8. Generate (validated, screened), then record the outcome — success or not.
+  let outcome: PipelineOutcome;
+  try {
+    outcome = await generateCareerIntelligence({ studentUserId: input.studentUserId, snapshot, catalogue, dataClass }, { config: deps.config, provider: deps.provider, now: deps.now });
+  } catch {
+    outcome = { kind: "failed", status: "failed", reason: "The analysis could not be completed.", usage: null, estimatedCostUsd: 0, attempts: 0, model };
+  }
+
+  if (outcome.kind !== "ok") {
+    const completion: RunCompletion =
+      outcome.kind === "failed"
+        ? {
+            status: outcome.status === "refused" || outcome.status === "invalid_output" ? outcome.status : "failed",
+            reason: `${outcome.status}: ${outcome.reason}`,
+            model: outcome.model,
+            inputTokens: outcome.usage?.inputTokens ?? 0,
+            outputTokens: outcome.usage?.outputTokens ?? 0,
+            estimatedCostUsd: outcome.estimatedCostUsd,
+            attempts: outcome.attempts,
+            latencyMs: 0,
+            report: null,
+          }
+        : { status: "blocked", reason: outcome.kind, model, inputTokens: 0, outputTokens: 0, estimatedCostUsd: 0, attempts: 0, latencyMs: 0, report: null };
+    await gw.completeRun(reserve.runId, completion);
+    await gw.audit("AI career analysis not generated", input.studentUserId, { runId: reserve.runId, outcome: outcome.kind, ...(outcome.kind === "failed" ? { status: outcome.status } : {}) });
+    return { kind: "not_generated", runId: reserve.runId, outcome };
+  }
+
+  // 9. The result becomes an ordinary NW07 DRAFT — never submitted, approved or
+  // released here. The draft is created BEFORE the run is marked succeeded, so
+  // the ledger can never claim "draft created" for an analysis whose draft failed.
+  const usage = {
+    model: outcome.model,
+    inputTokens: outcome.usage?.inputTokens ?? 0,
+    outputTokens: outcome.usage?.outputTokens ?? 0,
+    estimatedCostUsd: outcome.estimatedCostUsd,
+    attempts: outcome.attempts,
+    latencyMs: outcome.report.generation.latencyMs,
+  };
+  let draftId: string;
+  try {
+    draftId = await gw.createDraft({ studentUserId: input.studentUserId, title: "Career guidance (AI-assisted draft)", content: outcome.draftContent });
+  } catch (error) {
+    const reason = "failed: The analysis succeeded but its draft could not be created.";
+    await gw.completeRun(reserve.runId, { status: "failed", reason, ...usage, report: null });
+    await gw.audit("AI career analysis not generated", input.studentUserId, { runId: reserve.runId, outcome: "failed", status: "draft_not_created" });
+    if (error instanceof Error && error.name === "CareerIntelligenceUnavailableError") throw error;
+    return {
+      kind: "not_generated",
+      runId: reserve.runId,
+      outcome: { kind: "failed", status: "failed", reason: "The analysis succeeded but its draft could not be created.", usage: outcome.usage, estimatedCostUsd: outcome.estimatedCostUsd, attempts: outcome.attempts, model: outcome.model },
+    };
+  }
+  await gw.completeRun(reserve.runId, { status: "succeeded", reason: null, ...usage, report: outcome.report });
+  await gw.linkDraft(reserve.runId, draftId);
+  await gw.audit("AI-assisted career draft generated", input.studentUserId, {
+    runId: reserve.runId,
+    draftId,
+    provider: outcome.report.generation.provider,
+    model: outcome.model,
+    careers: outcome.report.careers.length,
+    estimatedCostUsd: outcome.estimatedCostUsd,
+  });
+  return { kind: "draft_created", runId: reserve.runId, draftId, report: outcome.report };
+}

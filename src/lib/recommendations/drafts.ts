@@ -116,7 +116,16 @@ export interface RecommendationDraftContent {
   collegeGuidance?: string;
   pathwayGuidance?: string;
   counsellorRationale?: string;
+  /**
+   * NW09 — true when the first version was prepared with AI assistance
+   * (src/lib/career-intelligence). Shown to the student as a notice on the
+   * released report; carried through every edit as a hidden form field.
+   */
+  aiAssisted?: boolean;
 }
+
+/** The text sections of a draft (everything except the aiAssisted marker). */
+export type RecommendationDraftTextKey = Exclude<keyof RecommendationDraftContent, "aiAssisted">;
 
 export interface RecommendationDraftSummaryInput {
   id: string;

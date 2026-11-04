@@ -5,7 +5,7 @@ import { ChevronLeft } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { getCurrentUser } from "@/lib/supabase/profile";
 import { getMyRecommendationReportContent } from "@/lib/supabase/education/recommendation-reports";
-import type { RecommendationDraftContent } from "@/lib/recommendations/drafts";
+import type { RecommendationDraftTextKey } from "@/lib/recommendations/drafts";
 
 interface RecommendationReportPageProps {
   params: Promise<{ id: string }>;
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const CONTENT_FIELD_LABELS: Record<keyof RecommendationDraftContent, string> = {
+const CONTENT_FIELD_LABELS: Record<RecommendationDraftTextKey, string> = {
   summary: "Summary",
   careerGuidance: "Career guidance",
   courseGuidance: "Course guidance",
@@ -40,7 +40,7 @@ export default async function RecommendationReportPage({ params }: Recommendatio
   const report = await getMyRecommendationReportContent(id);
   if (!report) notFound();
 
-  const contentEntries = (Object.keys(CONTENT_FIELD_LABELS) as (keyof RecommendationDraftContent)[]).filter((key) => report.content[key]);
+  const contentEntries = (Object.keys(CONTENT_FIELD_LABELS) as RecommendationDraftTextKey[]).filter((key) => report.content[key]);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -57,10 +57,19 @@ export default async function RecommendationReportPage({ params }: Recommendatio
       </div>
 
       <Card className="border-info/25 bg-info-light">
-        <p className="text-sm text-info">
-          This is your counsellor&apos;s own professional guidance, independently reviewed before being shared with you —
-          not an automated match, and never a guarantee of admission to any course or university.
-        </p>
+        {report.content.aiAssisted ? (
+          // NW09 — honest disclosure for a report that began as an AI-assisted first draft.
+          <p className="text-sm text-info">
+            Your counsellor prepared this guidance with the help of an AI-assisted first draft, then checked, edited and
+            approved it before sharing it with you. It is guidance to discuss together — based on what you told us, not a
+            psychological test, and never a guarantee of admission, employment or income.
+          </p>
+        ) : (
+          <p className="text-sm text-info">
+            This is your counsellor&apos;s own professional guidance, independently reviewed before being shared with you —
+            not an automated match, and never a guarantee of admission to any course or university.
+          </p>
+        )}
       </Card>
 
       {contentEntries.length === 0 ? (

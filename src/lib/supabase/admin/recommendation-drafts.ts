@@ -1,4 +1,5 @@
 import "server-only";
+import { rpcRowId } from "@/lib/supabase/rpc-result";
 import { createClient } from "../server";
 import { requireAdminPermission } from "../admin-auth";
 import { recordAuditLog } from "./audit";
@@ -233,6 +234,8 @@ function parseContentForm(formData: FormData): RecommendationDraftContent {
     collegeGuidance: str("collegeGuidance"),
     pathwayGuidance: str("pathwayGuidance"),
     counsellorRationale: str("counsellorRationale"),
+    // NW09 — keeps the "prepared with AI assistance" marker through edits (hidden field on the editor).
+    ...(formData.get("aiAssisted") === "true" ? { aiAssisted: true } : {}),
   };
 }
 
@@ -265,7 +268,8 @@ export async function createRecommendationDraft(input: CreateRecommendationDraft
     throw new AdminValidationError(error.message || "We couldn't create this recommendation draft. Please try again.");
   }
 
-  const createdId = (data ?? [])[0]?.id as string | undefined;
+  // staff_create_recommendation_draft() returns ONE row → PostgREST sends an object, not an array.
+  const createdId = rpcRowId(data);
   if (!createdId) throw new Error("Recommendation draft was not created.");
 
   await recordAuditLog({

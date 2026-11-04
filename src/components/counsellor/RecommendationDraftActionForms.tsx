@@ -26,6 +26,15 @@ export function EditRecommendationDraftContentForm({ action, content }: { action
   return (
     <form action={formAction} className="space-y-3">
       <FormError error={state.error} />
+      {content.aiAssisted ? (
+        <>
+          <input type="hidden" name="aiAssisted" value="true" />
+          <p className="rounded-md border border-info/25 bg-info-light px-3 py-2 text-sm text-info">
+            This report began as an AI-assisted first draft. Check every statement against the student&apos;s profile and
+            your own judgement, and remove anything you cannot stand behind, before submitting it for review.
+          </p>
+        </>
+      ) : null}
       <FormField id="summary" label="Summary">
         <Textarea id="summary" name="summary" rows={2} defaultValue={content.summary ?? ""} />
       </FormField>
