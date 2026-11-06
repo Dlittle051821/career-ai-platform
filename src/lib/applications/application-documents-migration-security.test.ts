@@ -20,7 +20,7 @@ import { describe, expect, it } from "vitest";
  */
 
 const MIGRATIONS_DIR = path.resolve(process.cwd(), "supabase/migrations");
-const sql = readFileSync(path.join(MIGRATIONS_DIR, "0018_application_documents_foundation.sql"), "utf8");
+const sql = readFileSync(path.join(MIGRATIONS_DIR, "0018_application_documents_foundation.sql"), "utf8").replace(/\r\n?/g, "\n");
 const priorMigrationFilenames = [
   "0004_admin_system.sql",
   "0005_payments_billing.sql",

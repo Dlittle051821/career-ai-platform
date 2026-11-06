@@ -14,7 +14,7 @@ import { describe, expect, it } from "vitest";
  */
 
 const SEED_PATH = path.resolve(process.cwd(), "supabase/seed/0009_pr01_new_commercial_catalogue_seed.sql");
-const sql = readFileSync(SEED_PATH, "utf8");
+const sql = readFileSync(SEED_PATH, "utf8").replace(/\r\n?/g, "\n");
 
 const RETIRED_SLUGS = ["launch-essential", "launch-pro", "bachelor-abroad-essential", "master-abroad-essential"];
 const NEW_SLUGS = ["nextwise-explore", "nextwise-verified", "nextwise-essential"];

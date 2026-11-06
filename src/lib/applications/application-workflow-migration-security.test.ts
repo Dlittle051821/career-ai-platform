@@ -21,7 +21,7 @@ import { describe, expect, it } from "vitest";
 
 const MIGRATIONS_DIR = path.resolve(process.cwd(), "supabase/migrations");
 const MIGRATION_PATH = path.join(MIGRATIONS_DIR, "0017_student_application_workflow.sql");
-const sql = readFileSync(MIGRATION_PATH, "utf8");
+const sql = readFileSync(MIGRATION_PATH, "utf8").replace(/\r\n?/g, "\n");
 const originalAdminSystemSql = readFileSync(path.join(MIGRATIONS_DIR, "0004_admin_system.sql"), "utf8");
 const stampingSql = readFileSync(path.join(MIGRATIONS_DIR, "0012_electronic_stamping_and_assisted_onboarding.sql"), "utf8");
 const globalCourseDataSql = readFileSync(path.join(MIGRATIONS_DIR, "0006_global_university_course_data.sql"), "utf8");

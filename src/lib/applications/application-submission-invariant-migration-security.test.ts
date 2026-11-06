@@ -29,7 +29,7 @@ import { describe, expect, it } from "vitest";
 
 const MIGRATIONS_DIR = path.resolve(process.cwd(), "supabase/migrations");
 const FILENAME = "0022_authoritative_submission_invariant.sql";
-const sql = readFileSync(path.join(MIGRATIONS_DIR, FILENAME), "utf8");
+const sql = readFileSync(path.join(MIGRATIONS_DIR, FILENAME), "utf8").replace(/\r\n?/g, "\n");
 
 function sliceFunctionBody(functionSignature: string): string {
   const start = sql.indexOf(functionSignature);

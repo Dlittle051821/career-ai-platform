@@ -22,7 +22,7 @@ import path from "node:path";
 
 const ROOT = path.resolve(__dirname, "../../..");
 function read(relPath: string): string {
-  return readFileSync(path.join(ROOT, relPath), "utf8");
+  return readFileSync(path.join(ROOT, relPath), "utf8").replace(/\r\n?/g, "\n");
 }
 
 describe("student_profile_section_provenance — no student write path", () => {

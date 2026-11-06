@@ -14,7 +14,7 @@ import { describe, expect, it } from "vitest";
 
 const MIGRATIONS_DIR = path.resolve(process.cwd(), "supabase/migrations");
 const FILENAME = "0021_application_submission_tracking.sql";
-const sql = readFileSync(path.join(MIGRATIONS_DIR, FILENAME), "utf8");
+const sql = readFileSync(path.join(MIGRATIONS_DIR, FILENAME), "utf8").replace(/\r\n?/g, "\n");
 
 function sliceFunctionBody(functionSignature: string): string {
   const start = sql.indexOf(functionSignature);

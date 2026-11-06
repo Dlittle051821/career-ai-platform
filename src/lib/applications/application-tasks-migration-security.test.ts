@@ -23,7 +23,7 @@ import { describe, expect, it } from "vitest";
  */
 
 const MIGRATION_PATH = path.resolve(process.cwd(), "supabase/migrations-proposed/NW06_application_tasks.sql");
-const sql = readFileSync(MIGRATION_PATH, "utf8");
+const sql = readFileSync(MIGRATION_PATH, "utf8").replace(/\r\n?/g, "\n");
 
 function sliceFunctionBody(functionSignature: string): string {
   const start = sql.indexOf(functionSignature);
