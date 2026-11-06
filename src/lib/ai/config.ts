@@ -16,9 +16,19 @@
  *                                (development only; ignored in production)
  *   AI_FICTIONAL_EMAIL_DOMAINS   default "example.com,example.test,nextwise.test" — a listed
  *                                student must ALSO have an e-mail at one of these domains
- *   OPENAI_API_KEY         OpenAI (paid)
- *   AI_OPENAI_MODEL        default gpt-5-mini
+ *   OPENAI_API_KEY         OpenAI (paid) — server-side only, never NEXT_PUBLIC_
+ *   AI_OPENAI_MODEL        REQUIRED for paid calls (NW09.2: no default is ever used to
+ *                          call OpenAI). Verified choice for the pilot: gpt-6.1-terra.
  *   AI_OPENAI_APPROVED     must be exactly "true" before any paid call is made
+ *   AI_OPENAI_REASONING_EFFORT   none | low | medium | high   (default low)
+ *   AI_PAID_MAX_RUNS            default 5   — all-time ceiling on paid (OpenAI) analyses
+ *   AI_PAID_TOTAL_BUDGET_USD    default 2   — all-time ceiling on estimated paid spend
+ *                               (both are ALSO enforced by the database, which keeps the
+ *                               lower of this value and ai_usage_settings)
+ *   AI_REAL_STUDENT_DATA_APPROVED   must be exactly "true" (AND the database flag
+ *                               ai_usage_settings.real_student_processing_approved must be
+ *                               set by a super admin) before a REAL student's profile may be
+ *                               sent to OpenAI. Until then only fictional QA students run.
  *   AI_MAX_OUTPUT_TOKENS   default 2500   (hard cap 6000)
  *   AI_MAX_INPUT_CHARS     default 24000  (hard cap 60000)
  *   AI_TIMEOUT_MS          default 45000  (hard cap 120000)
@@ -53,8 +63,12 @@ export interface AiConfig {
   notes: string[];
   isProduction: boolean;
   gemini: { configured: boolean; model: string };
-  openai: { configured: boolean; approved: boolean; model: string };
+  openai: { configured: boolean; approved: boolean; model: string; modelConfigured: boolean; reasoningEffort: "none" | "low" | "medium" | "high" };
   limits: AiLimits;
+  /** NW09.2 — all-time paid-provider ceilings (the database applies the lower of these and its own settings). */
+  paid: { maxRuns: number; totalBudgetUsd: number };
+  /** NW09.2 — application-side half of the real-student gate (the database flag is the other half). */
+  realStudentDataApproved: boolean;
   costOverride: { inputPerMTok: number; outputPerMTok: number } | null;
   /** Development-only allowlist of fictional test students (empty in production). */
   fictional: { studentIds: string[]; emailDomains: string[] };
@@ -63,7 +77,13 @@ export interface AiConfig {
 type Env = Record<string, string | undefined>;
 
 export const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite";
-export const DEFAULT_OPENAI_MODEL = "gpt-5-mini";
+/**
+ * Display-only placeholder when AI_OPENAI_MODEL is unset. It is NEVER sent
+ * to OpenAI: openai mode requires the model id to be configured explicitly.
+ */
+export const DEFAULT_OPENAI_MODEL = "unconfigured";
+/** The model verified for the NW09.2 pilot (official model + pricing pages, 6 Nov 2026). Documentation only. */
+export const RECOMMENDED_OPENAI_MODEL = "gpt-6.1-terra";
 
 function int(env: Env, key: string, fallback: number, min: number, max: number): number {
   const raw = env[key];
@@ -93,10 +113,14 @@ export function resolveAiConfig(env: Env = process.env): AiConfig {
   const notes: string[] = [];
 
   const gemini = { configured: Boolean(env.GEMINI_API_KEY?.trim()), model: model(env, "AI_GEMINI_MODEL", DEFAULT_GEMINI_MODEL) };
+  const effortRaw = (env.AI_OPENAI_REASONING_EFFORT ?? "").trim().toLowerCase();
+  const openaiModel = model(env, "AI_OPENAI_MODEL", DEFAULT_OPENAI_MODEL);
   const openai = {
     configured: Boolean(env.OPENAI_API_KEY?.trim()),
     approved: env.AI_OPENAI_APPROVED === "true",
-    model: model(env, "AI_OPENAI_MODEL", DEFAULT_OPENAI_MODEL),
+    model: openaiModel,
+    modelConfigured: openaiModel !== DEFAULT_OPENAI_MODEL,
+    reasoningEffort: (["none", "low", "medium", "high"].includes(effortRaw) ? effortRaw : "low") as "none" | "low" | "medium" | "high",
   };
 
   let mode: AiMode = "disabled";
@@ -113,15 +137,19 @@ export function resolveAiConfig(env: Env = process.env): AiConfig {
     else mode = "gemini";
   } else if (requested === "openai") {
     if (!openai.configured) notes.push("OPENAI_API_KEY is not set — AI is disabled.");
+    else if (!openai.modelConfigured) notes.push("AI_OPENAI_MODEL is not set — no default model is ever used for paid calls. AI is disabled.");
     else if (!openai.approved) notes.push("OpenAI is configured but not approved (AI_OPENAI_APPROVED is not \"true\") — no paid calls are made. AI is disabled.");
     else mode = "openai";
   }
 
   const limits: AiLimits = {
-    maxOutputTokens: int(env, "AI_MAX_OUTPUT_TOKENS", 2500, 256, 6000),
+    // NW09.2: the v2 report (3–5 careers + comparison, academic direction, plan) plus reasoning tokens
+    // needs more room than v1; a too-small allowance would end a PAID call as "incomplete".
+    maxOutputTokens: int(env, "AI_MAX_OUTPUT_TOKENS", requested === "openai" ? 6000 : 2500, 256, 6000),
     maxInputChars: int(env, "AI_MAX_INPUT_CHARS", 24000, 2000, 60000),
     timeoutMs: int(env, "AI_TIMEOUT_MS", 45000, 5000, 120000),
-    maxAttempts: int(env, "AI_MAX_ATTEMPTS", 2, 1, 3),
+    // Paid provider: at most 2 attempts, and only for transient rate-limit / 5xx failures (run.ts).
+    maxAttempts: Math.min(requested === "openai" ? 2 : 3, int(env, "AI_MAX_ATTEMPTS", 2, 1, 3)),
     perStaffDaily: int(env, "AI_LIMIT_PER_STAFF_DAILY", 20, 0, 500),
     perStudentDaily: int(env, "AI_LIMIT_PER_STUDENT_DAILY", 3, 0, 50),
     globalDaily: int(env, "AI_LIMIT_GLOBAL_DAILY", 100, 0, 5000),
@@ -145,7 +173,13 @@ export function resolveAiConfig(env: Env = process.env): AiConfig {
           .filter((x) => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(x)),
       };
 
-  return { mode, requested, notes, isProduction, gemini, openai, limits, costOverride, fictional };
+  const paid = {
+    maxRuns: int(env, "AI_PAID_MAX_RUNS", 5, 0, 1000),
+    totalBudgetUsd: Math.min(10000, num(env, "AI_PAID_TOTAL_BUDGET_USD") ?? 2),
+  };
+  const realStudentDataApproved = env.AI_REAL_STUDENT_DATA_APPROVED === "true";
+
+  return { mode, requested, notes, isProduction, gemini, openai, limits, paid, realStudentDataApproved, costOverride, fictional };
 }
 
 /**

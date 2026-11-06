@@ -6,6 +6,7 @@ import { createGeminiProvider } from "./providers/gemini";
 import { createMockProvider, type MockAnalyst } from "./providers/mock";
 import { createOpenAiProvider, type OpenAiResponsesLike } from "./providers/openai";
 import type { AiProvider } from "./types";
+import { OPENAI_OFFICIAL_BASE_URL } from "./providers/openai";
 
 /**
  * NW09 — the one place real provider clients are constructed. SERVER-ONLY
@@ -27,8 +28,10 @@ export function getAiProvider(config: AiConfig, mockAnalyst: MockAnalyst): AiPro
       return createGeminiProvider(client as unknown as Parameters<typeof createGeminiProvider>[0], config.gemini.model, config.limits.timeoutMs);
     }
     case "openai": {
-      const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY!, maxRetries: 0, timeout: config.limits.timeoutMs });
-      return createOpenAiProvider(client as unknown as OpenAiResponsesLike, config.openai.model);
+      // Official endpoint pinned explicitly (the SDK would otherwise honour an OPENAI_BASE_URL
+      // environment variable); SDK retries off — run.ts owns the bounded retry policy.
+      const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY!, baseURL: OPENAI_OFFICIAL_BASE_URL, maxRetries: 0, timeout: config.limits.timeoutMs });
+      return createOpenAiProvider(client as unknown as OpenAiResponsesLike, config.openai.model, { reasoningEffort: config.openai.reasoningEffort });
     }
     default:
       return null;

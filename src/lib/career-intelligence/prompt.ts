@@ -13,6 +13,8 @@ import { PROMPT_VERSION } from "./schema";
 export interface PromptPayload {
   promptVersion: typeof PROMPT_VERSION;
   student: AiStudentProfile;
+  /** NW09.2 — reliability of each profile section (self-reported / counsellor-entered / verified / missing). */
+  inputReliability: Array<{ section: string; reliability: string }>;
   candidates: CandidatePacket[];
   profileGaps: string[];
   profileConflicts: string[];
@@ -35,18 +37,36 @@ export const INSTRUCTIONS = [
   "8. If the profile is too thin to say anything useful about any candidate, set `outcome` to \"insufficient_data\", return an empty `careers` list, and explain what is needed.",
   "9. Write in clear, warm, plain English that a student and parent can understand. Keep each item concise.",
   "10. If `isMinor` is true, keep the tone age-appropriate, encourage involving a parent or guardian in decisions, and avoid pressure.",
+  "11. `inputReliability` says, for each profile section, whether it is self-reported, entered by a counsellor, verified, or missing. Never treat a missing section as if it had been supplied; weigh unverified inputs as provisional and say so where it matters.",
+  "",
+  "What to produce (this is decision support for a qualified counsellor, not an essay):",
+  "- `profileInterpretation`: a concise reading of the student — academic background, strengths, interests, motivations, priorities, uncertainties and financial considerations. Use only the profile; where something is not stated, say \"Not stated in the profile\".",
+  "- `careers`: 3–5 candidates when the evidence supports them (fewer if it does not). For each: a personalised fit explanation, the profile evidence, skill alignment, gaps, trade-offs, general education pathways, practical next steps, and at least one honest reason it might NOT suit the student.",
+  "- `careerComparison`: a professional written comparison of the careers you discuss — what distinguishes each and the main concern for each. Do NOT invent numeric scores or percentages; the heuristic band is the only rating.",
+  "- `academicDirection`: the level (bachelor's / master's / diploma or vocational / undecided) and general fields of study that fit the student's stage and goals, with the rationale and what to verify. No named universities, colleges or courses.",
+  "- `developmentPlan`: realistic short-term steps (weeks to months) and longer-term steps (one to several years), each with an approximate timeframe.",
+  "- `missingInformation` and `followUpQuestions`: the specific questions the counsellor should ask before a final recommendation.",
+  "- `counsellorObservations`: observations for the counsellor only (patterns, tensions, things to probe). These are AI observations, not conclusions — the counsellor writes the conclusions.",
   "",
   "Return only the JSON object required by the response schema.",
 ].join("\n");
 
 export type BuildPromptResult = { ok: true; input: string; payload: PromptPayload; droppedCandidates: number } | { ok: false; reason: string };
 
-export function buildPrompt(student: AiStudentProfile, candidates: CandidatePacket[], assessment: ProfileAssessment, isMinor: boolean, maxInputChars: number): BuildPromptResult {
+export function buildPrompt(
+  student: AiStudentProfile,
+  candidates: CandidatePacket[],
+  assessment: ProfileAssessment,
+  isMinor: boolean,
+  maxInputChars: number,
+  inputReliability: PromptPayload["inputReliability"] = [],
+): BuildPromptResult {
   let kept = candidates.slice();
   while (kept.length > 0) {
     const payload: PromptPayload = {
       promptVersion: PROMPT_VERSION,
       student,
+      inputReliability,
       candidates: kept,
       profileGaps: assessment.missing,
       profileConflicts: assessment.conflicts,

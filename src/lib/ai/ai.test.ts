@@ -44,7 +44,9 @@ describe("configuration — server-side, safe by default", () => {
     expect(resolveAiConfig({ NODE_ENV: "production", AI_PROVIDER: "openai" }).mode).toBe("disabled");
     expect(resolveAiConfig({ NODE_ENV: "production", AI_PROVIDER: "openai", OPENAI_API_KEY: KEY }).mode).toBe("disabled");
     expect(resolveAiConfig({ NODE_ENV: "production", AI_PROVIDER: "openai", OPENAI_API_KEY: KEY, AI_OPENAI_APPROVED: "yes" }).mode).toBe("disabled");
-    expect(resolveAiConfig({ NODE_ENV: "production", AI_PROVIDER: "openai", OPENAI_API_KEY: KEY, AI_OPENAI_APPROVED: "true" }).mode).toBe("openai");
+    // NW09.2: approval alone is not enough — the model must be named explicitly (no default model is ever used for a paid call).
+    expect(resolveAiConfig({ NODE_ENV: "production", AI_PROVIDER: "openai", OPENAI_API_KEY: KEY, AI_OPENAI_APPROVED: "true" }).mode).toBe("disabled");
+    expect(resolveAiConfig({ NODE_ENV: "production", AI_PROVIDER: "openai", OPENAI_API_KEY: KEY, AI_OPENAI_APPROVED: "true", AI_OPENAI_MODEL: "gpt-6.1-terra" }).mode).toBe("openai");
   });
   it("rejects unknown providers and clamps limits to hard caps", () => {
     expect(resolveAiConfig({ NODE_ENV: "development", AI_PROVIDER: "anthropic" }).mode).toBe("disabled");

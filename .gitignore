@@ -24,3 +24,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# NW09.2 OpenAI pilot — local evidence and budget ledger (never commit)
+/.nw09-pilot/
+/.nw09-backup/

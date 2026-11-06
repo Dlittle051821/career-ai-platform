@@ -10,6 +10,7 @@ import { checkDataPolicy } from "@/lib/ai/data-policy";
 import type { RecommendationDraftContent } from "@/lib/recommendations/drafts";
 import { generateCareerIntelligence, prepareAnalysis, type PipelineOutcome } from "./pipeline";
 import { PROMPT_VERSION, REPORT_SCHEMA_VERSION, type CareerIntelligenceReport } from "./schema";
+import type { ProfileSectionKey, ProvenanceValue } from "@/types/profile-provenance";
 
 /**
  * NW09 — the authorised "request an AI-assisted first draft" use case.
@@ -23,15 +24,28 @@ import { PROMPT_VERSION, REPORT_SCHEMA_VERSION, type CareerIntelligenceReport } 
  *     inferred from an empty RLS read);
  *  3. the student holds a PAID career entitlement (Verified/paid plan) —
  *     unknown counts as no (fictional development accounts are exempt);
- *  4. the counsellor confirms the student/guardian has been told about
- *     AI-assisted processing (recorded on the run);
+ *  4. a RECORDED, valid AI-processing consent exists for the student
+ *     (NW09.2 — student_ai_processing_consents: who consented, how, the
+ *     evidence reference, who recorded it; not withdrawn). A checkbox in the
+ *     request form is NOT consent and is no longer accepted as such;
+ *  4b. real students + the paid provider: BOTH the application flag
+ *     (AI_REAL_STUDENT_DATA_APPROVED) and the database flag
+ *     (ai_usage_settings.real_student_processing_approved, super-admin only)
+ *     must be set — until the privacy review is complete only fictional QA
+ *     students can be analysed by OpenAI;
  *  5. AI is enabled and the data policy allows this provider to see this
  *     student's data (Gemini: fictional test accounts only);
  *  6. the profile is complete enough and the catalogue yields candidates
  *     (deterministic — checks 1–6 cost nothing and record no AI run);
- *  7. budget, rate limits and idempotency — reserved atomically in the
- *     ledger BEFORE the call; a repeated request with the same key returns
- *     the original run instead of calling again.
+ *  7. budget, rate limits, all-time paid-pilot caps, one-analysis-at-a-time
+ *     per student, and idempotency — reserved atomically in the ledger
+ *     (staff_reserve_ai_generation_run_v2) BEFORE the call; a repeated
+ *     request with the same key returns the original run instead of calling
+ *     again.
+ *
+ * A provider failure is recorded truthfully (billing / auth / model access /
+ * rate limit / timeout …) and NEVER falls back to the mock provider: no
+ * draft is created from a failed or invalid answer.
  *
  * The result becomes a NW07 recommendation DRAFT (status "draft") — never
  * approved or released automatically. Everything else (edit → submit →
@@ -57,11 +71,31 @@ export interface RunCompletion {
   model: string;
   inputTokens: number;
   outputTokens: number;
+  cachedInputTokens?: number;
+  reasoningTokens?: number;
+  providerResponseId?: string | null;
   estimatedCostUsd: number;
   attempts: number;
   latencyMs: number;
   report: CareerIntelligenceReport | null;
 }
+
+/** NW09.2 — the student's recorded AI-processing consent, as the database holds it. */
+export type ConsentStatus =
+  | {
+      status: "valid";
+      consentId: string;
+      consentingParty: "student" | "parent_guardian" | "student_and_parent_guardian";
+      method: string;
+      evidenceReference: string;
+      givenOn: string;
+      recordedAt: string;
+      recordedByName: string | null;
+    }
+  | { status: "missing" }
+  | { status: "withdrawn"; withdrawnAt: string }
+  /** The consent register does not exist yet (NW09.2 migration not applied) or could not be read. */
+  | { status: "unavailable" };
 
 export interface CareerIntelligenceGateway {
   getStaff(): Promise<StaffContext | null>;
@@ -70,6 +104,10 @@ export interface CareerIntelligenceGateway {
   hasPaidCareerEntitlement(studentUserId: string): Promise<boolean | null>;
   loadSnapshot(studentUserId: string): Promise<StudentProfileSnapshot | null>;
   loadCatalogue(): Promise<CareerMatchProfile[]>;
+  /** NW09.2 — section provenance (null = could not be read). */
+  loadProvenance(studentUserId: string): Promise<Partial<Record<ProfileSectionKey, ProvenanceValue>> | null>;
+  /** NW09.2 — recorded AI-processing consent. */
+  getConsent(studentUserId: string): Promise<ConsentStatus>;
   /** "fictional" only for a listed development test account (see isFictionalStudent); otherwise "real_student". */
   classifyStudentData(studentUserId: string): Promise<AiDataClass>;
   reserveRun(args: {
@@ -82,7 +120,8 @@ export interface CareerIntelligenceGateway {
     dataClass: AiDataClass;
     worstCaseCostUsd: number;
     limits: AiConfig["limits"];
-    consentConfirmed: boolean;
+    paid: AiConfig["paid"];
+    consentId: string;
     regeneratesRunId: string | null;
     regenerationReason: string | null;
   }): Promise<ReserveResult>;
@@ -95,7 +134,6 @@ export interface CareerIntelligenceGateway {
 export interface RequestInput {
   studentUserId: string;
   idempotencyKey: string;
-  consentConfirmed: boolean;
   regeneratesRunId?: string | null;
   regenerationReason?: string | null;
 }
@@ -106,6 +144,7 @@ export type RequestOutcome =
   | { kind: "not_authorised"; reason: string }
   | { kind: "not_entitled"; reason: string }
   | { kind: "needs_consent"; reason: string }
+  | { kind: "real_student_not_approved"; reason: string }
   | { kind: "invalid_request"; reason: string }
   | { kind: "limit_reached"; reason: string }
   | { kind: "not_generated"; runId: string | null; outcome: Exclude<PipelineOutcome, { kind: "ok" }> };
@@ -142,16 +181,34 @@ export async function requestCareerAnalysis(input: RequestInput, gw: CareerIntel
     const entitled = await gw.hasPaidCareerEntitlement(input.studentUserId);
     if (entitled !== true) return { kind: "not_entitled", reason: "AI-assisted reports are part of the paid Career guidance plans. This student has no active paid Career plan (or it could not be confirmed)." };
   }
-  // 4. AI-processing notice confirmed with the student (and guardian, for under-18s).
-  if (!input.consentConfirmed) return { kind: "needs_consent", reason: "Confirm that the student (and a parent or guardian, for under-18s) has been told this analysis is AI-assisted and will be reviewed by a counsellor." };
+  // 4. A RECORDED, valid AI-processing consent (never a checkbox).
+  const consent = await gw.getConsent(input.studentUserId);
+  if (consent.status !== "valid") {
+    return {
+      kind: "needs_consent",
+      reason:
+        consent.status === "withdrawn"
+          ? "The student's consent to AI-assisted processing has been withdrawn. No analysis can be run unless new consent is recorded."
+          : consent.status === "unavailable"
+            ? "The AI-processing consent register is not available (the NW09.2 database change has not been applied). No analysis can be run."
+            : "No AI-processing consent is recorded for this student. Record the student's (or parent's/guardian's) consent, with its evidence, before requesting an analysis.",
+    };
+  }
 
   // 5. Is AI available, and may this provider see this data? Checked BEFORE anything is reserved or sent.
   if (deps.config.mode === "disabled" || !deps.provider) return { kind: "not_generated", runId: null, outcome: { kind: "disabled", reason: deps.config.notes[0] ?? "AI is disabled." } };
   const policy = checkDataPolicy(deps.config.mode, dataClass);
   if (!policy.allowed) return { kind: "not_generated", runId: null, outcome: { kind: "policy_blocked", reason: policy.reason } };
+  // 4b. Real students and the paid provider: privacy review must be complete (app flag here; database flag in the reserve RPC).
+  if (deps.config.mode === "openai" && dataClass === "real_student" && !deps.config.realStudentDataApproved) {
+    return {
+      kind: "real_student_not_approved",
+      reason: "Real student data is not yet approved for OpenAI processing (privacy review pending). Only fictional QA students can be analysed in this pilot.",
+    };
+  }
 
   // 6. Profile completeness and catalogue candidates — deterministic, free, no AI.
-  const [snapshot, catalogue] = await Promise.all([gw.loadSnapshot(input.studentUserId), gw.loadCatalogue()]);
+  const [snapshot, catalogue, provenance] = await Promise.all([gw.loadSnapshot(input.studentUserId), gw.loadCatalogue(), gw.loadProvenance(input.studentUserId)]);
   if (!snapshot) return { kind: "not_authorised", reason: "The student's profile could not be loaded with your access." };
   const { assessment, candidates } = prepareAnalysis({ snapshot, catalogue });
   if (!assessment.ready) return { kind: "not_generated", runId: null, outcome: { kind: "needs_profile", assessment } };
@@ -169,7 +226,8 @@ export async function requestCareerAnalysis(input: RequestInput, gw: CareerIntel
     dataClass,
     worstCaseCostUsd: worstCaseCostUsd(deps.config.mode, model, deps.config.limits.maxInputChars, deps.config.limits.maxOutputTokens, deps.config),
     limits: deps.config.limits,
-    consentConfirmed: input.consentConfirmed,
+    paid: deps.config.paid,
+    consentId: consent.consentId,
     regeneratesRunId: input.regeneratesRunId ?? null,
     regenerationReason: input.regenerationReason?.trim() || null,
   });
@@ -179,7 +237,7 @@ export async function requestCareerAnalysis(input: RequestInput, gw: CareerIntel
   // 8. Generate (validated, screened), then record the outcome — success or not.
   let outcome: PipelineOutcome;
   try {
-    outcome = await generateCareerIntelligence({ studentUserId: input.studentUserId, snapshot, catalogue, dataClass }, { config: deps.config, provider: deps.provider, now: deps.now });
+    outcome = await generateCareerIntelligence({ studentUserId: input.studentUserId, snapshot, catalogue, dataClass, provenance }, { config: deps.config, provider: deps.provider, now: deps.now });
   } catch {
     outcome = { kind: "failed", status: "failed", reason: "The analysis could not be completed.", usage: null, estimatedCostUsd: 0, attempts: 0, model };
   }
@@ -189,18 +247,25 @@ export async function requestCareerAnalysis(input: RequestInput, gw: CareerIntel
       outcome.kind === "failed"
         ? {
             status: outcome.status === "refused" || outcome.status === "invalid_output" ? outcome.status : "failed",
-            reason: `${outcome.status}: ${outcome.reason}`,
+            reason: `${outcome.status}${outcome.errorKind ? ` (${outcome.errorKind})` : ""}: ${outcome.reason}`,
             model: outcome.model,
             inputTokens: outcome.usage?.inputTokens ?? 0,
             outputTokens: outcome.usage?.outputTokens ?? 0,
+            cachedInputTokens: outcome.usage?.cachedInputTokens ?? 0,
+            reasoningTokens: outcome.usage?.reasoningTokens ?? 0,
+            providerResponseId: outcome.responseId ?? null,
             estimatedCostUsd: outcome.estimatedCostUsd,
             attempts: outcome.attempts,
-            latencyMs: 0,
+            latencyMs: Math.max(0, Math.round(outcome.latencyMs ?? 0)),
             report: null,
           }
         : { status: "blocked", reason: outcome.kind, model, inputTokens: 0, outputTokens: 0, estimatedCostUsd: 0, attempts: 0, latencyMs: 0, report: null };
     await gw.completeRun(reserve.runId, completion);
-    await gw.audit("AI career analysis not generated", input.studentUserId, { runId: reserve.runId, outcome: outcome.kind, ...(outcome.kind === "failed" ? { status: outcome.status } : {}) });
+    await gw.audit("AI career analysis not generated", input.studentUserId, {
+      runId: reserve.runId,
+      outcome: outcome.kind,
+      ...(outcome.kind === "failed" ? { status: outcome.status, errorKind: outcome.errorKind ?? null } : {}),
+    });
     return { kind: "not_generated", runId: reserve.runId, outcome };
   }
 
@@ -211,6 +276,9 @@ export async function requestCareerAnalysis(input: RequestInput, gw: CareerIntel
     model: outcome.model,
     inputTokens: outcome.usage?.inputTokens ?? 0,
     outputTokens: outcome.usage?.outputTokens ?? 0,
+    cachedInputTokens: outcome.usage?.cachedInputTokens ?? 0,
+    reasoningTokens: outcome.usage?.reasoningTokens ?? 0,
+    providerResponseId: outcome.report.generation.providerResponseId,
     estimatedCostUsd: outcome.estimatedCostUsd,
     attempts: outcome.attempts,
     latencyMs: outcome.report.generation.latencyMs,

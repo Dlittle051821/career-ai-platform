@@ -5,7 +5,7 @@ import { checkDataPolicy } from "@/lib/ai/data-policy";
 import { estimateCostUsd } from "@/lib/ai/cost";
 import { toProviderJsonSchema } from "@/lib/ai/json-schema";
 import { runStructured, type RunOptions } from "@/lib/ai/run";
-import type { AiDataClass, AiProvider, AiUsage } from "@/lib/ai/types";
+import type { AiDataClass, AiErrorKind, AiProvider, AiUsage } from "@/lib/ai/types";
 import type { RecommendationDraftContent } from "@/lib/recommendations/drafts";
 import { assessProfile, type ProfileAssessment } from "./completeness";
 import { selectCandidates, toPacket } from "./candidates";
@@ -13,6 +13,8 @@ import { minimiseProfile } from "./minimise";
 import { buildPrompt, INSTRUCTIONS } from "./prompt";
 import { assembleReport, fingerprint, toDraftContent } from "./report";
 import { buildModelOutputSchema, type CareerIntelligenceReport } from "./schema";
+import { classifyInputs, provenanceForPrompt } from "./provenance";
+import type { ProfileSectionKey, ProvenanceValue } from "@/types/profile-provenance";
 
 /**
  * NW09 — the Career Intelligence pipeline (pure orchestration; every I/O
@@ -33,7 +35,19 @@ export type PipelineOutcome =
   | { kind: "disabled"; reason: string }
   | { kind: "policy_blocked"; reason: string }
   | { kind: "input_too_large"; reason: string }
-  | { kind: "failed"; status: "refused" | "incomplete" | "invalid_output" | "failed"; reason: string; usage: AiUsage | null; estimatedCostUsd: number; attempts: number; model: string }
+  | {
+      kind: "failed";
+      status: "refused" | "incomplete" | "invalid_output" | "failed";
+      reason: string;
+      /** NW09.2 — the provider failure category (billing, auth, model_unavailable, rate_limited, unavailable, timeout …) when status is "failed". */
+      errorKind?: AiErrorKind;
+      usage: AiUsage | null;
+      estimatedCostUsd: number;
+      attempts: number;
+      model: string;
+      latencyMs?: number;
+      responseId?: string | null;
+    }
   | { kind: "ok"; report: CareerIntelligenceReport; draftContent: RecommendationDraftContent; usage: AiUsage | null; estimatedCostUsd: number; attempts: number; model: string };
 
 export interface PipelineInput {
@@ -41,6 +55,8 @@ export interface PipelineInput {
   snapshot: StudentProfileSnapshot;
   catalogue: CareerMatchProfile[];
   dataClass: AiDataClass;
+  /** NW09.2 — section provenance (null = could not be read: everything provided counts as self-reported, unverified). */
+  provenance?: Partial<Record<ProfileSectionKey, ProvenanceValue>> | null;
 }
 
 export interface PipelineDeps {
@@ -68,8 +84,9 @@ export async function generateCareerIntelligence(input: PipelineInput, deps: Pip
   if (!policy.allowed) return { kind: "policy_blocked", reason: policy.reason };
 
   const minimised = minimiseProfile(input.snapshot, now());
+  const inputs = classifyInputs(input.snapshot, input.provenance ?? null);
   const packets = candidates.map(toPacket);
-  const prompt = buildPrompt(minimised.profile, packets, assessment, minimised.isMinor, deps.config.limits.maxInputChars);
+  const prompt = buildPrompt(minimised.profile, packets, assessment, minimised.isMinor, deps.config.limits.maxInputChars, provenanceForPrompt(inputs));
   if (!prompt.ok) return { kind: "input_too_large", reason: prompt.reason };
   const used = candidates.slice(0, packets.length - prompt.droppedCandidates);
   const refs = used.map((c) => c.ref);
@@ -88,11 +105,28 @@ export async function generateCareerIntelligence(input: PipelineInput, deps: Pip
       dataClass: input.dataClass,
     },
     schema,
-    { timeoutMs: deps.config.limits.timeoutMs, maxAttempts: deps.config.limits.maxAttempts, ...deps.run },
+    {
+      timeoutMs: deps.config.limits.timeoutMs,
+      maxAttempts: deps.config.limits.maxAttempts,
+      // NW09.2: a malformed answer from the PAID provider is never retried (no second paid call).
+      retryInvalidOutput: deps.provider.name !== "openai",
+      ...deps.run,
+    },
   );
   const cost = estimateCostUsd(deps.provider.name, result.model, result.usage, deps.config);
   if (result.status !== "ok") {
-    return { kind: "failed", status: result.status, reason: result.reason, usage: result.usage, estimatedCostUsd: cost, attempts: result.attempts, model: result.model };
+    return {
+      kind: "failed",
+      status: result.status,
+      reason: result.reason,
+      errorKind: result.status === "failed" ? result.errorKind : undefined,
+      usage: result.usage,
+      estimatedCostUsd: cost,
+      attempts: result.attempts,
+      model: result.model,
+      latencyMs: result.latencyMs,
+      responseId: result.responseId,
+    };
   }
 
   const extraFlags: CareerIntelligenceReport["counsellorFlags"] = [];
@@ -104,8 +138,18 @@ export async function generateCareerIntelligence(input: PipelineInput, deps: Pip
   const report = assembleReport(
     result.data,
     used,
-    { provider: deps.provider.name, model: result.model, dataClass: input.dataClass, usage: result.usage, estimatedCostUsd: cost, attempts: result.attempts, latencyMs: result.latencyMs, generatedAt: now() },
-    { studentUserId: input.studentUserId, profileFingerprint: fingerprint(minimised.profile), extraFlags },
+    {
+      provider: deps.provider.name,
+      model: result.model,
+      dataClass: input.dataClass,
+      usage: result.usage,
+      estimatedCostUsd: cost,
+      attempts: result.attempts,
+      latencyMs: result.latencyMs,
+      generatedAt: now(),
+      responseId: result.responseId,
+    },
+    { studentUserId: input.studentUserId, profileFingerprint: fingerprint(minimised.profile), extraFlags, inputProvenance: inputs },
   );
   return { kind: "ok", report, draftContent: toDraftContent(report), usage: result.usage, estimatedCostUsd: cost, attempts: result.attempts, model: result.model };
 }

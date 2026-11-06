@@ -5,9 +5,10 @@ import { getCurrentAdmin, requireAdminPermission } from "../admin-auth";
 import { recordAuditLog } from "./audit";
 import { getStudentProfileSnapshotForAdmin } from "./student-profile";
 import { getCareersForMatching } from "../careers";
+import { getSectionProvenanceMap } from "./profile-provenance";
 import { classifyPurchaseEntitlements } from "@/lib/products/entitlements";
 import { isFictionalStudent, type AiConfig } from "@/lib/ai/config";
-import type { CareerIntelligenceGateway, ReserveResult } from "@/lib/career-intelligence/service";
+import type { CareerIntelligenceGateway, ConsentStatus, ReserveResult } from "@/lib/career-intelligence/service";
 import { CareerIntelligenceReportSchema, type CareerIntelligenceReport } from "@/lib/career-intelligence/schema";
 import type { Json } from "@/types/database";
 import type { PricingCategory, PricingPurchase } from "@/types/pricing";
@@ -38,7 +39,65 @@ export class CareerIntelligenceUnavailableError extends Error {
 
 /** PostgREST/Postgres codes meaning "this table/function does not exist" (migration not applied). */
 function isMissingObject(error: { code?: string } | null): boolean {
-  return Boolean(error?.code && ["42P01", "42883", "PGRST202", "PGRST205"].includes(error.code));
+  return Boolean(error?.code && ["42P01", "42883", "42703", "PGRST202", "PGRST204", "PGRST205"].includes(error.code));
+}
+
+type ConsentRow = {
+  id: string;
+  consenting_party: string;
+  method: string;
+  evidence_reference: string;
+  given_on: string;
+  recorded_by: string | null;
+  recorded_at: string;
+  withdrawn_at: string | null;
+};
+
+const CONSENT_PARTIES = ["student", "parent_guardian", "student_and_parent_guardian"] as const;
+
+/**
+ * NW09.2 — the student's AI-processing consent as recorded in the consent
+ * register (never a form checkbox). "unavailable" when the register does not
+ * exist yet (NW09.2 migration not applied) or cannot be read: callers treat
+ * that exactly like "missing" — no analysis.
+ */
+export async function readConsentStatus(studentUserId: string): Promise<ConsentStatus> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("student_ai_processing_consents")
+    .select("id, consenting_party, method, evidence_reference, given_on, recorded_by, recorded_at, withdrawn_at")
+    .eq("student_user_id", studentUserId)
+    .eq("scope", "career_intelligence")
+    .order("recorded_at", { ascending: false })
+    .limit(5);
+  if (error) {
+    if (!isMissingObject(error)) logDbError("readConsentStatus", error);
+    return { status: "unavailable" };
+  }
+  const rows = (data ?? []) as unknown as ConsentRow[];
+  const active = rows.find((r) => r.withdrawn_at === null);
+  if (active) {
+    const party = CONSENT_PARTIES.find((p) => p === active.consenting_party);
+    if (!party) return { status: "unavailable" };
+    let recordedByName: string | null = null;
+    if (active.recorded_by) {
+      const { data: c } = await supabase.from("counsellors").select("display_name").eq("user_id", active.recorded_by).maybeSingle();
+      recordedByName = (c?.display_name as string | null | undefined) ?? null;
+    }
+    return {
+      status: "valid",
+      consentId: active.id,
+      consentingParty: party,
+      method: active.method,
+      evidenceReference: active.evidence_reference,
+      givenOn: active.given_on,
+      recordedAt: active.recorded_at,
+      recordedByName,
+    };
+  }
+  const latest = rows[0];
+  if (latest?.withdrawn_at) return { status: "withdrawn", withdrawnAt: latest.withdrawn_at };
+  return { status: "missing" };
 }
 
 export function createCareerIntelligenceGateway(config: AiConfig): CareerIntelligenceGateway {
@@ -107,9 +166,22 @@ export function createCareerIntelligenceGateway(config: AiConfig): CareerIntelli
 
     loadCatalogue: () => getCareersForMatching(),
 
+    async loadProvenance(studentUserId) {
+      try {
+        const map = await getSectionProvenanceMap(studentUserId);
+        const out: Partial<Record<keyof typeof map, (typeof map)[keyof typeof map]["provenance"]>> = {};
+        for (const [key, value] of Object.entries(map) as [keyof typeof map, (typeof map)[keyof typeof map]][]) out[key] = value.provenance;
+        return out;
+      } catch {
+        return null;
+      }
+    },
+
+    getConsent: (studentUserId) => readConsentStatus(studentUserId),
+
     async reserveRun(a): Promise<ReserveResult> {
       const supabase = await createClient();
-      const { data, error } = await supabase.rpc("staff_reserve_ai_generation_run", {
+      const { data, error } = await supabase.rpc("staff_reserve_ai_generation_run_v2", {
         p_student_user_id: a.studentUserId,
         p_idempotency_key: a.idempotencyKey,
         p_provider: a.provider,
@@ -117,18 +189,20 @@ export function createCareerIntelligenceGateway(config: AiConfig): CareerIntelli
         p_prompt_version: a.promptVersion,
         p_report_schema_version: a.reportSchemaVersion,
         p_data_class: a.dataClass,
-        p_consent_confirmed: a.consentConfirmed,
+        p_consent_id: a.consentId,
         p_worst_case_cost_usd: a.worstCaseCostUsd,
         p_limit_staff_daily: a.limits.perStaffDaily,
         p_limit_student_daily: a.limits.perStudentDaily,
         p_limit_global_daily: a.limits.globalDaily,
         p_monthly_budget_usd: a.limits.monthlyBudgetUsd,
+        p_paid_max_runs: a.paid.maxRuns,
+        p_paid_total_budget_usd: a.paid.totalBudgetUsd,
         p_regenerates_run_id: a.regeneratesRunId,
         p_regeneration_reason: a.regenerationReason,
       });
       if (error) {
         if (isMissingObject(error)) throw new CareerIntelligenceUnavailableError();
-        logDbError("staff_reserve_ai_generation_run", error);
+        logDbError("staff_reserve_ai_generation_run_v2", error);
         return { kind: "denied", reason: "The analysis could not be reserved. Please try again." };
       }
       const row = (data ?? [])[0];
@@ -140,19 +214,22 @@ export function createCareerIntelligenceGateway(config: AiConfig): CareerIntelli
 
     async completeRun(runId, c) {
       const supabase = await createClient();
-      const { error } = await supabase.rpc("staff_complete_ai_generation_run", {
+      const { error } = await supabase.rpc("staff_complete_ai_generation_run_v2", {
         p_run_id: runId,
         p_status: c.status,
         p_reason: c.reason,
         p_model: c.model,
         p_input_tokens: c.inputTokens,
         p_output_tokens: c.outputTokens,
+        p_cached_input_tokens: c.cachedInputTokens ?? 0,
+        p_reasoning_tokens: c.reasoningTokens ?? 0,
         p_estimated_cost_usd: c.estimatedCostUsd,
         p_attempts: c.attempts,
         p_latency_ms: c.latencyMs,
+        p_provider_response_id: c.providerResponseId ?? null,
         p_report: (c.report as unknown as Json) ?? null,
       });
-      if (error) logDbError("staff_complete_ai_generation_run", error);
+      if (error) logDbError("staff_complete_ai_generation_run_v2", error);
     },
 
     async createDraft({ studentUserId, title, content }) {
@@ -287,4 +364,190 @@ export async function getAiAnalysisForDraft(draftId: string): Promise<{ run: AiG
   const row = data as unknown as RunRow & { report: unknown };
   const parsed = CareerIntelligenceReportSchema.safeParse(row.report);
   return { run: toSummary(row), report: parsed.success ? parsed.data : null };
+}
+
+// ---------------------------------------------------------------------------
+// NW09.2 — Counsellor Studio AI workspace: provider evidence, usage summary,
+// the latest analysis, and the consent register (record / withdraw).
+// ---------------------------------------------------------------------------
+
+export interface AiRunEvidence {
+  cachedInputTokens: number;
+  reasoningTokens: number;
+  providerResponseId: string | null;
+  latencyMs: number;
+  promptVersion: string;
+  reportSchemaVersion: string;
+}
+
+const RUN_EVIDENCE_COLUMNS = "latency_ms, prompt_version, report_schema_version, cached_input_tokens, reasoning_tokens, provider_response_id";
+const RUN_EVIDENCE_COLUMNS_NW09 = "latency_ms, prompt_version, report_schema_version";
+
+type RunEvidenceRow = {
+  latency_ms: number;
+  prompt_version: string;
+  report_schema_version: string;
+  cached_input_tokens?: number;
+  reasoning_tokens?: number;
+  provider_response_id?: string | null;
+};
+
+function toEvidence(r: RunEvidenceRow): AiRunEvidence {
+  return {
+    cachedInputTokens: r.cached_input_tokens ?? 0,
+    reasoningTokens: r.reasoning_tokens ?? 0,
+    providerResponseId: r.provider_response_id ?? null,
+    latencyMs: r.latency_ms,
+    promptVersion: r.prompt_version,
+    reportSchemaVersion: r.report_schema_version,
+  };
+}
+
+export type LatestAnalysis = {
+  run: AiGenerationRunSummary;
+  evidence: AiRunEvidence;
+  /** null when the stored report no longer validates (e.g. purged, or an unknown schema version). */
+  report: CareerIntelligenceReport | null;
+};
+
+/**
+ * The newest SUCCESSFUL analysis for a student, with its stored report
+ * re-validated against the versioned schema. Reads NW09.2's evidence
+ * columns when they exist; falls back to NW09's columns when the NW09.2
+ * migration has not been applied (cached/reasoning tokens then show 0 and
+ * the response id as not recorded — never invented).
+ */
+export async function getLatestAiAnalysisForStudent(studentUserId: string): Promise<LatestAnalysis | null> {
+  await requireAdminPermission("career-intelligence:generate");
+  const supabase = await createClient();
+  const query = (cols: string) =>
+    supabase
+      .from("ai_generation_runs")
+      .select(`${RUN_COLUMNS}, ${cols}, report`)
+      .eq("student_user_id", studentUserId)
+      .eq("status", "succeeded")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+  let { data, error } = await query(RUN_EVIDENCE_COLUMNS);
+  if (error && error.code === "42703") ({ data, error } = await query(RUN_EVIDENCE_COLUMNS_NW09));
+  if (error) {
+    if (!isMissingObject(error)) logDbError("getLatestAiAnalysisForStudent", error);
+    return null;
+  }
+  if (!data) return null;
+  const row = data as unknown as RunRow & RunEvidenceRow & { report: unknown };
+  const parsed = CareerIntelligenceReportSchema.safeParse(row.report);
+  return { run: toSummary(row), evidence: toEvidence(row), report: parsed.success ? parsed.data : null };
+}
+
+export type AiUsageSummary =
+  | {
+      available: true;
+      staffToday: number;
+      globalToday: number;
+      monthCostUsd: number;
+      paidRunsTotal: number;
+      paidCostTotalUsd: number;
+      /** Database ceilings (the effective limit is the LOWER of these and the app's configured value). */
+      db: {
+        perStaffDaily: number;
+        perStudentDaily: number;
+        globalDaily: number;
+        monthlyBudgetUsd: number;
+        paidMaxRuns: number;
+        paidTotalBudgetUsd: number;
+        realStudentProcessingApproved: boolean;
+      };
+    }
+  | { available: false };
+
+/** Aggregate AI usage counters (no student data) — from staff_get_ai_usage_summary() (NW09.2). */
+export async function getAiUsageSummary(): Promise<AiUsageSummary> {
+  await requireAdminPermission("career-intelligence:generate");
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("staff_get_ai_usage_summary");
+  if (error) {
+    if (!isMissingObject(error)) logDbError("staff_get_ai_usage_summary", error);
+    return { available: false };
+  }
+  const r = (data ?? [])[0];
+  if (!r) return { available: false };
+  return {
+    available: true,
+    staffToday: Number(r.staff_today),
+    globalToday: Number(r.global_today),
+    monthCostUsd: Number(r.month_cost_usd),
+    paidRunsTotal: Number(r.paid_runs_total),
+    paidCostTotalUsd: Number(r.paid_cost_total_usd),
+    db: {
+      perStaffDaily: Number(r.per_staff_daily),
+      perStudentDaily: Number(r.per_student_daily),
+      globalDaily: Number(r.global_daily),
+      monthlyBudgetUsd: Number(r.monthly_budget_usd),
+      paidMaxRuns: Number(r.paid_max_runs),
+      paidTotalBudgetUsd: Number(r.paid_total_budget_usd),
+      realStudentProcessingApproved: r.real_student_processing_approved === true,
+    },
+  };
+}
+
+export const CONSENT_METHODS = ["signed_consent_form", "recorded_meeting", "written_confirmation", "fictional_test_account"] as const;
+export type ConsentMethod = (typeof CONSENT_METHODS)[number];
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Record a student's consent to AI-assisted processing. The form must name
+ * WHO consented, HOW, an evidence reference and the date it was given — a
+ * checkbox is not consent. "fictional_test_account" is accepted only for a
+ * listed development test account. Authorisation is re-checked inside
+ * staff_record_ai_processing_consent().
+ */
+export async function recordAiProcessingConsent(studentUserId: string, formData: FormData, config: AiConfig): Promise<void> {
+  await requireAdminPermission("career-intelligence:generate");
+  const party = String(formData.get("consentingParty") ?? "");
+  const method = String(formData.get("method") ?? "");
+  const evidence = String(formData.get("evidenceReference") ?? "").trim();
+  const givenOn = String(formData.get("givenOn") ?? "").trim();
+  const notes = String(formData.get("notes") ?? "").trim();
+  if (!CONSENT_PARTIES.some((p) => p === party)) throw new Error("Select who gave consent.");
+  if (!CONSENT_METHODS.some((m) => m === method)) throw new Error("Select how consent was given.");
+  if (evidence.length < 3 || evidence.length > 200) throw new Error("Enter an evidence reference (3–200 characters), e.g. the signed form's document number.");
+  if (!ISO_DATE.test(givenOn) || givenOn > new Date().toISOString().slice(0, 10)) throw new Error("Enter the date consent was given (not in the future).");
+  if (notes.length > 500) throw new Error("Notes must be 500 characters or fewer.");
+  if (method === "fictional_test_account") {
+    const dataClass = await createCareerIntelligenceGateway(config).classifyStudentData(studentUserId);
+    if (dataClass !== "fictional") throw new Error("“Fictional test account” can only be used for a listed development test account.");
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("staff_record_ai_processing_consent", {
+    p_student_user_id: studentUserId,
+    p_consenting_party: party,
+    p_method: method,
+    p_evidence_reference: evidence,
+    p_given_on: givenOn,
+    p_notes: notes || null,
+  });
+  if (error) {
+    if (isMissingObject(error)) throw new CareerIntelligenceUnavailableError();
+    logDbError("staff_record_ai_processing_consent", error);
+    throw new Error(error.message?.includes("already recorded") ? "An active consent is already recorded for this student." : "The consent could not be recorded.");
+  }
+  await recordAuditLog({ action: "ai_consent.recorded", entityType: "student", entityId: studentUserId, entityLabel: "AI processing consent", context: { method, consentingParty: party } });
+}
+
+/** Withdraw the active consent (a reason is required). Further analyses are then blocked until a new consent is recorded. */
+export async function withdrawAiProcessingConsent(studentUserId: string, consentId: string, formData: FormData): Promise<void> {
+  await requireAdminPermission("career-intelligence:generate");
+  const reason = String(formData.get("reason") ?? "").trim();
+  if (reason.length < 3 || reason.length > 500) throw new Error("Give a reason for the withdrawal (3–500 characters).");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("staff_withdraw_ai_processing_consent", { p_consent_id: consentId, p_reason: reason });
+  if (error) {
+    if (isMissingObject(error)) throw new CareerIntelligenceUnavailableError();
+    logDbError("staff_withdraw_ai_processing_consent", error);
+    throw new Error("The consent could not be withdrawn.");
+  }
+  await recordAuditLog({ action: "ai_consent.withdrawn", entityType: "student", entityId: studentUserId, entityLabel: "AI processing consent", context: {} });
 }

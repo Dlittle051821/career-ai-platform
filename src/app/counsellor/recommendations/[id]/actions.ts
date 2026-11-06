@@ -26,6 +26,7 @@ async function revalidateDraft(draftId: string): Promise<void> {
   const draft = await getRecommendationDraftById(draftId).catch(() => null);
   if (draft) {
     revalidatePath(`/counsellor/students/${draft.studentUserId}`);
+    revalidatePath(`/counsellor/students/${draft.studentUserId}/ai-career-intelligence`);
     if (draft.status === "released_to_student") {
       revalidatePath("/studio/recommendation-reports");
       revalidatePath(`/studio/recommendation-reports/${draftId}`);

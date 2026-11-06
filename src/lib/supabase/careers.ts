@@ -556,8 +556,14 @@ export async function getRelatedCareers(careerId: string, limit: number = DEFAUL
 // `is_active = true AND data_quality_status = 'approved'`, exactly as
 // every other read in this file.
 // ---------------------------------------------------------------------------
-export async function getCareersForMatching(): Promise<CareerMatchProfile[]> {
-  const supabase = await createClient();
+/**
+ * `client` is optional and defaults to the request's own server client
+ * (unchanged behaviour). NW09.2's QA live-pilot script passes a client signed
+ * in as the QA counsellor, so the pilot matches against the same catalogue
+ * the Counsellor Studio uses.
+ */
+export async function getCareersForMatching(client?: Awaited<ReturnType<typeof createClient>>): Promise<CareerMatchProfile[]> {
+  const supabase = client ?? (await createClient());
 
   // Column list kept as one literal (not built via string concatenation) —
   // Supabase's TypeScript client infers each selected column's type by

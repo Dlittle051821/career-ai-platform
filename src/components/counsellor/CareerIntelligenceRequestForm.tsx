@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { Checkbox } from "@/components/forms/Checkbox";
 import { FormField } from "@/components/forms/FormField";
 import { Select } from "@/components/forms/Select";
 import { Textarea } from "@/components/forms/Textarea";
@@ -13,9 +12,13 @@ import { INITIAL_CAREER_ANALYSIS_STATE, type CareerAnalysisActionState } from "@
 /**
  * NW09 — the counsellor's "prepare an AI-assisted first draft" form.
  *
- * Carries no data except a server-generated idempotency key, the consent
- * confirmation and (for a regeneration) the previous analysis and a
- * reason. Everything else — who the caller is, whether they may see this
+ * Carries no data except a server-generated idempotency key and (for a
+ * regeneration) the previous analysis and a reason. NW09.2: there is no
+ * consent checkbox any more — consent must be RECORDED in the consent
+ * register, and the server reads it from there. The button is rendered only
+ * when every gate passes (disabledReason is null), disables itself while the
+ * request is pending, and the server-side idempotency key plus the
+ * database's one-analysis-in-progress rule stop duplicate paid requests. Everything else — who the caller is, whether they may see this
  * student, the provider, limits — is decided on the server. No API key,
  * provider name or model output ever reaches this component.
  */
@@ -24,6 +27,9 @@ export function CareerIntelligenceRequestForm({
   idempotencyKey,
   previousRuns,
   disabledReason,
+  submitLabel = "Prepare AI-assisted first draft",
+  pendingLabel = "Preparing draft…",
+  paidNote = null,
 }: {
   action: (prev: CareerAnalysisActionState, formData: FormData) => Promise<CareerAnalysisActionState>;
   idempotencyKey: string;
@@ -31,6 +37,10 @@ export function CareerIntelligenceRequestForm({
   previousRuns: Array<{ id: string; label: string }>;
   /** When set, the button is disabled and this explains why. */
   disabledReason: string | null;
+  submitLabel?: string;
+  pendingLabel?: string;
+  /** Shown under the button when the request is billed (paid provider). */
+  paidNote?: string | null;
 }) {
   const [state, formAction] = useActionState(action, INITIAL_CAREER_ANALYSIS_STATE);
   return (
@@ -77,20 +87,10 @@ export function CareerIntelligenceRequestForm({
         </>
       ) : null}
 
-      <Checkbox
-        id="aiConsent"
-        name="aiConsent"
-        label={
-          <>
-            I have told the student (and a parent or guardian, if they are under 18) that this first draft is prepared with AI
-            assistance from a minimised version of their profile, and that I will check and edit it before anything is shared
-            with them.
-          </>
-        }
-      />
 
       {disabledReason ? <p className="text-sm text-muted">{disabledReason}</p> : null}
-      {disabledReason ? null : <SubmitButton savingLabel="Preparing draft…">Prepare AI-assisted first draft</SubmitButton>}
+      {disabledReason ? null : <SubmitButton savingLabel={pendingLabel}>{submitLabel}</SubmitButton>}
+      {disabledReason || !paidNote ? null : <p className="text-xs text-muted">{paidNote}</p>}
     </form>
   );
 }

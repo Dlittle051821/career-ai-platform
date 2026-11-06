@@ -2,7 +2,7 @@ import type { AiDataClass, AiProviderName, AiUsage } from "@/lib/ai/types";
 import type { RecommendationDraftContent } from "@/lib/recommendations/drafts";
 import type { Candidate } from "./candidates";
 import { screenList, screenText, type ScreenTally } from "./claims";
-import { CareerIntelligenceReportSchema, PROMPT_VERSION, REPORT_SCHEMA_VERSION, SUITABILITY_LABELS, type CareerIntelligenceReport, type ModelOutput } from "./schema";
+import { ACADEMIC_LEVEL_LABELS, CareerIntelligenceReportSchema, PROMPT_VERSION, REPORT_SCHEMA_VERSION, SUITABILITY_LABELS, type CareerIntelligenceReport, type ModelOutput } from "./schema";
 
 /**
  * NW09 — assemble the stored report from (a) the validated model output and
@@ -22,6 +22,8 @@ export interface GenerationMeta {
   attempts: number;
   latencyMs: number;
   generatedAt: Date;
+  /** The provider's response id (OpenAI "resp_…"), or null (mock / not reported). */
+  responseId?: string | null;
 }
 
 /** Small, stable FNV-1a fingerprint of the minimised profile (lets a counsellor see whether the profile changed since the analysis). */
@@ -39,7 +41,12 @@ export function assembleReport(
   output: ModelOutput,
   candidates: Candidate[],
   meta: GenerationMeta,
-  ctx: { studentUserId: string; profileFingerprint: string; extraFlags: Array<{ code: CareerIntelligenceReport["counsellorFlags"][number]["code"]; note: string }> },
+  ctx: {
+    studentUserId: string;
+    profileFingerprint: string;
+    extraFlags: Array<{ code: CareerIntelligenceReport["counsellorFlags"][number]["code"]; note: string }>;
+    inputProvenance?: CareerIntelligenceReport["inputProvenance"];
+  },
 ): CareerIntelligenceReport {
   const byRef = new Map(candidates.map((c) => [c.ref, c]));
   const tally: ScreenTally = { removed: 0, reasons: new Set() };
@@ -70,19 +77,59 @@ export function assembleReport(
       educationPathways: screenList(a.educationPathways, tally),
       nextActions: screenList(a.nextActions, tally),
       assumptionsToVerify: screenList(a.assumptionsToVerify, tally),
+      tradeOffs: screenList(a.tradeOffs ?? [], tally),
+      reasonsItMayNotSuit: screenList(a.reasonsItMayNotSuit ?? [], tally),
       sourceRefs: [{ type: "career_catalogue", careerId: c.career.id, slug: c.career.slug }],
     });
   }
+  // v2 sections. Comparison points are joined back to OUR catalogue records (and
+  // only for careers that made it into the report); everything else is screened text.
+  const discussed = new Set(careers.map((c) => c.careerId));
+  const pi = output.profileInterpretation;
+  const profileInterpretation = pi
+    ? {
+        academicBackground: screenText(pi.academicBackground, tally) || "Not stated in the profile.",
+        strengths: screenList(pi.strengths, tally),
+        interests: screenList(pi.interests, tally),
+        motivations: screenList(pi.motivations, tally),
+        priorities: screenList(pi.priorities, tally),
+        uncertainties: screenList(pi.uncertainties, tally),
+        financialConsiderations: screenText(pi.financialConsiderations, tally) || "Not stated in the profile.",
+      }
+    : null;
+  const cc = output.careerComparison;
+  const careerComparison = cc
+    ? {
+        summary: screenText(cc.summary, tally) || "(Comparison removed — it contained unverified claims.)",
+        points: cc.points
+          .map((pt) => ({ c: byRef.get(pt.candidateRef), pt }))
+          .filter((x): x is { c: Candidate; pt: (typeof cc.points)[number] } => Boolean(x.c && discussed.has(x.c.career.id)))
+          .filter((x, i, all) => all.findIndex((y) => y.c.career.id === x.c.career.id) === i)
+          .map(({ c, pt }) => ({ careerId: c.career.id, title: c.career.title, distinctiveStrength: screenText(pt.distinctiveStrength, tally) || "—", mainConcern: screenText(pt.mainConcern, tally) || "—" })),
+      }
+    : null;
+  const ad = output.academicDirection;
+  const academicDirection = ad
+    ? { recommendedLevel: ad.recommendedLevel, fields: screenList(ad.fields, tally), rationale: screenText(ad.rationale, tally) || "—", toVerify: screenList(ad.toVerify, tally) }
+    : null;
+  const step = (x: { action: string; timeframe: string }) => ({ action: screenText(x.action, tally), timeframe: screenText(x.timeframe, tally) || "—" });
+  const dp = output.developmentPlan;
+  const developmentPlan = dp ? { shortTerm: dp.shortTerm.map(step).filter((x) => x.action), longTerm: dp.longTerm.map(step).filter((x) => x.action) } : null;
   const flags = [...output.counsellorFlags.map((f) => ({ code: f.code, note: screenText(f.note, tally) || "(note removed)" })), ...ctx.extraFlags];
   const report: CareerIntelligenceReport = {
     schemaVersion: REPORT_SCHEMA_VERSION,
     studentProfileRef: { studentUserId: ctx.studentUserId, profileFingerprint: ctx.profileFingerprint },
     outcome: careers.length > 0 ? output.outcome : "insufficient_data",
     overview: screenText(output.overview, tally) || "(Overview removed — it contained unverified claims.)",
+    profileInterpretation,
     careers,
+    careerComparison,
+    academicDirection,
+    developmentPlan,
     missingInformation: screenList(output.missingInformation, tally),
     followUpQuestions: screenList(output.followUpQuestions, tally),
     uncertainties: screenList(output.uncertainties, tally),
+    counsellorObservations: screenList(output.counsellorObservations ?? [], tally),
     counsellorFlags:
       tally.removed > 0
         ? [...flags, { code: "removed_unsupported_claim", note: `${tally.removed} sentence(s) removed automatically (${[...tally.reasons].join(", ")}). Check the explanations before approving.` }]
@@ -92,6 +139,7 @@ export function assembleReport(
       { type: "matching_engine", detail: "Candidates selected and banded by the deterministic Milestone 5 matching engine (heuristic, not a measurement)." },
       { type: "student_profile", detail: "Minimised student profile: stage, age group, education levels/fields, subjects, interests, skills, preferences, goals, study and budget preferences, experience titles." },
     ],
+    inputProvenance: ctx.inputProvenance ?? [],
     courseRecommendations: {
       status: "not_included",
       reason: "University and course suggestions are not generated in this version: only verified, published education records may be recommended, and course matching is a later phase. Pathways are described generally and must be verified by the counsellor.",
@@ -105,6 +153,9 @@ export function assembleReport(
       candidateCount: candidates.length,
       inputTokens: meta.usage?.inputTokens ?? 0,
       outputTokens: meta.usage?.outputTokens ?? 0,
+      cachedInputTokens: meta.usage?.cachedInputTokens ?? 0,
+      reasoningTokens: meta.usage?.reasoningTokens ?? 0,
+      providerResponseId: meta.responseId ?? null,
       estimatedCostUsd: meta.estimatedCostUsd,
       attempts: meta.attempts,
       latencyMs: Math.max(0, Math.round(meta.latencyMs)),
@@ -130,14 +181,28 @@ export function toDraftContent(report: CareerIntelligenceReport): Recommendation
       const parts = [`${i + 1}. ${c.title} — ${SUITABILITY_LABELS[c.suitability]}`, `Why it may suit you: ${c.fitExplanation}`];
       if (c.skillsDemonstrated.length) parts.push(`What you already bring:\n${bullet(c.skillsDemonstrated)}`);
       if (c.skillGaps.length) parts.push(`Skills worth building:\n${bullet(c.skillGaps)}`);
+      if (c.tradeOffs.length) parts.push(`Things to weigh up:\n${bullet(c.tradeOffs)}`);
       if (c.nextActions.length) parts.push(`Next steps:\n${bullet(c.nextActions)}`);
       return parts.join("\n");
     })
     .join("\n\n");
-  const pathways = report.careers
+  const perCareer = report.careers
     .filter((c) => c.educationPathways.length || c.catalogueEducationRoutes.length)
     .map((c) => `${c.title}:\n${bullet(c.educationPathways.length ? c.educationPathways : c.catalogueEducationRoutes)}`)
     .join("\n\n");
+  const ad = report.academicDirection;
+  const direction = ad && ad.fields.length ? `Suggested academic direction (${ACADEMIC_LEVEL_LABELS[ad.recommendedLevel]}):\n${bullet(ad.fields)}\n${ad.rationale}` : "";
+  const dp = report.developmentPlan;
+  const plan =
+    dp && (dp.shortTerm.length || dp.longTerm.length)
+      ? [
+          dp.shortTerm.length ? `In the coming months:\n${bullet(dp.shortTerm.map((x) => `${x.action} (${x.timeframe})`))}` : "",
+          dp.longTerm.length ? `Over the longer term:\n${bullet(dp.longTerm.map((x) => `${x.action} (${x.timeframe})`))}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n\n")
+      : "";
+  const pathways = [direction, perCareer, plan].filter(Boolean).join("\n\n");
   const caveat =
     "These suggestions are a starting point for a conversation with your counsellor. They are based on what you told us and are not a guarantee of admission, employment or income. Specific courses and universities must be checked with your counsellor.";
   const open = report.followUpQuestions.length ? `\n\nTo make this more useful, we would like to know:\n${bullet(report.followUpQuestions)}` : "";

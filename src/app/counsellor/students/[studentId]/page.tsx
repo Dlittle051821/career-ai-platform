@@ -13,6 +13,7 @@ import { ProfileProvenanceCard, type ProfileProvenanceSectionRow } from "@/compo
 import { RecommendationReadinessCard } from "@/components/admin/students/RecommendationReadinessCard";
 import { NewRecommendationDraftForm } from "@/components/counsellor/NewRecommendationDraftForm";
 import { CareerIntelligencePanel } from "@/components/counsellor/CareerIntelligencePanel";
+import { StudentCaseTabs } from "@/components/counsellor/ai/AiWorkspaceCards";
 import { getStudentDetail } from "@/lib/supabase/admin/students";
 import { getStudentProfileSnapshotForAdmin } from "@/lib/supabase/admin/student-profile";
 import { getSectionProvenanceMap } from "@/lib/supabase/admin/profile-provenance";
@@ -151,6 +152,8 @@ export default async function CounsellorStudentCasePage({ params }: StudentCaseP
         <StatusBadge status={student.status} labelOverride={ADMIN_STUDENT_STATUS_LABELS[student.status]} />
       </div>
 
+      {canGenerateCareerIntelligence ? <StudentCaseTabs studentId={studentId} active="overview" /> : null}
+
       <Card className="mb-6 grid gap-4 sm:grid-cols-2">
         <div>
           <p className="text-sm font-medium text-text">Profile completion</p>
@@ -221,7 +224,7 @@ export default async function CounsellorStudentCasePage({ params }: StudentCaseP
 
       {/* Recommendations */}
       {canReadRecommendationDrafts && (
-        <Card className="mb-6">
+        <Card className="mb-6" id="recommendations">
           <div className="flex items-center gap-2">
             <FileCheck2 aria-hidden="true" className="h-4 w-4 text-secondary-dark" />
             <h2 className="text-base font-semibold text-primary">Recommendation reports ({recommendationDrafts.length})</h2>
@@ -258,7 +261,7 @@ export default async function CounsellorStudentCasePage({ params }: StudentCaseP
       )}
 
       {/* NW09 — AI Career Intelligence (first drafts only; same review → approve → release workflow) */}
-      {canGenerateCareerIntelligence && <CareerIntelligencePanel studentUserId={studentId} snapshot={studentSnapshot} />}
+      {canGenerateCareerIntelligence && <CareerIntelligencePanel studentUserId={studentId} />}
 
       {/* Abroad Applications / Applications */}
       <Card className="mb-6">

@@ -1054,6 +1054,11 @@ type AiGenerationRunsRow = {
   attempts: number;
   latency_ms: number;
   consent_confirmed: boolean;
+  // NW09.2 — PROPOSED (supabase/migrations-proposed/NW09_2_openai_live_pilot.sql).
+  consent_id?: string | null;
+  provider_response_id?: string | null;
+  cached_input_tokens?: number;
+  reasoning_tokens?: number;
   regenerates_run_id: string | null;
   regeneration_reason: string | null;
   draft_id: string | null;
@@ -1071,6 +1076,31 @@ type AiUsageSettingsRow = {
   monthly_budget_usd: number;
   updated_at: string;
   updated_by: string | null;
+  // NW09.2 — PROPOSED.
+  paid_max_runs?: number;
+  paid_total_budget_usd?: number;
+  real_student_processing_approved?: boolean;
+  real_student_approval_reference?: string | null;
+  real_student_approved_at?: string | null;
+  real_student_approved_by?: string | null;
+};
+
+// NW09.2 — PROPOSED (NW09_2_openai_live_pilot.sql). Staff-only; RPC-only writes.
+type StudentAiProcessingConsentsRow = {
+  id: string;
+  student_user_id: string;
+  scope: string;
+  consenting_party: string;
+  method: string;
+  evidence_reference: string;
+  notes: string | null;
+  given_on: string;
+  recorded_by: string | null;
+  recorded_by_role: string | null;
+  recorded_at: string;
+  withdrawn_at: string | null;
+  withdrawn_by: string | null;
+  withdrawal_reason: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -2241,6 +2271,79 @@ export interface Database {
         };
         Returns: AiGenerationRunsRow;
       };
+      // NW09.2 — PROPOSED, NOT YET APPLIED (supabase/migrations-proposed/NW09_2_openai_live_pilot.sql).
+      staff_reserve_ai_generation_run_v2: {
+        Args: {
+          p_student_user_id: string;
+          p_idempotency_key: string;
+          p_provider: string;
+          p_model: string;
+          p_prompt_version: string;
+          p_report_schema_version: string;
+          p_data_class: string;
+          p_consent_id: string;
+          p_worst_case_cost_usd: number;
+          p_limit_staff_daily: number;
+          p_limit_student_daily: number;
+          p_limit_global_daily: number;
+          p_monthly_budget_usd: number;
+          p_paid_max_runs: number;
+          p_paid_total_budget_usd: number;
+          p_regenerates_run_id: string | null;
+          p_regeneration_reason: string | null;
+        };
+        Returns: { run_id: string | null; outcome: string; existing_status: string | null; existing_draft_id: string | null; denial_reason: string | null }[];
+      };
+      staff_complete_ai_generation_run_v2: {
+        Args: {
+          p_run_id: string;
+          p_status: string;
+          p_reason: string | null;
+          p_model: string;
+          p_input_tokens: number;
+          p_output_tokens: number;
+          p_cached_input_tokens: number;
+          p_reasoning_tokens: number;
+          p_estimated_cost_usd: number;
+          p_attempts: number;
+          p_latency_ms: number;
+          p_provider_response_id: string | null;
+          p_report: Json | null;
+        };
+        Returns: AiGenerationRunsRow;
+      };
+      staff_record_ai_processing_consent: {
+        Args: {
+          p_student_user_id: string;
+          p_consenting_party: string;
+          p_method: string;
+          p_evidence_reference: string;
+          p_given_on: string;
+          p_notes: string | null;
+        };
+        Returns: StudentAiProcessingConsentsRow;
+      };
+      staff_withdraw_ai_processing_consent: {
+        Args: { p_consent_id: string; p_reason: string };
+        Returns: StudentAiProcessingConsentsRow;
+      };
+      staff_get_ai_usage_summary: {
+        Args: Record<string, never>;
+        Returns: {
+          staff_today: number;
+          global_today: number;
+          month_cost_usd: number;
+          paid_runs_total: number;
+          paid_cost_total_usd: number;
+          per_staff_daily: number;
+          per_student_daily: number;
+          global_daily: number;
+          monthly_budget_usd: number;
+          paid_max_runs: number;
+          paid_total_budget_usd: number;
+          real_student_processing_approved: boolean;
+        }[];
+      };
       staff_link_ai_generation_run_draft: {
         Args: { p_run_id: string; p_draft_id: string };
         Returns: AiGenerationRunsRow;
@@ -2746,6 +2849,14 @@ export interface Database {
       // NW09 — PROPOSED, NOT YET APPLIED. Staff read through RLS; every write goes through an RPC.
       ai_generation_runs: {
         Row: AiGenerationRunsRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+
+      // NW09.2 — PROPOSED, NOT YET APPLIED. Staff read through RLS; writes only via RPC.
+      student_ai_processing_consents: {
+        Row: StudentAiProcessingConsentsRow;
         Insert: never;
         Update: never;
         Relationships: [];

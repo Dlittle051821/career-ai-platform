@@ -14,7 +14,7 @@ import { buildPrompt, INSTRUCTIONS } from "./prompt";
 import { offendingReason, screenText } from "./claims";
 import { assessProfile } from "./completeness";
 import { describeOutcome } from "./messages";
-import { requestCareerAnalysis, validateRequest, type CareerIntelligenceGateway, type RequestInput } from "./service";
+import { requestCareerAnalysis, validateRequest, type CareerIntelligenceGateway, type ConsentStatus, type RequestInput } from "./service";
 
 const catalogue = evaluationCatalogue();
 const profile = (id: string) => EVALUATION_PROFILES.find((p) => p.id === id)!.snapshot;
@@ -34,12 +34,26 @@ describe("evaluation — every fictional profile, through the real pipeline (moc
 describe("versioned output schema — the provider-independent contract", () => {
   it("only accepts the candidate references it was built with (no invented careers or ids)", () => {
     const schema = buildModelOutputSchema(["C1", "C2"]);
-    const career = { candidateRef: "C9", suitability: "possible_fit", fitExplanation: "x", supportingEvidence: ["y"], alignedInterests: [], skillsDemonstrated: [], skillGaps: [], unmetRequirements: [], educationPathways: [], nextActions: ["z"], assumptionsToVerify: [] };
-    const base = { outcome: "recommendations", overview: "o", careers: [career], missingInformation: [], followUpQuestions: [], uncertainties: [], counsellorFlags: [] };
+    const career = { candidateRef: "C9", suitability: "possible_fit", fitExplanation: "x", supportingEvidence: ["y"], alignedInterests: [], skillsDemonstrated: [], skillGaps: [], unmetRequirements: [], educationPathways: [], nextActions: ["z"], assumptionsToVerify: [], tradeOffs: [], reasonsItMayNotSuit: ["w"] };
+    const base = {
+      outcome: "recommendations",
+      overview: "o",
+      careers: [career],
+      missingInformation: [],
+      followUpQuestions: [],
+      uncertainties: [],
+      counsellorFlags: [],
+      profileInterpretation: { academicBackground: "a", strengths: [], interests: [], motivations: [], priorities: [], uncertainties: [], financialConsiderations: "f" },
+      careerComparison: { summary: "s", points: [] },
+      academicDirection: { recommendedLevel: "undecided", fields: [], rationale: "r", toVerify: [] },
+      developmentPlan: { shortTerm: [], longTerm: [] },
+      counsellorObservations: [],
+    };
     expect(schema.safeParse(base).success).toBe(false);
     expect(schema.safeParse({ ...base, careers: [{ ...career, candidateRef: "C1" }] }).success).toBe(true);
     expect(schema.safeParse({ ...base, careers: [{ ...career, candidateRef: "C1", careerId: "made-up" }] }).success).toBe(true); // extra keys are stripped, never used
     expect(schema.safeParse({ ...base, careers: [{ ...career, candidateRef: "C1", supportingEvidence: [] }] }).success).toBe(false);
+    expect(schema.safeParse({ ...base, careers: [{ ...career, candidateRef: "C1", reasonsItMayNotSuit: [] }] }).success).toBe(false);
   });
   it("labels the stored report with its schema version", async () => {
     const o = await generateCareerIntelligence({ studentUserId: "s", snapshot: profile("computer-science"), catalogue, dataClass: "fictional" }, { config: devConfig, provider: mock(), now: () => today, run });
@@ -196,6 +210,17 @@ describe("report — catalogue facts from OUR data, model text screened; draft c
 const STUDENT = "11111111-1111-4111-8111-111111111111";
 const KEY = "a".repeat(32);
 
+const VALID_CONSENT: ConsentStatus = {
+  status: "valid",
+  consentId: "consent-1",
+  consentingParty: "student",
+  method: "signed_consent_form",
+  evidenceReference: "FORM-2026-001",
+  givenOn: "2026-11-01",
+  recordedAt: "2026-11-01T10:00:00Z",
+  recordedByName: "QA Counsellor",
+};
+
 function makeGateway(over: Partial<CareerIntelligenceGateway> = {}) {
   const calls: string[] = [];
   const gw: CareerIntelligenceGateway = {
@@ -205,6 +230,8 @@ function makeGateway(over: Partial<CareerIntelligenceGateway> = {}) {
     hasPaidCareerEntitlement: async () => true,
     loadSnapshot: async () => profile("computer-science"),
     loadCatalogue: async () => catalogue,
+    loadProvenance: async () => ({}),
+    getConsent: async () => VALID_CONSENT,
     reserveRun: vi.fn(async () => ({ kind: "reserved" as const, runId: "run-1" })),
     completeRun: vi.fn(async () => {}),
     createDraft: vi.fn(async () => "draft-1"),
@@ -216,7 +243,7 @@ function makeGateway(over: Partial<CareerIntelligenceGateway> = {}) {
   };
   return { gw, calls };
 }
-const input = (over: Partial<RequestInput> = {}): RequestInput => ({ studentUserId: STUDENT, idempotencyKey: KEY, consentConfirmed: true, ...over });
+const input = (over: Partial<RequestInput> = {}): RequestInput => ({ studentUserId: STUDENT, idempotencyKey: KEY, ...over });
 
 describe("requestCareerAnalysis — authorisation, entitlement, consent, limits, idempotency", () => {
   it("validates the request before anything else", () => {
@@ -246,10 +273,12 @@ describe("requestCareerAnalysis — authorisation, entitlement, consent, limits,
     const fic = makeGateway({ classifyStudentData: async () => "fictional", hasPaidCareerEntitlement: async () => false });
     expect((await requestCareerAnalysis(input(), fic.gw, { config: devConfig, provider: mock() })).kind).toBe("draft_created");
   });
-  it("requires the AI-processing notice to be confirmed", async () => {
-    const { gw } = makeGateway();
-    expect((await requestCareerAnalysis(input({ consentConfirmed: false }), gw, { config: devConfig, provider: mock() })).kind).toBe("needs_consent");
-    expect(gw.reserveRun).not.toHaveBeenCalled();
+  it("requires a RECORDED, valid consent (missing, withdrawn or an unreadable register all block before any reservation)", async () => {
+    for (const consent of [{ status: "missing" }, { status: "withdrawn", withdrawnAt: "2026-11-02T00:00:00Z" }, { status: "unavailable" }] as ConsentStatus[]) {
+      const { gw } = makeGateway({ getConsent: async () => consent });
+      expect((await requestCareerAnalysis(input(), gw, { config: devConfig, provider: mock() })).kind).toBe("needs_consent");
+      expect(gw.reserveRun).not.toHaveBeenCalled();
+    }
   });
   it("Gemini with a real student is blocked before any reservation or call", async () => {
     const gem: AiProvider = { name: "gemini", model: "g", generate: vi.fn() };
@@ -299,7 +328,7 @@ describe("requestCareerAnalysis — authorisation, entitlement, consent, limits,
     const o = await requestCareerAnalysis(input(), gw, { config: devConfig, provider: p });
     expect(o.kind).toBe("draft_created");
     expect(gen).toHaveBeenCalledTimes(1);
-    expect(gw.reserveRun).toHaveBeenCalledWith(expect.objectContaining({ dataClass: "real_student", consentConfirmed: true, idempotencyKey: KEY }));
+    expect(gw.reserveRun).toHaveBeenCalledWith(expect.objectContaining({ dataClass: "real_student", consentId: "consent-1", idempotencyKey: KEY }));
     expect(gw.completeRun).toHaveBeenCalledWith("run-1", expect.objectContaining({ status: "succeeded" }));
     expect(gw.createDraft).toHaveBeenCalledWith(expect.objectContaining({ studentUserId: STUDENT, content: expect.objectContaining({ aiAssisted: true }) }));
     expect(gw.linkDraft).toHaveBeenCalledWith("run-1", "draft-1");
