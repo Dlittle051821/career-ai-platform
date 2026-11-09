@@ -18,16 +18,16 @@ export function Footer() {
         <div className="grid gap-12 lg:grid-cols-[1.4fr_repeat(5,1fr)]">
           <div className="max-w-xs">
             <Logo onDark />
-            <p className="mt-4 text-sm leading-relaxed text-on-primary-muted">{BRAND_SHORT_DESCRIPTION}</p>
-            <p className="mt-5 flex items-start gap-2 text-sm text-on-primary-muted">
+            <p className="mt-4 text-sm leading-relaxed text-on-primary-strong">{BRAND_SHORT_DESCRIPTION}</p>
+            <p className="mt-5 flex items-start gap-2 text-sm text-on-primary-strong">
               <MapPin aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
               {CONTACT.cityStatement}
             </p>
-            <p className="mt-3 flex items-center gap-2 text-sm text-on-primary-muted">
+            <p className="mt-3 flex items-center gap-2 text-sm text-on-primary-strong">
               <Mail aria-hidden="true" className="h-4 w-4 shrink-0" />
               {CONTACT.emailLabel}
             </p>
-            <p className="mt-3 text-xs text-on-primary-muted">
+            <p className="mt-3 text-xs text-on-primary-strong">
               {LANGUAGES.map((l) => l.nativeLabel).join(" | ")}
               {" "}
               — full ଓଡ଼ିଆ experience coming soon
@@ -40,7 +40,7 @@ export function Footer() {
               <ul className="mt-4 space-y-2.5">
                 {links.map((link) => (
                   <li key={link.href}>
-                    <Link href={link.href} className="text-sm text-on-primary-muted transition-colors hover:text-on-primary">
+                    <Link href={link.href} className="text-sm text-on-primary-strong underline-offset-2 transition-colors hover:underline">
                       {link.label}
                     </Link>
                   </li>
@@ -50,7 +50,7 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col gap-4 border-t border-white/10 pt-6 text-xs text-on-primary-muted sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-12 flex flex-col gap-4 border-t border-white/10 pt-6 text-xs text-on-primary-strong sm:flex-row sm:items-center sm:justify-between">
           <p className="flex items-start gap-2 sm:max-w-2xl">
             <ShieldCheck aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
             {BRAND_NAME} provides guidance and support; final decisions and outcomes depend on student eligibility,

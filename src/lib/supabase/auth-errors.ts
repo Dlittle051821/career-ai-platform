@@ -5,6 +5,10 @@
  * wrong password, since email enumeration on login is a separate,
  * deliberate design choice — see friendlyLoginError below).
  */
+/** CC-22B — shown when sign-up returns a user with no identities (email already registered, confirmation on). */
+export const ALREADY_REGISTERED_MESSAGE =
+  "An account with this email may already exist, so no new confirmation email was sent. Try logging in, or use “Forgot password” to get a sign-in link.";
+
 export function friendlyAuthError(error: unknown): string {
   const message = errorMessage(error).toLowerCase();
 
@@ -24,7 +28,7 @@ export function friendlyAuthError(error: unknown): string {
     return "Please confirm your email address first — check your inbox for a confirmation link.";
   }
   if (message.includes("rate limit") || message.includes("too many requests")) {
-    return "Too many attempts. Please wait a minute and try again.";
+    return "Too many attempts right now. Please wait a few minutes and try again.";
   }
   if (message.includes("expired") || message.includes("invalid or expired")) {
     return "This link has expired. Please request a new one.";
@@ -33,7 +37,7 @@ export function friendlyAuthError(error: unknown): string {
     return "We couldn’t reach the server. Please check your internet connection and try again.";
   }
   if (message.includes("missing supabase environment variables")) {
-    return "The site isn’t connected to its account system yet. Please contact support.";
+    return "Sign-in isn’t available right now. Please try again later.";
   }
 
   return "Something went wrong. Please try again in a moment.";

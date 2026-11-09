@@ -79,7 +79,7 @@ export function CTASection({
           </LinkButton>
         </div>
       </div>
-      <p className="mt-8 flex items-center gap-2 text-sm text-on-primary-muted">
+      <p className="mt-8 flex items-center gap-2 text-sm text-on-primary-strong">
         <ShieldCheck aria-hidden="true" className="h-4 w-4 shrink-0" />
         Your details stay private and are only used to contact you about your enquiry.
       </p>

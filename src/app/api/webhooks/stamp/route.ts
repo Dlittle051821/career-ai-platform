@@ -1,3 +1,4 @@
+import { recordVerifiedDocumentPath } from "@/lib/storage/verified-document-path";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getStampProvider } from "@/lib/stamping/get-provider";
@@ -89,18 +90,18 @@ export async function POST(request: Request): Promise<NextResponse> {
   // Best-effort enrichment (caching the stamped document bytes in Storage)
   // — must never cause this webhook delivery to be treated as failed if it
   // doesn't succeed, same discipline as the signature webhook route.
-  if (result?.status === "completed" && result.provider && result.provider_request_id && result.agreement_id && result.stamp_request_id) {
+  if (result?.valid === true && result.processing_status === "processed" && result.status === "completed" && result.provider && result.provider_request_id && result.agreement_id && result.stamp_request_id) {
     try {
       const document = await provider.retrieveStampedDocument(result.provider_request_id);
       const storagePath = buildStampedDocumentStoragePath(result.agreement_id, result.stamp_request_id, document.fileName);
       const uploadResult = await uploadStampedDocument({ storagePath, bytes: document.bytes, contentType: document.contentType });
       if (uploadResult.ok) {
-        const { error: pathError } = await supabase.rpc("set_stamp_document_path", {
-          p_provider: result.provider,
-          p_provider_request_id: result.provider_request_id,
-          p_storage_path: storagePath,
+        const pathResult = await recordVerifiedDocumentPath("stamp", {
+          provider: result.provider,
+          providerRequestId: result.provider_request_id,
+          storagePath,
         });
-        if (pathError) console.error("[webhooks/stamp] set_stamp_document_path failed:", pathError.message);
+        if (!pathResult.ok) console.error("[webhooks/stamp] document path capture failed:", pathResult.error);
       } else {
         console.warn("[webhooks/stamp] Stamped document upload skipped/failed:", uploadResult.error);
       }

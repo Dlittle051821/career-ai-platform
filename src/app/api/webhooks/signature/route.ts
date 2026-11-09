@@ -1,3 +1,4 @@
+import { recordVerifiedDocumentPath } from "@/lib/storage/verified-document-path";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSignatureProvider } from "@/lib/signatures/get-provider";
@@ -127,7 +128,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   // returns 200 for would only ever produce a harmless duplicate (caught
   // by signature_webhook_events' idempotency guard above), never a second
   // attempt at this step from THIS delivery.
-  if (result?.status === "signed" && result.provider && result.provider_request_id && result.agreement_id && result.signature_request_id) {
+  if (result?.valid === true && result.processing_status === "processed" && result.status === "signed" && result.provider && result.provider_request_id && result.agreement_id && result.signature_request_id) {
     try {
       const document = await provider.getSignedDocument(result.provider_request_id);
       // agreement_id MUST be the real, first path segment — storage.objects'
@@ -136,12 +137,12 @@ export async function POST(request: Request): Promise<NextResponse> {
       const storagePath = buildSignedDocumentStoragePath(result.agreement_id, result.signature_request_id, document.fileName);
       const uploadResult = await uploadSignedDocument({ storagePath, bytes: document.bytes, contentType: document.contentType });
       if (uploadResult.ok) {
-        const { error: pathError } = await supabase.rpc("set_signature_document_path", {
-          p_provider: result.provider,
-          p_provider_request_id: result.provider_request_id,
-          p_storage_path: storagePath,
+        const pathResult = await recordVerifiedDocumentPath("signature", {
+          provider: result.provider,
+          providerRequestId: result.provider_request_id,
+          storagePath,
         });
-        if (pathError) console.error("[webhooks/signature] set_signature_document_path failed:", pathError.message);
+        if (!pathResult.ok) console.error("[webhooks/signature] document path capture failed:", pathResult.error);
       } else {
         console.warn("[webhooks/signature] Signed document upload skipped/failed:", uploadResult.error);
       }

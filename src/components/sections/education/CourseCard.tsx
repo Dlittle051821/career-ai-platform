@@ -2,7 +2,9 @@ import Link from "next/link";
 import { ArrowRight, MapPin } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { FreshnessBadge, humanizeEnumValue } from "@/components/sections/education/UniversityCard";
+import { humanizeEnumValue } from "@/components/sections/education/UniversityCard";
+import { DataStatusBadge } from "@/components/sections/education/DataStatusBadge";
+import { isVerifiedEducationRecord } from "@/lib/education/verification-display";
 import { CompareCheckbox } from "@/components/sections/education/CompareTray";
 import { formatMoney } from "@/lib/admin/money";
 import type { PublicCourseSummary } from "@/lib/supabase/education/courses";
@@ -29,7 +31,7 @@ export function CourseCard({ course }: { course: PublicCourseSummary }) {
   return (
     <Card as="article" className="flex h-full flex-col">
       <div className="flex items-start justify-between gap-3">
-        <FreshnessBadge band={course.freshnessBand} />
+        <DataStatusBadge verificationStatus={course.verificationStatus} freshnessBand={course.freshnessBand} />
       </div>
 
       {/* UX07 mobile pass — a long course/university name must wrap, never overflow the card at 375px. */}
@@ -56,7 +58,7 @@ export function CourseCard({ course }: { course: PublicCourseSummary }) {
             {humanizeEnumValue(course.deliveryMode)}
           </Badge>
         ) : null}
-        {course.scholarshipsAvailable ? (
+        {course.scholarshipsAvailable && isVerifiedEducationRecord(course.verificationStatus) ? (
           <Badge tone="success" className="text-[11px]">
             Scholarships available
           </Badge>

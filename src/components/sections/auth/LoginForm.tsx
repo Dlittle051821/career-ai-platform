@@ -12,6 +12,7 @@ import { friendlyAuthError } from "@/lib/supabase/auth-errors";
 import { isRequired, isValidEmail } from "@/lib/validation";
 import { getSafeRedirectPath } from "@/lib/auth/safe-redirect";
 import { resolveMyDefaultWorkspace } from "@/lib/supabase/actions";
+import { focusFirstInvalidField } from "@/lib/ui/form-focus";
 
 interface FormState {
   email: string;
@@ -29,7 +30,7 @@ export function LoginForm() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(() =>
     searchParams.get("authError")
-      ? "That confirmation link is invalid or has expired. Please register again, or log in below if you've already confirmed your email."
+      ? "That sign-in link couldn't be used — it may have expired, or been opened in a different browser or device. Your email may already be confirmed, so try logging in below first. If that doesn't work, use \"Forgot password\" to get a new link."
       : null
   );
 
@@ -57,10 +58,14 @@ export function LoginForm() {
     event.preventDefault();
     if (submitting) return; // duplicate-submission guard
 
+    const form = event.currentTarget;
     const nextErrors = validate();
     setErrors(nextErrors);
     setFormError(null);
-    if (Object.keys(nextErrors).length > 0) return;
+    if (Object.keys(nextErrors).length > 0) {
+      focusFirstInvalidField(form);
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -142,7 +147,6 @@ export function LoginForm() {
             onClick={() => setShowPassword((v) => !v)}
             aria-label={showPassword ? "Hide password" : "Show password"}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text"
-            tabIndex={-1}
           >
             {showPassword ? <EyeOff aria-hidden="true" className="h-4 w-4" /> : <Eye aria-hidden="true" className="h-4 w-4" />}
           </button>

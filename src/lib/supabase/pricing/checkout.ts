@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "../server";
 import { getCurrentUser } from "../profile";
+import { isPaidCheckoutEnabled, PAID_CHECKOUT_PAUSED_MESSAGE } from "@/lib/payments/launch-mode";
 
 /**
  * The student-facing entry point from "select a plan" to "a real invoice
@@ -27,6 +28,18 @@ function logDbError(context: string, error: unknown) {
   console.error(`[pricing/checkout] ${context}:`, error);
 }
 
+/**
+ * CC-22B: purchase_pricing_plan() deliberately RAISEs student-readable
+ * messages (P0001), so those are passed through; anything else (permission,
+ * missing function, constraint text) is replaced by a neutral message and
+ * only logged server-side.
+ */
+function studentSafePurchaseError(error: { code?: string; message?: string }): string {
+  const generic = "We couldn't start checkout for this plan. Please try again.";
+  if (error.code === "P0001" && error.message && error.message.length <= 300) return error.message;
+  return generic;
+}
+
 export interface PurchasePlanResult {
   invoiceId: string;
   reused: boolean;
@@ -39,6 +52,9 @@ export interface PurchasePlanResult {
  * that either identifies a currently-valid offer.
  */
 export async function purchasePricingPlan(planId: string, options: { offerId?: string; couponCode?: string } = {}): Promise<PurchasePlanResult> {
+  // CC-22B defense in depth: the only caller already checks this, but no
+  // future caller can create a purchase or invoice while paid checkout is off.
+  if (!isPaidCheckoutEnabled()) throw new PricingCheckoutError(PAID_CHECKOUT_PAUSED_MESSAGE);
   const user = await getCurrentUser();
   if (!user) throw new PricingCheckoutError("You must be signed in to purchase a plan.");
 
@@ -55,7 +71,7 @@ export async function purchasePricingPlan(planId: string, options: { offerId?: s
     // shown directly to the student (e.g. "This offer has reached its
     // redemption limit.") — same "the action authored this message on
     // purpose" convention as AdminValidationError.
-    throw new PricingCheckoutError(error.message || "We couldn't start checkout for this plan. Please try again.");
+    throw new PricingCheckoutError(studentSafePurchaseError(error));
   }
   if (!data || typeof data !== "object" || !("invoice_id" in data)) {
     throw new PricingCheckoutError("We couldn't start checkout for this plan. Please try again.");

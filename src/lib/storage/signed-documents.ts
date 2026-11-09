@@ -1,3 +1,4 @@
+import { documentFilename } from "./document-filename";
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
@@ -38,7 +39,7 @@ export const SIGNED_AGREEMENTS_BUCKET = "signed-agreements";
 const SIGNED_URL_TTL_SECONDS = 5 * 60;
 
 export function buildSignedDocumentStoragePath(agreementId: string, signatureRequestId: string, fileName: string): string {
-  const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const safeFileName = documentFilename(fileName);
   return `${agreementId}/${signatureRequestId}/${safeFileName}`;
 }
 

@@ -1010,6 +1010,8 @@ type RecommendationDraftsRow = {
   reviewed_by: string | null;
   approved_at: string | null;
   approved_by: string | null;
+  /** CC-15 (proposed NW-F01 03): the exact version an approval applies to. */
+  approved_version_id?: string | null;
   released_at: string | null;
   released_by: string | null;
   archived_at: string | null;
@@ -1797,6 +1799,11 @@ export interface Database {
         Returns: Json;
       };
       // Milestone 10 — see 0007_nextwise_pricing_offers.sql PART 7.
+      // CC-18 (proposed 05): authoritative pre-order charge check; null = allowed.
+      check_invoice_charge: {
+        Args: { p_invoice_id: string; p_amount: number; p_currency: string };
+        Returns: string | null;
+      };
       purchase_pricing_plan: {
         Args: {
           p_plan_id: string;
@@ -2192,7 +2199,7 @@ export interface Database {
         Returns: { id: string; status: string; submitted_at: string | null; submitted_by: string | null };
       };
       staff_review_recommendation_draft: {
-        Args: { p_draft_id: string; p_decision: string; p_review_notes?: string | null };
+        Args: { p_draft_id: string; p_decision: string; p_expected_version_id: string; p_review_notes?: string | null };
         Returns: {
           id: string;
           status: string;
@@ -2293,6 +2300,19 @@ export interface Database {
           p_regeneration_reason: string | null;
         };
         Returns: { run_id: string | null; outcome: string; existing_status: string | null; existing_draft_id: string | null; denial_reason: string | null }[];
+      };
+      staff_finalize_ai_generation_run: {
+        // CC-16 (F1): EXECUTE is granted to service_role only.
+        Args: {
+          p_requester_user_id: string;
+          p_run_id: string;
+          p_student_user_id: string;
+          p_consent_id: string;
+          p_report: Json;
+          p_draft_content: Json;
+          p_usage: Json;
+        };
+        Returns: Json;
       };
       staff_complete_ai_generation_run_v2: {
         Args: {

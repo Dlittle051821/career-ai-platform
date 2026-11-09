@@ -7,7 +7,8 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
 import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
-import { FreshnessBadge, humanizeEnumValue } from "@/components/sections/education/UniversityCard";
+import { humanizeEnumValue } from "@/components/sections/education/UniversityCard";
+import { DataStatusBadge } from "@/components/sections/education/DataStatusBadge";
 import { getCurrentUser } from "@/lib/supabase/profile";
 import { listSavedItems } from "@/lib/supabase/education/saved-items";
 import { getUniversitiesByIds } from "@/lib/supabase/education/universities";
@@ -90,7 +91,7 @@ export default async function SavedPage() {
                   <Card key={university.id} as="article" className="flex h-full flex-col">
                     <div className="flex items-start justify-between gap-3">
                       <h3 className="text-lg font-semibold text-primary">{university.name}</h3>
-                      <FreshnessBadge band={university.freshnessBand} />
+                      <DataStatusBadge verificationStatus={university.verificationStatus} freshnessBand={university.freshnessBand} />
                     </div>
                     {university.city || university.countryName ? (
                       <p className="mt-1.5 flex items-center gap-1.5 text-sm text-muted">

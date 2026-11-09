@@ -17,8 +17,9 @@
  *   → staff_reserve_ai_generation_run_v2 (database pilot caps: 5 runs / $2
  *   all-time, one in progress per student) → ONE OpenAI Responses API call
  *   → Zod validation + claim screening + catalogue verification →
- *   staff_complete_ai_generation_run_v2 → staff_create_recommendation_draft
- *   → link. The result is an ordinary NW07 DRAFT; nothing is submitted,
+ *   staff_finalize_ai_generation_run (atomic success; service-role call on the counsellor's behalf, CC-16 F1)
+ *   or v2 completion (failure accounting)
+ *   The result is an ordinary NW07 DRAFT; nothing is submitted,
  *   approved or released.
  *
  * SAFETY
@@ -53,7 +54,6 @@ import { CareerIntelligenceReportSchema } from "../../src/lib/career-intelligenc
 import { requestCareerAnalysis, type CareerIntelligenceGateway, type ConsentStatus, type ReserveResult } from "../../src/lib/career-intelligence/service";
 import { fetchStudentProfileSnapshotByUserId } from "../../src/lib/supabase/student-profile";
 import { getCareersForMatching } from "../../src/lib/supabase/careers";
-import { rpcRowId } from "../../src/lib/supabase/rpc-result";
 import type { ProfileSectionKey, ProvenanceValue } from "../../src/types/profile-provenance";
 import type { Database, Json } from "../../src/types/database";
 import { checkKeyFormat, ClipboardError, normaliseKey, takeKeyFromClipboard, verifyKeyWithProject } from "./supabase-key-input";
@@ -225,7 +225,9 @@ async function counsellorSession(admin: SupabaseClient, email: string): Promise<
 
 // ─── Gateway: the same RPCs as src/lib/supabase/admin/career-intelligence.ts ─
 
-function scriptGateway(db: SupabaseClient<Database>, counsellorUserId: string, studentUserId: string): CareerIntelligenceGateway {
+// `trusted` is the service-role client: since CC-16 (F1) only the trusted server identity
+// may submit AI results, on behalf of the authenticated counsellor (`counsellorUserId`).
+function scriptGateway(db: SupabaseClient<Database>, trusted: SupabaseClient<Database>, counsellorUserId: string, studentUserId: string): CareerIntelligenceGateway {
   const server = db as unknown as Parameters<typeof fetchStudentProfileSnapshotByUserId>[0];
   return {
     async getStaff() {
@@ -318,15 +320,18 @@ function scriptGateway(db: SupabaseClient<Database>, counsellorUserId: string, s
       });
       if (error) console.error(`! Recording the run outcome failed (${error.code ?? "error"}). The run stays "reserved" and expires after 15 minutes; it still counts toward the pilot cap.`);
     },
-    async createDraft({ studentUserId: id, title, content }) {
-      const { data, error } = await db.rpc("staff_create_recommendation_draft", { p_student_user_id: id, p_title: title, p_recommendation_type: "career", p_content: content as unknown as Json });
-      const draftId = rpcRowId(data);
-      if (error || !draftId) throw new Error(`The draft could not be created (${error?.code ?? "no id"}).`);
-      return draftId;
-    },
-    async linkDraft(runId, draftId) {
-      const { error } = await db.rpc("staff_link_ai_generation_run_draft", { p_run_id: runId, p_draft_id: draftId });
-      if (error) console.error(`! Linking the run to its draft failed (${error.code ?? "error"}).`);
+    async finalizeRun(a) {
+      const { data, error } = await trusted.rpc("staff_finalize_ai_generation_run", {
+        p_requester_user_id: counsellorUserId,
+        p_run_id: a.runId, p_student_user_id: a.studentUserId, p_consent_id: a.consentId,
+        p_report: a.report as unknown as Json, p_draft_content: a.content as unknown as Json,
+        p_usage: a.usage as unknown as Json,
+      });
+      if (error) throw new Error("AI finalization could not be confirmed. Reconcile the existing run; do not repeat the paid call.");
+      const row = data as { outcome?: string; draft_id?: string } | null;
+      if ((row?.outcome === "finalized" || row?.outcome === "duplicate") && typeof row.draft_id === "string" && row.draft_id) return { kind: row.outcome, draftId: row.draft_id };
+      if (row?.outcome === "consent_withdrawn" || row?.outcome === "failed") return { kind: row.outcome };
+      throw new Error("AI finalization could not be confirmed. Reconcile the existing run; do not repeat the paid call.");
     },
     async audit(action, id, context) {
       await db.rpc("record_admin_audit_log", { p_action: action, p_entity_type: "student", p_entity_id: id, p_summary: `${action} (NW09.2 QA live pilot script)`, p_changes: null, p_context: { ...context, source: "nw09-openai-pilot" } as unknown as Json });
@@ -351,7 +356,7 @@ async function main() {
   if (totals.usd + worstCase > PILOT_MAX_USD) fail(`The next call could exceed the $${PILOT_MAX_USD.toFixed(2)} pilot budget (local ledger). Stop here and report.`);
 
   const serviceKey = await obtainServiceKey(ref);
-  const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+  const admin = createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
   const studentEmail = (argValue("--student") ?? DEFAULT_STUDENT_EMAIL).toLowerCase();
   const [counsellorUser, studentUser] = await Promise.all([findUserByEmail(admin, COUNSELLOR_EMAIL), findUserByEmail(admin, studentEmail)]);
   if (!counsellorUser || (counsellorUser.app_metadata as Record<string, unknown> | undefined)?.test_account !== TEST_MARKER) fail(`${COUNSELLOR_EMAIL} is not a seeded QA test account. Run: npm run dev:test-counsellor -- --qa --key-from-clipboard`);
@@ -361,7 +366,7 @@ async function main() {
 
   const db = await counsellorSession(admin, COUNSELLOR_EMAIL);
   ok(`Signed in as ${COUNSELLOR_EMAIL} (one-time session; every write below runs as the counsellor through RLS).`);
-  const gw = scriptGateway(db, counsellorUser.id, studentUser.id);
+  const gw = scriptGateway(db, admin, counsellorUser.id, studentUser.id);
 
   // Read-only preflight through the same gateway.
   const snapshot = await gw.loadSnapshot(studentUser.id);

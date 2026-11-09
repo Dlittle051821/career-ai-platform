@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { ChevronLeft, FileCheck2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { getCurrentUser } from "@/lib/supabase/profile";
-import { listMyRecommendationReports } from "@/lib/supabase/education/recommendation-reports";
+import { loadMyRecommendationReports } from "@/lib/supabase/education/recommendation-reports";
+import { UnavailableNotice } from "@/components/ui/UnavailableNotice";
 
 export const metadata: Metadata = {
   title: "Recommendation Reports",
@@ -26,7 +27,7 @@ export default async function RecommendationReportsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/studio/recommendation-reports");
 
-  const reports = await listMyRecommendationReports();
+  const { reports, unavailable } = await loadMyRecommendationReports();
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -41,7 +42,11 @@ export default async function RecommendationReportsPage() {
         </p>
       </div>
 
-      {reports.length === 0 ? (
+      {unavailable ? (
+        <UnavailableNotice title="Recommendation reports are temporarily unavailable">
+          We couldn&apos;t load your reports just now. Nothing has been lost — please try again later.
+        </UnavailableNotice>
+      ) : reports.length === 0 ? (
         <Card className="flex flex-col items-center gap-3 py-14 text-center">
           <FileCheck2 aria-hidden="true" className="h-9 w-9 text-muted" />
           <h2 className="text-xl font-semibold text-primary">No reports yet</h2>

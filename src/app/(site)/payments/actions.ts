@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createOrReuseCheckoutSession, verifyCheckoutPayment, CheckoutError, type CheckoutSession } from "@/lib/supabase/payments/checkout";
 import { trackEvent } from "@/lib/supabase/analytics/track";
+import { isPaidCheckoutEnabled, OPEN_INVOICE_PAYMENT_PAUSED_MESSAGE } from "@/lib/payments/launch-mode";
 
 export interface CheckoutSessionResult {
   session: CheckoutSession | null;
@@ -11,6 +12,9 @@ export interface CheckoutSessionResult {
 
 /** Called from the client "Pay now" button — never trusts anything from the client beyond which invoice to pay; the amount charged is always recomputed server-side from the invoice's actual due balance. */
 export async function createCheckoutSessionAction(invoiceId: string): Promise<CheckoutSessionResult> {
+  // CC-22B: no Razorpay order is ever created while paid checkout is off,
+  // even if credentials happen to be configured or the action is called directly.
+  if (!isPaidCheckoutEnabled()) return { session: null, error: OPEN_INVOICE_PAYMENT_PAUSED_MESSAGE };
   try {
     const session = await createOrReuseCheckoutSession(invoiceId);
     // Fire-and-forget, after the real checkout-session logic has already

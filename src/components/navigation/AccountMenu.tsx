@@ -95,6 +95,7 @@ export function AccountMenu() {
       <div className="flex shrink-0 items-center gap-1.5">
         <Link
           href="/login"
+          aria-label="Sign In"
           className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-sm font-medium text-text-soft hover:text-primary"
         >
           <LogIn aria-hidden="true" className="h-4 w-4" />
@@ -102,6 +103,7 @@ export function AccountMenu() {
         </Link>
         <Link
           href="/register"
+          aria-label="Get Started"
           className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-control)] bg-primary px-3 py-1.5 text-sm font-medium text-on-primary shadow-soft hover:bg-primary-light"
         >
           <UserPlus aria-hidden="true" className="h-4 w-4" />

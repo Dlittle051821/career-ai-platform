@@ -55,12 +55,20 @@ export function DiscoverySessionBookingForm() {
     setSubmitting(true);
     setError(null);
 
-    const result = await bookDiscoverySessionAction({
-      preferredContactMethod: values.preferredContactMethod,
-      preferredTimeRange: values.preferredTimeRange || null,
-      preferredLanguage: values.preferredLanguage || null,
-      studentNotes: values.studentNotes.trim() || null,
-    });
+    let result: Awaited<ReturnType<typeof bookDiscoverySessionAction>>;
+    try {
+      result = await bookDiscoverySessionAction({
+        preferredContactMethod: values.preferredContactMethod,
+        preferredTimeRange: values.preferredTimeRange || null,
+        preferredLanguage: values.preferredLanguage || null,
+        studentNotes: values.studentNotes.trim() || null,
+      });
+    } catch {
+      // CC-22B — a dropped connection (or a deploy in between) used to leave the form stuck on "Booking…".
+      setSubmitting(false);
+      setError("We couldn't send your request — please check your connection and try again.");
+      return;
+    }
 
     setSubmitting(false);
     if (result.error) {
@@ -77,8 +85,13 @@ export function DiscoverySessionBookingForm() {
         <div>
           <p className="text-base font-semibold text-success">Your Discovery Session request is in</p>
           <p className="mt-1 text-sm leading-relaxed text-success">
-            A counsellor will reach out to confirm a time that works for you. This is completely free, with no
-            obligation to buy anything — you can keep exploring careers, courses, and colleges in the meantime.
+            This is a request, not a booked slot yet. A Nextwise counsellor will contact you using the method you
+            chose to agree a time. Nextwise does not send email or app notifications about it yet, so check back on
+            this page for the confirmed time. It&rsquo;s completely free, with no obligation to buy anything.
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-success">
+            You can&rsquo;t change or cancel a request online yet — if your plans change, tell your counsellor when
+            they contact you.
           </p>
         </div>
       </Card>
@@ -100,7 +113,8 @@ export function DiscoverySessionBookingForm() {
             <label
               key={method}
               className={cn(
-                "flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+                // CC-22B — the radio itself is visually hidden, so show its keyboard focus on the pill.
+                "flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-secondary",
                 values.preferredContactMethod === method
                   ? "border-secondary bg-secondary-light text-secondary-dark"
                   : "border-border-strong text-text-soft hover:bg-surface-alt"
@@ -163,8 +177,9 @@ export function DiscoverySessionBookingForm() {
 
       <div className="flex items-start gap-2 rounded-[var(--radius-control)] bg-surface-alt p-4 text-xs text-muted">
         <ShieldCheck aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
-        This is the free first conversation — separate from any paid plan. There is no obligation to purchase
-        anything.
+        This is the free first conversation — separate from any paid plan, with no obligation to purchase
+        anything. You&rsquo;re sending a request: a counsellor contacts you by your chosen method to agree a time.
+        Requests can&rsquo;t be changed or cancelled online yet.
       </div>
 
       {/* UX10-M01 — the Button component is `inline-flex` by default (shrinks

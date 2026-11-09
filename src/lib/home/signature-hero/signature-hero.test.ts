@@ -51,12 +51,13 @@ describe("homepage integration — off by default, previewable locally", () => {
     }
   });
 
-  it("page.tsx keeps HomeHero as the default and the existing section order", () => {
+  // NW-V4 — `/` renders the V4 Connected Experience directly (approved
+  // rollout: "replace the homepage"). The hero variants and their dev-only
+  // preview routes are untouched and still covered below.
+  it("page.tsx renders the V4 Connected Experience instead of the hero variants", () => {
     const page = read("src/app/(site)/page.tsx");
-    expect(page).toMatch(/heroVariant === "signature" \? <SignatureHero \/> : <HomeHero \/>/);
-    const order = ["<HomeHero", "<ProductEntryCards", "<StudioIntro", "<DiscoveryPillars", "<TrustedStudyExplorer", "<HowItWorks", "<WhyNextwise", "<HomeFinalCTA"].map((t) => page.indexOf(t));
-    expect(order.every((i) => i > -1)).toBe(true);
-    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(page).toContain("<V4ConnectedHome />");
+    expect(page).not.toMatch(/<HomeHero|<SignatureHero|<FilmHero|getHomepageHeroVariant/);
   });
 
   it("the homepage never receives the preview-only dev controls", () => {
@@ -126,8 +127,11 @@ describe("navigation and destinations", () => {
     }
   });
 
-  it("the hero never renders or references the logo files (the shared Logo in the header stays the only logo)", () => {
-    for (const rel of ALL_SOURCES) expect(read(rel)).not.toMatch(/nextwise-(logo|icon)/);
+  it("the signature hero never renders or references the logo files (the shared Logo in the header stays the only logo)", () => {
+    // FilmHero (the NW08.7 correction's ribbon story) is the one deliberate
+    // exception: its brief requires the finished state to BE the official
+    // N-arrow artwork, shown unchanged (see ribbon-story.test.ts).
+    for (const rel of ALL_SOURCES.filter((r) => !r.endsWith("/FilmHero.tsx"))) expect(read(rel)).not.toMatch(/nextwise-(logo|icon)/);
   });
 });
 
@@ -402,5 +406,24 @@ describe("source tree hygiene", () => {
     for (const f of ["SignatureHero.tsx", "SignatureHeroCopy.tsx", "SignatureRibbonArt.tsx", "SignatureHeroDevBar.tsx", "fonts.ts", "signature-hero.css"]) {
       expect(statSync(path.join(ROOT, SIGNATURE_DIR, f)).isFile()).toBe(true);
     }
+  });
+});
+
+describe("film hero switch — the interactive ribbon story, off by default", () => {
+  it("is selected only by NEXTWISE_HOMEPAGE_HERO exactly 'film'", () => {
+    expect(getHomepageHeroVariant("film")).toBe("film");
+    expect(getHomepageHeroVariant("Film")).toBe("current");
+    expect(getHomepageHeroVariant(" film")).toBe("current");
+    // NW-V4: `/` no longer switches on this variable (see the homepage integration block above).
+  });
+
+  // CC-22B reconciliation: the film preview route (src/app/(site)/homepage-preview/film)
+  // is an untracked development experiment in C:\carrier.ai and is deliberately not part
+  // of the launch candidate, so the check below only applies where that route exists.
+  const filmPreview = path.join(ROOT, "src/app/(site)/homepage-preview/film/page.tsx");
+  it.skipIf(!existsSync(filmPreview))("has a development-only preview route (when the film experiment is present)", () => {
+    const page = read("src/app/(site)/homepage-preview/film/page.tsx");
+    expect(page).toMatch(/if \(!isHomepagePreviewEnabled\(\)\) notFound\(\)/);
+    expect(page).toMatch(/index: false/);
   });
 });

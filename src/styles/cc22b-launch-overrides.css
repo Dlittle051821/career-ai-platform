@@ -1,0 +1,25 @@
+/*
+ * CC-22B launch overrides for the V4 homepage. The V4 source files
+ * (V4ConnectedHome.tsx, v4-home.css, engine.ts …) are deliberately left
+ * byte-identical so the separately packaged V5 preview can still verify them
+ * before it installs. These rules are additive and scoped to `.nw4`.
+ */
+
+/* P1 — the "Share your shortlist with a parent or guardian. Invite →" strip
+   advertised a feature that does not exist. It is the only `.strip` link in
+   the Studio scene's Abroad panel (the Career panel's strip books a real
+   Discovery Session and stays). display:none also removes it from the
+   accessibility tree. */
+.nw4 .panel[data-pn="studio"][data-key="abroad"] a.strip {
+  display: none !important;
+}
+
+/* P1 — failure fallback. If JavaScript runs but the scroll engine never
+   becomes ready (an error, or a very slow device), HomepageFailsafe marks the
+   root after a few seconds. Until the engine is ready, show the same static
+   hero the existing <noscript> fallback shows, and the site header. The
+   rules stop applying the moment the engine sets data-nw4-ready. */
+.nw4[data-nw4-failsafe]:not([data-nw4-ready]) .nw4-stage { visibility: visible !important; }
+.nw4[data-nw4-failsafe]:not([data-nw4-ready]) .nw4-layer:not(.L0),
+.nw4[data-nw4-failsafe]:not([data-nw4-ready]) .nmark { display: none !important; }
+body:has(.nw4[data-nw4-failsafe]:not([data-nw4-ready])) > header { opacity: 1 !important; }

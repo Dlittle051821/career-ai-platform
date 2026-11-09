@@ -13,6 +13,7 @@ import { recordPricingAnalyticsEvent } from "@/lib/supabase/pricing/analytics";
 import { isVersionCurrentlyEffective } from "@/lib/pricing/plan-versions";
 import { PRICING_FAQS } from "@/data/faqs";
 import { BRAND_NAME } from "@/config/site";
+import { isPaidCheckoutEnabled } from "@/lib/payments/launch-mode";
 
 export const metadata: Metadata = publicPageMetadata(
   "/pricing",
@@ -31,16 +32,17 @@ const MANDATORY_TERMS = [
 
 export default async function PricingPage() {
   const plans = await listPublicPricingPlans();
+  const paidCheckoutEnabled = isPaidCheckoutEnabled();
 
   const visibleLivePlanIds = plans.filter((p) => p.plan.isActive && p.version && isVersionCurrentlyEffective(p.version)).map((p) => p.plan.id);
   await Promise.allSettled(visibleLivePlanIds.map((planId) => recordPricingAnalyticsEvent({ eventType: "plan_view", planId })));
 
   return (
     <>
-      <PricingHero />
+      <PricingHero paidCheckoutEnabled={paidCheckoutEnabled} />
 
       <Section tone="surface" containerClassName="max-w-[1500px]">
-        <PricingPlansSection plans={plans} />
+        <PricingPlansSection plans={plans} paidCheckoutEnabled={paidCheckoutEnabled} />
       </Section>
 
       <Section tone="muted">

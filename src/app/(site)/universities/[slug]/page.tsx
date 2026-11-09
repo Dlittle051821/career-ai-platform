@@ -8,7 +8,10 @@ import { Badge } from "@/components/ui/Badge";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { LinkButton } from "@/components/ui/Button";
 import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
-import { FreshnessBadge, humanizeEnumValue } from "@/components/sections/education/UniversityCard";
+import { humanizeEnumValue } from "@/components/sections/education/UniversityCard";
+import { DataStatusBadge } from "@/components/sections/education/DataStatusBadge";
+import { UnverifiedRecordNotice } from "@/components/sections/education/UnverifiedRecordNotice";
+import { isVerifiedEducationRecord, lastCheckedLabel, shouldShowRankings, UNVERIFIED_SCHOLARSHIP_NOTE } from "@/lib/education/verification-display";
 import { SaveUniversityButton } from "@/components/sections/education/SaveUniversityButton";
 import {
   getPublicUniversityBySlug,
@@ -153,7 +156,7 @@ export default async function UniversityDetailPage({ params }: UniversityDetailP
           <div className="flex flex-wrap items-center gap-2">
             {university.institutionType ? <Badge tone="info">{humanizeEnumValue(university.institutionType)}</Badge> : null}
             {university.ownershipType ? <Badge tone="neutral">{humanizeEnumValue(university.ownershipType)}</Badge> : null}
-            <FreshnessBadge band={university.freshnessBand} />
+            <DataStatusBadge verificationStatus={university.verificationStatus} freshnessBand={university.freshnessBand} />
           </div>
           <h1 className="mt-3 text-3xl font-semibold text-primary balance sm:text-4xl">{university.name}</h1>
           {(location || university.city) ? (
@@ -166,6 +169,10 @@ export default async function UniversityDetailPage({ params }: UniversityDetailP
         </div>
         <SaveUniversityButton universityId={university.id} slug={university.slug} isLoggedIn={isLoggedIn} initialSaved={savedIds.includes(university.id)} />
       </div>
+
+      {!isVerifiedEducationRecord(university.verificationStatus) ? (
+        <UnverifiedRecordNotice officialUrl={university.websiteUrl} officialLabel={`Visit the official ${university.name} website`} />
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
@@ -202,6 +209,7 @@ export default async function UniversityDetailPage({ params }: UniversityDetailP
                 <dt className="text-xs font-medium uppercase tracking-wide text-muted">Scholarships available</dt>
                 <dd className="mt-1 text-sm text-text-soft">
                   {university.scholarshipsAvailable == null ? "Not available" : university.scholarshipsAvailable ? "Yes" : "No"}
+                  {university.scholarshipsAvailable && !isVerifiedEducationRecord(university.verificationStatus) ? <span className="block text-xs text-muted">Not yet verified</span> : null}
                 </dd>
               </div>
               {university.foundingYear != null ? (
@@ -240,7 +248,7 @@ export default async function UniversityDetailPage({ params }: UniversityDetailP
             </div>
           </Card>
 
-          {university.ranking.length > 0 ? (
+          {university.ranking.length > 0 && shouldShowRankings(university.verificationStatus) ? (
             <Card>
               <h2 className="text-lg font-semibold text-primary">Rankings</h2>
               <div className="mt-3 space-y-2">
@@ -296,6 +304,7 @@ export default async function UniversityDetailPage({ params }: UniversityDetailP
           {scholarships.length > 0 ? (
             <Card>
               <h2 className="text-lg font-semibold text-primary">Scholarships at this university</h2>
+              {!isVerifiedEducationRecord(university.verificationStatus) ? <p className="mt-1 text-xs text-muted">{UNVERIFIED_SCHOLARSHIP_NOTE}</p> : null}
               <div className="mt-3 space-y-3">
                 {scholarships.map((scholarship) => (
                   <div key={scholarship.id} className="rounded-[var(--radius-control)] border border-border p-3">
@@ -345,7 +354,7 @@ export default async function UniversityDetailPage({ params }: UniversityDetailP
                 <dd className="mt-1 text-text-soft">{verificationLabel(university.verificationStatus)}</dd>
               </div>
               <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Last verified</dt>
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted">{lastCheckedLabel(university.verificationStatus)}</dt>
                 <dd className="mt-1 text-text-soft">{lastVerifiedLabel ?? "Not available"}</dd>
               </div>
               {university.sourceUrl ? (

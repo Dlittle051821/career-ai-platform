@@ -24,7 +24,7 @@ import type { PricingPlanWithVersion } from "@/types/pricing";
  * treatment via `premium={plan.isRecommended}`, reusing the same real flag
  * that already drives their badge rather than hardcoding their slugs here.
  */
-export function PricingPlansSection({ plans }: { plans: PricingPlanWithVersion[] }) {
+export function PricingPlansSection({ plans, paidCheckoutEnabled = false }: { plans: PricingPlanWithVersion[]; paidCheckoutEnabled?: boolean }) {
   const active = plans.filter((p) => p.plan.isActive).sort((a, b) => a.plan.displayOrder - b.plan.displayOrder);
 
   const filterItems: PricingFilterItem[] = active.map((item) => {
@@ -44,6 +44,7 @@ export function PricingPlansSection({ plans }: { plans: PricingPlanWithVersion[]
           inclusions={item.inclusions}
           highlight={item.plan.isRecommended}
           premium={item.plan.isRecommended}
+          paidCheckoutEnabled={paidCheckoutEnabled}
         />
       ),
     };

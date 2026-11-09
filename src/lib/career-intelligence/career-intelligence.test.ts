@@ -234,8 +234,7 @@ function makeGateway(over: Partial<CareerIntelligenceGateway> = {}) {
     getConsent: async () => VALID_CONSENT,
     reserveRun: vi.fn(async () => ({ kind: "reserved" as const, runId: "run-1" })),
     completeRun: vi.fn(async () => {}),
-    createDraft: vi.fn(async () => "draft-1"),
-    linkDraft: vi.fn(async () => {}),
+    finalizeRun: vi.fn(async () => ({ kind: "finalized" as const, draftId: "draft-1" })),
     audit: vi.fn(async (a: string) => {
       calls.push(a);
     }),
@@ -319,27 +318,29 @@ describe("requestCareerAnalysis — authorisation, entitlement, consent, limits,
     const { gw } = makeGateway({ reserveRun: vi.fn(async () => ({ kind: "duplicate" as const, runId: "run-1", status: "succeeded", draftId: "draft-1" })) });
     expect(await requestCareerAnalysis(input(), gw, { config: devConfig, provider: p })).toMatchObject({ kind: "duplicate", draftId: "draft-1" });
     expect(gen).not.toHaveBeenCalled();
-    expect(gw.createDraft).not.toHaveBeenCalled();
+    expect(gw.finalizeRun).not.toHaveBeenCalled();
   });
   it("success: one provider call, outcome recorded, an ordinary DRAFT created and linked, audited", async () => {
     const p = mock();
     const gen = vi.spyOn(p, "generate");
-    const { gw, calls } = makeGateway();
+    const { gw } = makeGateway();
     const o = await requestCareerAnalysis(input(), gw, { config: devConfig, provider: p });
     expect(o.kind).toBe("draft_created");
     expect(gen).toHaveBeenCalledTimes(1);
     expect(gw.reserveRun).toHaveBeenCalledWith(expect.objectContaining({ dataClass: "real_student", consentId: "consent-1", idempotencyKey: KEY }));
-    expect(gw.completeRun).toHaveBeenCalledWith("run-1", expect.objectContaining({ status: "succeeded" }));
-    expect(gw.createDraft).toHaveBeenCalledWith(expect.objectContaining({ studentUserId: STUDENT, content: expect.objectContaining({ aiAssisted: true }) }));
-    expect(gw.linkDraft).toHaveBeenCalledWith("run-1", "draft-1");
-    expect(calls).toContain("AI-assisted career draft generated");
+    expect(gw.finalizeRun).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+      runId: "run-1", studentUserId: STUDENT, consentId: "consent-1",
+      content: expect.objectContaining({ aiAssisted: true }), report: expect.any(Object), usage: expect.any(Object),
+    }));
+    expect(gw.completeRun).not.toHaveBeenCalled();
+    expect(gw.audit).not.toHaveBeenCalled(); // audit is in the finalization transaction
   });
   it("provider failure: outcome recorded as failed, NO draft created", async () => {
     const { gw } = makeGateway();
     const o = await requestCareerAnalysis(input(), gw, { config: devConfig, provider: createMockProvider(mockCareerAnalyst, { failWith: "wrong_shape" }) });
     expect(o).toMatchObject({ kind: "not_generated", outcome: { kind: "failed", status: "invalid_output" } });
     expect(gw.completeRun).toHaveBeenCalledWith("run-1", expect.objectContaining({ status: "invalid_output", report: null }));
-    expect(gw.createDraft).not.toHaveBeenCalled();
+    expect(gw.finalizeRun).not.toHaveBeenCalled();
   });
   it("a provider that throws unexpectedly is recorded as failed (the reservation is never left dangling)", async () => {
     const boom: AiProvider = {
@@ -390,28 +391,22 @@ describe("draft creation result handling (QA bug: 'The analysis could not be com
     walk(root);
     expect(offenders).toEqual([]);
   });
-  it("creates the draft BEFORE marking the run succeeded, then links it", async () => {
-    const order: string[] = [];
-    const { gw } = makeGateway({
-      createDraft: vi.fn(async () => (order.push("createDraft"), "draft-1")),
-      completeRun: vi.fn(async (_id: string, c: { status: string }) => {
-        order.push(`completeRun:${c.status}`);
-      }),
-      linkDraft: vi.fn(async () => {
-        order.push("linkDraft");
-      }),
-    });
+  it("saves success through one atomic gateway operation, never a split completion or link", async () => {
+    const { gw } = makeGateway();
     const o = await requestCareerAnalysis(input(), gw, { config: devConfig, provider: mock() });
     expect(o.kind).toBe("draft_created");
-    expect(order).toEqual(["createDraft", "completeRun:succeeded", "linkDraft"]);
+    expect(gw.finalizeRun).toHaveBeenCalledTimes(1);
+    expect(gw.completeRun).not.toHaveBeenCalled();
+    expect(Object.keys(gw)).not.toContain("createDraft");
+    expect(Object.keys(gw)).not.toContain("linkDraft");
   });
-  it("if the draft cannot be created, the run is recorded as FAILED (no report kept, never linked) and the counsellor is told", async () => {
-    const { gw, calls } = makeGateway({ createDraft: vi.fn(async () => Promise.reject(new Error("The draft could not be created."))) });
-    const o = await requestCareerAnalysis(input(), gw, { config: devConfig, provider: mock() });
+  it("a rolled-back finalization returns failure without another write or a second provider call", async () => {
+    const { gw } = makeGateway({ finalizeRun: vi.fn(async () => ({ kind: "failed" as const })) });
+    const p = mock(); const generate = vi.spyOn(p, "generate");
+    const o = await requestCareerAnalysis(input(), gw, { config: devConfig, provider: p });
     expect(o).toMatchObject({ kind: "not_generated", runId: "run-1", outcome: { kind: "failed" } });
-    expect(gw.completeRun).toHaveBeenCalledTimes(1);
-    expect(gw.completeRun).toHaveBeenCalledWith("run-1", expect.objectContaining({ status: "failed", report: null }));
-    expect(gw.linkDraft).not.toHaveBeenCalled();
-    expect(calls).toContain("AI career analysis not generated");
+    expect(gw.completeRun).not.toHaveBeenCalled(); // SQL retained accounting atomically
+    expect(gw.audit).not.toHaveBeenCalled();
+    expect(generate).toHaveBeenCalledTimes(1);
   });
 });

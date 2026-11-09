@@ -1,3 +1,4 @@
+-- PROPOSED - DO NOT APPLY. Requires separate written pricing approval; apply only after 05 (see docs/stabilization/nw-f01-s3/CC-18-REVIEW.md).
 -- ============================================================================
 -- NW01 "Trust & System Integrity" — PROPOSED FIX, NOT AUTO-APPLIED.
 --
@@ -100,6 +101,31 @@
 --   -- not be the commercially-intended treatment for that specific plan.
 -- ============================================================================
 
+-- ============================================================================
+-- CC-18 (P0, GST integrity) — additions on top of the NW01 Part H fix:
+--   * fails closed when GST registration is enabled but the GSTIN or rate is
+--     missing/invalid, or billing_settings is missing (never silently zero tax),
+--     using the shared check public.nw_billing_tax_config_problem() from
+--     supabase/migrations-proposed/nw-f01-s3/05_payment_attempt_integrity.sql;
+--   * Nextwise Verified (slug nextwise-verified) is locked to exactly 199,900
+--     paise INR inclusive of GST: no offers or coupons, never tax_exclusive,
+--     must be tax_inclusive while GST is registered, total asserted = 199,900;
+--   * an existing unpaid Verified invoice is only reused if it still passes the
+--     authoritative charge check; otherwise checkout stops for support review;
+--   * search_path pinned; the whole change is one transaction.
+-- Requires 05_payment_attempt_integrity.sql (CC-18 version) to be applied first.
+-- ============================================================================
+begin;
+set local lock_timeout = '5s';
+set local statement_timeout = '60s';
+do $$ begin
+  if current_user <> 'postgres' then raise exception 'Reviewed migration owner must be postgres'; end if;
+  if to_regprocedure('public.nw_billing_tax_config_problem()') is null
+     or to_regprocedure('public.nw_invoice_charge_problem(uuid,bigint,text,uuid)') is null then
+    raise exception 'Apply 05_payment_attempt_integrity.sql (CC-18) before this migration';
+  end if;
+end $$;
+
 create or replace function public.purchase_pricing_plan(
   p_plan_id uuid,
   p_offer_id uuid default null,
@@ -108,10 +134,12 @@ create or replace function public.purchase_pricing_plan(
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = pg_catalog, public, pg_temp
 as $$
 declare
   v_uid uuid;
+  v_is_verified boolean;
+  v_config_problem text;
   v_version public.pricing_plan_versions;
   v_offer public.pricing_offers;
   v_existing_invoice_id uuid;
@@ -154,7 +182,17 @@ begin
   order by created_at desc
   limit 1;
 
+  v_is_verified := exists (select 1 from public.pricing_plans where id = p_plan_id and slug = 'nextwise-verified');
+
   if v_existing_invoice_id is not null then
+    -- CC-18: an unpaid Verified invoice issued under an earlier (e.g. invalid
+    -- or tax-on-top) configuration is never handed back as payable.
+    if v_is_verified and public.nw_invoice_charge_problem(
+         v_existing_invoice_id,
+         (select total_minor_units from public.invoices where id = v_existing_invoice_id),
+         'INR', v_uid) is not null then
+      raise exception 'Your existing Nextwise Verified invoice needs review by support before checkout. You have not been charged.';
+    end if;
     return jsonb_build_object('invoice_id', v_existing_invoice_id, 'reused', true);
   end if;
 
@@ -173,6 +211,18 @@ begin
 
   if v_version.id is null then
     raise exception 'This plan is not currently available for purchase.';
+  end if;
+
+  if v_is_verified then
+    if p_offer_id is not null or p_coupon_code is not null then
+      raise exception 'Offers and coupons do not apply to Nextwise Verified.';
+    end if;
+    if v_version.currency <> 'INR' or v_version.amount_minor_units <> 199900 then
+      raise exception 'Nextwise Verified is not correctly configured. Checkout is unavailable.';
+    end if;
+    if v_version.tax_status = 'tax_exclusive' then
+      raise exception 'Nextwise Verified must be priced inclusive of GST. Checkout is unavailable.';
+    end if;
   end if;
 
   if p_offer_id is not null or p_coupon_code is not null then
@@ -216,9 +266,18 @@ begin
     end if;
   end if;
 
+  -- CC-18: authoritative tax configuration. Registration enabled with a
+  -- missing/invalid GSTIN or rate (or no billing_settings row) FAILS CLOSED.
+  v_config_problem := public.nw_billing_tax_config_problem();
+  if v_config_problem is not null then
+    raise exception 'Checkout is unavailable: the billing tax configuration is incomplete (%).', v_config_problem;
+  end if;
   select * into v_settings from public.billing_settings where id = 1;
-  v_gst_configured := v_settings.gst_registered and v_settings.gstin is not null and length(trim(v_settings.gstin)) > 0;
+  v_gst_configured := v_settings.gst_registered;
   v_tax_rate_bps := case when v_gst_configured then v_settings.default_tax_rate_bps else null end;
+  if v_is_verified and v_gst_configured and v_version.tax_status is distinct from 'tax_inclusive' then
+    raise exception 'Nextwise Verified must be marked tax-inclusive while GST is registered. Checkout is unavailable.';
+  end if;
   v_taxable_base := v_version.amount_minor_units - v_discount_minor;
 
   -- NW01 Part H fix — `tax_status` is now actually consulted (it never
@@ -246,6 +305,9 @@ begin
 
   if v_total_minor < 0 then
     raise exception 'Computed price is invalid.';
+  end if;
+  if v_is_verified and (v_total_minor <> 199900 or v_discount_minor <> 0) then
+    raise exception 'Nextwise Verified must cost exactly 1,999 INR including GST. Checkout is unavailable.';
   end if;
 
   select full_name, email into v_student_name, v_student_email from public.profiles where id = v_uid;
@@ -356,3 +418,15 @@ begin
   );
 end;
 $$;
+
+do $$ begin
+  if not exists(select 1 from pg_proc where oid = 'public.purchase_pricing_plan(uuid,uuid,text)'::regprocedure
+                and prosrc like '%nw_billing_tax_config_problem%' and prosrc like '%nextwise-verified%') then
+    raise exception 'Postcondition failed: purchase_pricing_plan GST integrity not installed';
+  end if;
+  -- Grants are unchanged by CREATE OR REPLACE (0007/0008: authenticated).
+  if not has_function_privilege('authenticated', 'public.purchase_pricing_plan(uuid,uuid,text)', 'execute') then
+    raise exception 'Unexpected grant posture on purchase_pricing_plan';
+  end if;
+end $$;
+commit;

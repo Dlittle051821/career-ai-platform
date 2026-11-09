@@ -1,15 +1,6 @@
 import type { Metadata } from "next";
 import { publicPageMetadata } from "@/config/seo";
-import { HomeHero } from "@/components/sections/home/HomeHero";
-import { SignatureHero } from "@/components/sections/home/signature/SignatureHero";
-import { getHomepageHeroVariant } from "@/lib/home/signature-hero/variant";
-import { ProductEntryCards } from "@/components/sections/home/ProductEntryCards";
-import { StudioIntro } from "@/components/sections/home/StudioIntro";
-import { DiscoveryPillars } from "@/components/sections/home/DiscoveryPillars";
-import { TrustedStudyExplorer } from "@/components/sections/home/TrustedStudyExplorer";
-import { HowItWorks } from "@/components/sections/home/HowItWorks";
-import { WhyNextwise } from "@/components/sections/home/WhyNextwise";
-import { HomeFinalCTA } from "@/components/sections/home/HomeFinalCTA";
+import { V4ConnectedHome } from "@/components/sections/home/v4/V4ConnectedHome";
 
 // Public search and sharing metadata describe the services on this page.
 //
@@ -50,25 +41,16 @@ export const metadata: Metadata = publicPageMetadata(
   "Explore careers, compare courses and universities, and plan study in India or Europe. Start with a free discovery session with NextWise.",
 );
 
+// NW-V4 — the homepage is the V4 "Connected Experience": one pinned,
+// scroll-driven story (Intro → Two Pathways → Career Intelligence → Study
+// Abroad → Student Studio → Trust & Guidance → Final conversion) guided by
+// the official N. It replaces the previous section composition below the
+// hero (ProductEntryCards, StudioIntro, DiscoveryPillars,
+// TrustedStudyExplorer, HowItWorks, WhyNextwise, HomeFinalCTA) and the
+// HomeHero / SignatureHero / FilmHero variants. Those component files are
+// deliberately left on disk, unreferenced from `/` (the dev-only
+// /homepage-preview routes and the regression guards that read them keep
+// working) — see docs/home-v4/IMPLEMENTATION.md.
 export default function HomePage() {
-  // NW08.7 — the signature motion hero is integrated but OFF by default: `/`
-  // renders the current approved HomeHero unless NEXTWISE_HOMEPAGE_HERO is
-  // exactly "signature" at build time (see src/lib/home/signature-hero/
-  // variant.ts). Compare both locally at `/` and `/homepage-preview`.
-  const heroVariant = getHomepageHeroVariant();
-  return (
-    <>
-      {heroVariant === "signature" ? <SignatureHero /> : <HomeHero />}
-      {/* NW04.2 — the two-product "choose where to start" entry section
-          and the Student Studio introduction, both new and additive.
-          See ProductEntryCards.tsx's and StudioIntro.tsx's own docblocks. */}
-      <ProductEntryCards />
-      <StudioIntro />
-      <DiscoveryPillars />
-      <TrustedStudyExplorer />
-      <HowItWorks />
-      <WhyNextwise />
-      <HomeFinalCTA />
-    </>
-  );
+  return <V4ConnectedHome />;
 }

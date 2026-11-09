@@ -306,7 +306,10 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
         </div>
       ) : null}
 
-      <h2 className="mb-3 text-lg font-semibold text-primary">NextWise verified results</h2>
+      <h2 className="mb-1 text-lg font-semibold text-primary">Courses in the Nextwise starter dataset</h2>
+      <p className="mb-3 max-w-2xl text-sm text-muted">
+        Records marked &ldquo;Not yet verified&rdquo; have not been checked by Nextwise yet — confirm details on the official course page.
+      </p>
       {emptyState !== "has_results" ? (
         <EmptyState
           tone={emptyState === "error" ? "error" : emptyState === "filtered_empty" ? "filtered" : "empty"}
@@ -321,7 +324,7 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
             emptyState === "error"
               ? "Something went wrong loading the course dataset. Please try again in a moment."
               : emptyState === "filtered_empty"
-                ? "We do not currently hold verified programme records for this search. Continue on the trusted official portal below."
+                ? "We do not currently hold programme records for this search. Continue on the trusted official portal below."
                 : "New courses are added over time. Continue on the trusted official portal below in the meantime."
           }
           action={
@@ -355,7 +358,7 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
           {destinationInternalCountMatches ? (
             <p className="mt-1 text-sm text-muted">
               NextWise&apos;s own catalogue currently includes {results.total} matching course{results.total === 1 ? "" : "s"} for{" "}
-              {destinationDisplayName} — the official source below covers more than NextWise has verified so far.
+              {destinationDisplayName} — the official source below covers far more than this starter dataset.
             </p>
           ) : null}
         </div>
@@ -376,7 +379,7 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
 
       <GuidanceNotice className="mt-8">
         This is a representative starter dataset, not an exhaustive worldwide database — new courses are added over
-        time, and coverage varies by institution and country. Each result shows when it was last verified; always
+        time, and coverage varies by institution and country. Each result shows whether Nextwise has verified it; always
         confirm current fees, deadlines, and admission requirements directly with the institution before you act on
         them.
       </GuidanceNotice>

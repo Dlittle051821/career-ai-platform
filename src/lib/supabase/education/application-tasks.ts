@@ -147,19 +147,24 @@ interface MyOpenApplicationTaskRow {
  * other read function in this module.
  */
 export async function listMyOpenApplicationTasks(): Promise<MyOpenApplicationTaskSummary[]> {
+  return (await loadMyOpenApplicationTasks()).tasks;
+}
+
+/** CC-22B — same read, but reports when tasks could not be loaded (e.g. the NW06 RPC is missing) so counts are never silently shown as zero. */
+export async function loadMyOpenApplicationTasks(): Promise<{ tasks: MyOpenApplicationTaskSummary[]; unavailable: boolean }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return [];
+  if (!user) return { tasks: [], unavailable: false };
 
   const { data, error } = await supabase.rpc("get_my_open_application_tasks");
   if (error) {
     logDbError("listMyOpenApplicationTasks", error);
-    return [];
+    return { tasks: [], unavailable: true };
   }
 
-  return ((data ?? []) as unknown as MyOpenApplicationTaskRow[]).map((row) => ({
+  const tasks = ((data ?? []) as unknown as MyOpenApplicationTaskRow[]).map((row) => ({
     id: row.id,
     applicationId: row.application_id,
     taskType: row.task_type,
@@ -170,6 +175,7 @@ export async function listMyOpenApplicationTasks(): Promise<MyOpenApplicationTas
     externalPaymentCurrency: row.external_payment_currency,
     createdAt: row.created_at,
   }));
+  return { tasks, unavailable: false };
 }
 
 /**

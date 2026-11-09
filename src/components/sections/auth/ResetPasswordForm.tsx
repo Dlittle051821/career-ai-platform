@@ -137,7 +137,6 @@ export function ResetPasswordForm() {
             onClick={() => setShowPassword((v) => !v)}
             aria-label={showPassword ? "Hide password" : "Show password"}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text"
-            tabIndex={-1}
           >
             {showPassword ? <EyeOff aria-hidden="true" className="h-4 w-4" /> : <Eye aria-hidden="true" className="h-4 w-4" />}
           </button>

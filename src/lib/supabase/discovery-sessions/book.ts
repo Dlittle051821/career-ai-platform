@@ -81,7 +81,7 @@ async function requireUserId(supabase: ServerSupabase): Promise<string> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("not authenticated");
+  if (!user) throw new Error("Please log in again to request a Discovery Session.");
   return user.id;
 }
 
@@ -156,7 +156,8 @@ export async function bookDiscoverySession(input: BookDiscoverySessionInput): Pr
       throw new Error("You already have a Discovery Session request in progress — no need to book another one.");
     }
     logDbError("bookDiscoverySession", error);
-    throw new Error(error.message);
+    // CC-22B — never show raw database/RLS text to a student; the detail is logged above.
+    throw new Error("We couldn't save your request just now. Please try again in a moment.");
   }
 
   void trackEvent({

@@ -78,8 +78,10 @@ export default async function RecommendationDraftPage({ params }: Recommendation
 
   const boundUpdateContent = updateRecommendationDraftContentAction.bind(null, id);
   const boundSubmit = submitRecommendationDraftForReviewAction.bind(null, id);
-  const boundApprove = reviewRecommendationDraftAction.bind(null, id, "approve");
-  const boundRequestChanges = reviewRecommendationDraftAction.bind(null, id, "request_changes");
+  // The reviewer decides on exactly the version rendered on this page (CC-15, F4).
+  const reviewedVersionId = latestVersion?.id ?? null;
+  const boundApprove = reviewRecommendationDraftAction.bind(null, id, reviewedVersionId, "approve");
+  const boundRequestChanges = reviewRecommendationDraftAction.bind(null, id, reviewedVersionId, "request_changes");
   const boundRelease = releaseRecommendationDraftAction.bind(null, id);
   const boundWithdraw = withdrawRecommendationDraftAction.bind(null, id);
   const boundArchive = archiveRecommendationDraftAction.bind(null, id);

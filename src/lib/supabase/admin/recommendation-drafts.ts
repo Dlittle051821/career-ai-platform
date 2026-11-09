@@ -326,17 +326,28 @@ export async function submitRecommendationDraftForReview(draftId: string): Promi
  * staff_review_recommendation_draft() itself (raises if the caller is the
  * draft's own author) — this function relays that error as-is, exactly the
  * same "relay as-is" discipline updateApplicationTaskStatus() uses.
+ * `expectedVersionId` is the version the reviewer was shown; the RPC refuses
+ * the decision if the draft's current version has changed since (CC-15, F4).
  */
-export async function reviewRecommendationDraft(draftId: string, decision: "approve" | "request_changes", reviewNotes?: string | null): Promise<void> {
+export async function reviewRecommendationDraft(
+  draftId: string,
+  decision: "approve" | "request_changes",
+  expectedVersionId: string | null,
+  reviewNotes?: string | null,
+): Promise<void> {
   const admin = await requireAdminPermission("recommendation-drafts:write");
   if (decision === "request_changes" && !reviewNotes?.trim()) {
     throw new AdminValidationError("Review notes are required when requesting changes.");
+  }
+  if (!expectedVersionId) {
+    throw new AdminValidationError("This draft has no content to review yet. Reload the page and try again.");
   }
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("staff_review_recommendation_draft", {
     p_draft_id: draftId,
     p_decision: decision,
+    p_expected_version_id: expectedVersionId,
     p_review_notes: reviewNotes ?? null,
   });
   if (error) {
@@ -349,7 +360,7 @@ export async function reviewRecommendationDraft(draftId: string, decision: "appr
     entityType: "recommendation_draft",
     entityId: draftId,
     entityLabel: `recommendation draft ${draftId}`,
-    context: { draftId, decision, actorRole: admin.role },
+    context: { draftId, decision, reviewedVersionId: expectedVersionId, actorRole: admin.role },
   });
 }
 

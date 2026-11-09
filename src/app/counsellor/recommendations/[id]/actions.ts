@@ -56,13 +56,14 @@ export async function submitRecommendationDraftForReviewAction(draftId: string, 
 
 export async function reviewRecommendationDraftAction(
   draftId: string,
+  expectedVersionId: string | null,
   decision: "approve" | "request_changes",
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
   const reviewNotes = String(formData.get("reviewNotes") ?? "").trim() || null;
   try {
-    await reviewRecommendationDraft(draftId, decision, reviewNotes);
+    await reviewRecommendationDraft(draftId, decision, expectedVersionId, reviewNotes);
   } catch (error) {
     return { error: friendlyAdminError(error) };
   }

@@ -12,6 +12,7 @@ import {
 import { cleanFilterParam, clampPageSize, pageToRange, parsePageParam } from "@/lib/admin/pagination";
 import type { AdminListResult } from "@/types/admin";
 import { trackEvent } from "../analytics/track";
+import { istDateTimeLocalToUtcIso, InvalidIstDateTimeError } from "@/lib/discovery-sessions/ist";
 import type {
   DiscoverySession,
   DiscoverySessionContactMethod,
@@ -154,6 +155,15 @@ interface DiscoverySessionUpdateInput {
   cancellationReason: string | null;
 }
 
+function parseScheduledAtIst(raw: string): string {
+  try {
+    return istDateTimeLocalToUtcIso(raw);
+  } catch (error) {
+    if (error instanceof InvalidIstDateTimeError) throw new AdminValidationError(error.message);
+    throw error;
+  }
+}
+
 function parseDiscoverySessionForm(formData: FormData): DiscoverySessionUpdateInput {
   const assignedCounsellorId = String(formData.get("assignedCounsellorId") ?? "").trim() || null;
   const status = String(formData.get("status") ?? "").trim() as DiscoverySessionStatus;
@@ -162,7 +172,8 @@ function parseDiscoverySessionForm(formData: FormData): DiscoverySessionUpdateIn
   return {
     assignedCounsellorId,
     status,
-    scheduledAt: scheduledAtRaw ? new Date(scheduledAtRaw).toISOString() : null,
+    // CC-22B: the form field is labelled IST; interpret it as Asia/Kolkata on any server.
+    scheduledAt: scheduledAtRaw ? parseScheduledAtIst(scheduledAtRaw) : null,
     cancellationReason,
   };
 }

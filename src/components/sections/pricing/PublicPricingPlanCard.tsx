@@ -12,6 +12,7 @@ import { planEyebrowLabel } from "@/lib/pricing/plan-eyebrow";
 import { planAccent } from "@/lib/pricing/plan-accent";
 import { PLAN_ICON_BY_SLUG, DEFAULT_PLAN_ICON } from "@/lib/pricing/plan-icon";
 import type { PricingInclusion, PricingOffer, PricingPlan, PricingPlanVersion } from "@/types/pricing";
+import { DISCOVERY_SESSION_BOOKING_PATH } from "@/lib/payments/launch-mode-shared";
 
 /** A real ₹0 plan (Nextwise Explore) reads as "FREE", never "₹0.00" — formatMoney is for a real charge amount; zero is a distinct, honest case the reference spec calls out by name. */
 function formatPlanPrice(amountMinorUnits: number, currency: string): string {
@@ -44,6 +45,7 @@ export function PublicPricingPlanCard({
   inclusions,
   highlight = false,
   premium = false,
+  paidCheckoutEnabled = false,
 }: {
   plan: PricingPlan;
   version: PricingPlanVersion | null;
@@ -60,6 +62,12 @@ export function PublicPricingPlanCard({
    * being a dark Premium-tier card, or vice versa.
    */
   premium?: boolean;
+  /**
+   * CC-22B — the server-resolved launch payment mode (src/lib/payments/launch-mode.ts).
+   * Defaults to false so a card rendered anywhere without an explicit decision
+   * can never link into checkout.
+   */
+  paidCheckoutEnabled?: boolean;
 }) {
   const hasLiveVersion = version !== null && isVersionCurrentlyEffective(version);
   const validOffer = hasLiveVersion && version && offer && isOfferCurrentlyRedeemable(offer) && !isOfferExhausted(offer) ? offer : null;
@@ -261,7 +269,22 @@ export function PublicPricingPlanCard({
       </div>
 
       <div className="mt-7 space-y-2">
-        {hasLiveVersion && version ? (
+        {hasLiveVersion && version && !paidCheckoutEnabled ? (
+          <>
+            <LinkButton
+              href={version.amountMinorUnits === 0 ? "/register" : DISCOVERY_SESSION_BOOKING_PATH}
+              variant={premium ? "secondary" : "primary"}
+              size="lg"
+              className={cn("w-full justify-center font-semibold", premium && "bg-[#38bdf8] text-[#06273f] hover:bg-[#67d4fb]")}
+            >
+              {version.amountMinorUnits === 0 ? "Create a free account" : "Book a Free Discovery Session"}
+            </LinkButton>
+            {version.amountMinorUnits > 0 ? (
+              <p className={cn("text-center text-xs", premium ? "text-white/70" : "text-muted")}>Online payment isn&rsquo;t open yet — this price is shown for information.</p>
+            ) : null}
+          </>
+        ) : null}
+        {hasLiveVersion && version && paidCheckoutEnabled ? (
           <LinkButton
             href={`/pricing/checkout/${plan.slug}`}
             variant={premium ? "secondary" : "primary"}
@@ -271,9 +294,11 @@ export function PublicPricingPlanCard({
             {version.ctaText || "Choose package"}
           </LinkButton>
         ) : null}
-        <LinkButton href="/book-counselling" variant="ghost" className={cn("w-full justify-center", premium && "text-white/70 hover:bg-white/10 hover:text-white")}>
-          Book a free consultation
-        </LinkButton>
+        {paidCheckoutEnabled || !hasLiveVersion || version?.amountMinorUnits === 0 ? (
+          <LinkButton href="/book-counselling" variant="ghost" className={cn("w-full justify-center", premium && "text-white/70 hover:bg-white/10 hover:text-white")}>
+            Book a free consultation
+          </LinkButton>
+        ) : null}
       </div>
     </Card>
   );

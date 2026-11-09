@@ -142,6 +142,8 @@
   --color-muted: var(--brand-muted);
   --color-on-primary: #f2f4f9;
   --color-on-primary-muted: #aab4cc;
+  /* CC-22B: approved text colour on the brand-blue (--brand-primary) public surfaces — footer, CTA bands, light section headings. #FFFFFF on #2563EB = 5.17:1 (WCAG AA). The muted token above is unchanged for the navy app shells, where it already passes. */
+  --color-on-primary-strong: #ffffff;
 
   /* Status */
   --color-success: var(--brand-success);

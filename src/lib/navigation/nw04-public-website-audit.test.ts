@@ -33,16 +33,17 @@ function stripComments(source: string): string {
 }
 
 describe("NW04.2 — homepage: new sections exist and are wired in without touching HomeHero", () => {
-  it("page.tsx renders ProductEntryCards and StudioIntro directly after HomeHero", () => {
+  // NW-V4 — `/` now renders the V4 Connected Experience, which supersedes the
+  // NW04.2 entry sections (its own Two Pathways scene links /careers and
+  // /abroad with equal weight). The NW04.2 component files stay on disk and
+  // keep their own source audits below.
+  it("page.tsx renders the V4 Connected Experience; the NW04.2 section files remain on disk", () => {
     const content = read("app/(site)/page.tsx");
-    const heroIndex = content.indexOf("<HomeHero");
-    const cardsIndex = content.indexOf("<ProductEntryCards");
-    const studioIndex = content.indexOf("<StudioIntro");
-    const pillarsIndex = content.indexOf("<DiscoveryPillars");
-    expect(heroIndex).toBeGreaterThan(-1);
-    expect(cardsIndex).toBeGreaterThan(heroIndex);
-    expect(studioIndex).toBeGreaterThan(cardsIndex);
-    expect(pillarsIndex).toBeGreaterThan(studioIndex);
+    expect(content).toContain("<V4ConnectedHome />");
+    expect(content).not.toContain("<HomeHero");
+    for (const file of ["HomeHero", "ProductEntryCards", "StudioIntro", "DiscoveryPillars"]) {
+      expect(read(`components/sections/home/${file}.tsx`).length).toBeGreaterThan(0);
+    }
   });
 
   it("HomeHero.tsx's own hero CTAs are untouched (still /career-discovery and /study-europe) — the regression-sensitive file this stage deliberately did not edit", () => {

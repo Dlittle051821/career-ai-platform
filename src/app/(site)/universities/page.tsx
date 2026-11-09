@@ -187,7 +187,7 @@ export default async function UniversitiesPage({ searchParams }: UniversitiesPag
           <p className="mb-4 max-w-2xl text-sm text-muted">
             NextWise&apos;s own catalogue for {singleSelectedCountry.name} currently includes {results.total} matching
             universit{results.total === 1 ? "y" : "ies"} — a starter dataset, not an exhaustive one. Continue on the
-            country&apos;s own official study portal to see options beyond what NextWise has verified so far.
+            country&apos;s own official study portal to see options beyond this starter dataset.
           </p>
           {trustedSearch.results.length > 0 ? (
             <div className="grid gap-5 sm:grid-cols-2">
@@ -211,7 +211,7 @@ export default async function UniversitiesPage({ searchParams }: UniversitiesPag
 
       <GuidanceNotice className="mt-8">
         This is a representative starter dataset, not an exhaustive worldwide database — new universities are added
-        over time, and coverage varies by country. Each result shows when it was last verified; always confirm
+        over time, and coverage varies by country. Each result shows whether Nextwise has verified it; always confirm
         current fees, deadlines, and admission requirements directly with the institution before you act on them.
       </GuidanceNotice>
     </Section>

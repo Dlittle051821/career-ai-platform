@@ -7,6 +7,8 @@ const BASE: NextBestActionInput = {
   profileStatus: "not_started",
   profilePercent: 0,
   payableInvoiceCount: 0,
+  // CC-22B: the existing cases describe the payments-open behaviour; payments-off cases are below.
+  onlinePaymentAvailable: true,
   pendingSignatureAgreement: undefined,
   careerReadiness: null,
   hasUsableCareerRecommendations: false,
@@ -113,5 +115,27 @@ describe("getNextBestAction", () => {
     const action = getNextBestAction({ ...BASE, profileStatus: "completed", hasActiveDiscoverySession: true });
     expect(action.href).toBe("/careers");
     expect(action.cta).toBe("Explore options");
+  });
+});
+
+describe("CC-22B — open invoices while online payment is off", () => {
+  it("never says 'payment due' or sends the student to pay, but does not hide the invoice", () => {
+    const action = getNextBestAction({ ...BASE, profileStatus: "completed", payableInvoiceCount: 1, onlinePaymentAvailable: false });
+    expect(action.title).toBe("An invoice is open on your account");
+    expect(action.title).not.toMatch(/due/i);
+    expect(action.description).toMatch(/Online payment isn't available/);
+    expect(action.href).toBe("/payments");
+    expect(action.cta).toBe("View invoice");
+  });
+
+  it("counts several open invoices honestly", () => {
+    const action = getNextBestAction({ ...BASE, profileStatus: "completed", payableInvoiceCount: 3, onlinePaymentAvailable: false });
+    expect(action.title).toBe("3 invoices are open on your account");
+  });
+
+  it("with no open invoice, payments-off changes nothing", () => {
+    const off = getNextBestAction({ ...BASE, profileStatus: "completed", onlinePaymentAvailable: false });
+    const on = getNextBestAction({ ...BASE, profileStatus: "completed", onlinePaymentAvailable: true });
+    expect(off).toEqual(on);
   });
 });

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { PayButton } from "@/components/payments/PayButton";
 import { getMyInvoiceById, getMyRefundsForInvoice } from "@/lib/supabase/payments/student-invoices";
 import { formatMoney } from "@/lib/admin/money";
+import { isPaidCheckoutEnabled, OPEN_INVOICE_PAYMENT_PAUSED_MESSAGE } from "@/lib/payments/launch-mode";
 import { INVOICE_STATUS_LABELS, PAYABLE_INVOICE_STATUSES, REFUND_STATUS_LABELS, ACTIVE_REFUND_STATUSES } from "@/types/payments";
 
 interface PaymentDetailPageProps {
@@ -32,6 +33,9 @@ export default async function PaymentDetailPage({ params }: PaymentDetailPagePro
   if (!invoice) notFound();
 
   const isPayable = PAYABLE_INVOICE_STATUSES.includes(invoice.status) && invoice.dueMinorUnits > 0;
+  // CC-22B: an open invoice is always shown as open; it is only offered for
+  // online payment when paid checkout is enabled (src/lib/payments/launch-mode.ts).
+  const onlinePaymentAvailable = isPaidCheckoutEnabled();
 
   return (
     <>
@@ -111,7 +115,12 @@ export default async function PaymentDetailPage({ params }: PaymentDetailPagePro
             </Card>
           ) : null}
 
-          {isPayable ? (
+          {isPayable && !onlinePaymentAvailable ? (
+            <Card className="border-secondary/20 bg-surface-alt">
+              <h2 className="mb-2 text-base font-semibold text-primary">Online payment isn&rsquo;t open yet</h2>
+              <p className="text-sm text-text-soft">{OPEN_INVOICE_PAYMENT_PAUSED_MESSAGE}</p>
+            </Card>
+          ) : isPayable ? (
             <Card>
               <h2 className="mb-3 text-base font-semibold text-primary">Pay this invoice</h2>
               <p className="mb-4 text-sm text-muted">
@@ -130,7 +139,8 @@ export default async function PaymentDetailPage({ params }: PaymentDetailPagePro
           ) : null}
 
           <p className="text-xs text-muted">
-            Need help with this invoice? Contact support — see the Trust Center for current contact details.
+            Questions about this invoice? Nextwise has not published a support contact yet — keep this invoice number
+            ({invoice.invoiceNumber ?? "shown above"}) for reference.
           </p>
         </div>
       </Section>

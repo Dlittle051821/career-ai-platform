@@ -74,6 +74,8 @@ export interface PublicCourseSummary {
   scholarshipsAvailable: boolean | null;
   lastVerifiedAt: string | null;
   freshnessBand: EducationFreshnessBand;
+  /** CC-22B — shown on every card so an unverified record is never presented as checked. */
+  verificationStatus: string;
 }
 
 export interface PublicCourseDetail extends PublicCourseSummary {
@@ -232,6 +234,7 @@ function toSummary(
     scholarshipsAvailable: row.scholarships_available,
     lastVerifiedAt: row.last_verified_at,
     freshnessBand: calculateFreshnessBand(row.last_verified_at),
+    verificationStatus: row.verification_status,
   };
 }
 

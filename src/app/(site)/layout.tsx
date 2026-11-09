@@ -7,7 +7,9 @@ import { RegistrationPrompt } from "@/components/registration-prompt/Registratio
 import { BRAND_LOGO, BRAND_NAME, BRAND_SHORT_DESCRIPTION, BRAND_TAGLINE } from "@/config/site";
 import { fontVariables } from "@/lib/fonts";
 import { getOrganizationJsonLd, getWebsiteJsonLd, toSafeJsonLdString } from "@/lib/seo/structured-data";
+import { HomepageFailsafe } from "@/components/sections/home/launch/HomepageFailsafe";
 import "../globals.css";
+import "@/styles/cc22b-launch-overrides.css";
 
 const DEFAULT_TITLE = `${BRAND_NAME} — ${BRAND_TAGLINE}`;
 
@@ -96,6 +98,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
             (a closed <dialog>) until its own timer/contextual-trigger
             logic decides to open. */}
         <RegistrationPrompt />
+        <HomepageFailsafe />
       </body>
     </html>
   );

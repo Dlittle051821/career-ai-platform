@@ -82,24 +82,26 @@ export function StudentJourneyOverview({
       </h2>
       <p className="mt-1 text-sm text-muted">A real-time snapshot of your account — nothing here is estimated.</p>
 
-      <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+      {/* CC-22B — a list of links (each tile is a link), not a <dl>: a <dl> may not contain links wrapping its dt/dd pairs. */}
+      <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         {tiles.map((tile) => {
           const Icon = tile.icon;
           return (
-            <Link
-              key={tile.key}
-              href={tile.href}
-              className="group flex flex-col gap-2 rounded-xl border border-border bg-surface-alt p-4 transition-colors hover:border-primary/30"
-            >
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
-                <Icon aria-hidden="true" className="h-4 w-4" />
-              </span>
-              <dt className="text-xs font-medium text-muted">{tile.label}</dt>
-              <dd className="text-sm font-semibold text-text">{tile.value}</dd>
-            </Link>
+            <li key={tile.key} className="flex">
+              <Link
+                href={tile.href}
+                className="group flex w-full flex-col gap-2 rounded-xl border border-border bg-surface-alt p-4 transition-colors hover:border-primary/30"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary-light text-secondary-dark">
+                  <Icon aria-hidden="true" className="h-4 w-4" />
+                </span>
+                <span className="text-xs font-medium text-muted">{tile.label}</span>
+                <span className="text-sm font-semibold text-text">{tile.value}</span>
+              </Link>
+            </li>
           );
         })}
-      </dl>
+      </ul>
     </section>
   );
 }

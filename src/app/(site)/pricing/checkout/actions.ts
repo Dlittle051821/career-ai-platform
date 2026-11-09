@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { purchasePricingPlan, PricingCheckoutError } from "@/lib/supabase/pricing/checkout";
 import { recordPricingAnalyticsEvent } from "@/lib/supabase/pricing/analytics";
+import { isPaidCheckoutEnabled, PAID_CHECKOUT_PAUSED_MESSAGE } from "@/lib/payments/launch-mode";
 
 export interface ConfirmPurchaseResult {
   error: string | null;
@@ -22,6 +23,11 @@ export interface ConfirmPurchaseResult {
  * checkout error.
  */
 export async function confirmPricingPurchaseAction(planId: string, offerId: string | null): Promise<ConfirmPurchaseResult> {
+  // CC-22B: while paid checkout is off (the launch default) this server
+  // action refuses before anything is written — no analytics event, no
+  // purchase_pricing_plan() call, so no purchase and no invoice, even when
+  // the action is invoked directly rather than from the page.
+  if (!isPaidCheckoutEnabled()) return { error: PAID_CHECKOUT_PAUSED_MESSAGE };
   let invoiceId: string;
   try {
     await recordPricingAnalyticsEvent({ eventType: "checkout_started", planId, offerId });

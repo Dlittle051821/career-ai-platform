@@ -9,7 +9,8 @@ import { Input } from "@/components/forms/Input";
 import { Checkbox } from "@/components/forms/Checkbox";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
-import { friendlyAuthError } from "@/lib/supabase/auth-errors";
+import { ALREADY_REGISTERED_MESSAGE, friendlyAuthError } from "@/lib/supabase/auth-errors";
+import { focusFirstInvalidField } from "@/lib/ui/form-focus";
 import { isRequired, isValidEmail, isValidIndianPhone, isValidPassword } from "@/lib/validation";
 import { trackEventClient } from "@/lib/supabase/analytics/track-client";
 import { getSafeRedirectPath } from "@/lib/auth/safe-redirect";
@@ -82,10 +83,14 @@ export function RegisterForm() {
     event.preventDefault();
     if (submitting) return; // duplicate-submission guard
 
+    const form = event.currentTarget;
     const nextErrors = validate();
     setErrors(nextErrors);
     setFormError(null);
-    if (Object.keys(nextErrors).length > 0) return;
+    if (Object.keys(nextErrors).length > 0) {
+      focusFirstInvalidField(form);
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -136,6 +141,14 @@ export function RegisterForm() {
         return;
       }
 
+      // CC-22B — with email confirmation on, Supabase answers a sign-up for an
+      // email that already has an account with a user object that has no
+      // identities and sends no email. Say so instead of "check your email".
+      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        setFormError(ALREADY_REGISTERED_MESSAGE);
+        return;
+      }
+
       // Email confirmation is required — Supabase created the account but
       // withheld a session until the student clicks the emailed link.
       setCheckEmail(true);
@@ -156,17 +169,17 @@ export function RegisterForm() {
           <p className="text-base font-semibold text-primary">Check your email</p>
           <p className="mt-2 text-sm leading-relaxed text-muted">
             We&apos;ve sent a confirmation link to <span className="font-medium text-text">{values.email}</span>.
-            Open it on this device to activate your account, then come back and log in.
+            Open it in this browser on this device — the link confirms your email and signs you in.
           </p>
         </div>
         <p className="text-xs text-muted">
-          Didn&apos;t get it? Check your spam folder, or{" "}
+          Didn&apos;t get it after a few minutes? Check your spam folder. If you mistyped your email,{" "}
           <button
             type="button"
             onClick={() => setCheckEmail(false)}
             className="font-medium text-secondary-dark underline underline-offset-2"
           >
-            try registering again
+            go back and correct it
           </button>
           .
         </p>
@@ -240,7 +253,6 @@ export function RegisterForm() {
             onClick={() => setShowPassword((v) => !v)}
             aria-label={showPassword ? "Hide password" : "Show password"}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text"
-            tabIndex={-1}
           >
             {showPassword ? <EyeOff aria-hidden="true" className="h-4 w-4" /> : <Eye aria-hidden="true" className="h-4 w-4" />}
           </button>

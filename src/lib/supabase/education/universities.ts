@@ -36,6 +36,8 @@ export interface PublicUniversitySummary {
   logoUrl: string | null;
   lastVerifiedAt: string | null;
   freshnessBand: EducationFreshnessBand;
+  /** CC-22B — shown on every card so an unverified record is never presented as checked. */
+  verificationStatus: string;
 }
 
 export interface PublicUniversityDetail extends PublicUniversitySummary {
@@ -72,11 +74,12 @@ interface PublicUniversityRow {
   study_modes: string[] | null;
   logo_url: string | null;
   last_verified_at: string | null;
+  verification_status: string;
   countries: { name: string } | null;
 }
 
 const SUMMARY_COLUMNS =
-  "id, name, slug, city, website, institution_type, ownership_type, study_levels, study_modes, logo_url, last_verified_at, countries ( name )";
+  "id, name, slug, city, website, institution_type, ownership_type, study_levels, study_modes, logo_url, last_verified_at, verification_status, countries ( name )";
 
 function toSummary(row: PublicUniversityRow): PublicUniversitySummary {
   return {
@@ -91,6 +94,7 @@ function toSummary(row: PublicUniversityRow): PublicUniversitySummary {
     logoUrl: row.logo_url,
     lastVerifiedAt: row.last_verified_at,
     freshnessBand: calculateFreshnessBand(row.last_verified_at),
+    verificationStatus: row.verification_status,
   };
 }
 
@@ -158,7 +162,7 @@ interface PublicUniversityDetailRow extends PublicUniversityRow {
   summary: string | null;
 }
 
-const DETAIL_COLUMNS = `${SUMMARY_COLUMNS}, admissions_url, international_admissions_url, state_region, street_address, postal_code, founding_year, accreditation_organization, accreditation_status, ranking, campus_info, international_student_support, scholarships_available, application_fee_minor_units, application_fee_currency, source_url, verification_status, summary`;
+const DETAIL_COLUMNS = `${SUMMARY_COLUMNS}, admissions_url, international_admissions_url, state_region, street_address, postal_code, founding_year, accreditation_organization, accreditation_status, ranking, campus_info, international_student_support, scholarships_available, application_fee_minor_units, application_fee_currency, source_url, summary`;
 
 /** Public university detail by slug — published+active only. Returns null for a draft/archived/unknown/merged-away slug rather than leaking its existence. */
 export async function getPublicUniversityBySlug(slug: string): Promise<PublicUniversityDetail | null> {

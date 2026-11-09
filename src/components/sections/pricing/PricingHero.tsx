@@ -32,7 +32,7 @@ const TRUST_POINTS = [
   { icon: Globe2, label: "India & global opportunities" },
 ] as const;
 
-export function PricingHero() {
+export function PricingHero({ paidCheckoutEnabled = false }: { paidCheckoutEnabled?: boolean }) {
   return (
     <section className="relative overflow-hidden bg-[linear-gradient(180deg,var(--surface-soft-blue)_0%,var(--color-background)_85%)] pt-14 pb-10 sm:pt-16 sm:pb-12">
       <Container className="max-w-[1500px]">
@@ -48,7 +48,10 @@ export function PricingHero() {
 
           <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-muted">
             Choose the right level of support for your India and abroad study goals. A one-time payment, no
-            subscriptions, no recurring charges — every price below is exactly what you&rsquo;ll be charged.
+            subscriptions, no recurring charges.{" "}
+            {paidCheckoutEnabled
+              ? "Every price below is the full amount for that package."
+              : "Prices are shown for information — online payment isn\u2019t open yet, so the first step is a free Discovery Session."}
           </p>
 
           <ul className="mt-8 flex flex-wrap items-center justify-center gap-x-7 gap-y-3">

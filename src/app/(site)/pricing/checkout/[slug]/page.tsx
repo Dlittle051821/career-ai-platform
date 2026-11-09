@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ShieldCheck } from "lucide-react";
+import { Info, ShieldCheck } from "lucide-react";
+import { LinkButton } from "@/components/ui/Button";
+import { DISCOVERY_SESSION_BOOKING_PATH, isPaidCheckoutEnabled, PAID_CHECKOUT_PAUSED_MESSAGE, PAID_CHECKOUT_PAUSED_TITLE } from "@/lib/payments/launch-mode";
 import { PageHero } from "@/components/sections/PageHero";
 import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
@@ -35,6 +37,47 @@ export default async function PricingCheckoutPage({ params }: PricingCheckoutPag
 
   const validOffer = offer && isOfferCurrentlyRedeemable(offer) && !isOfferExhausted(offer) ? offer : null;
   const breakdown = computePriceBreakdown(version, validOffer, null);
+
+  // CC-22B: a direct visit to /pricing/checkout/<slug> while paid checkout is
+  // off shows the plan for information only — no confirm button, no
+  // analytics write, and nothing that can reach purchase_pricing_plan().
+  if (!isPaidCheckoutEnabled()) {
+    return (
+      <>
+        <PageHero
+          eyebrow="Pricing"
+          title={version.publicTitle}
+          breadcrumbs={[{ label: "Home", href: "/" }, { label: "Pricing", href: "/pricing" }, { label: version.publicTitle }]}
+        />
+        <Section>
+          <div className="mx-auto max-w-xl space-y-6">
+            <Card className="flex items-start gap-3 border-secondary/20 bg-surface-alt">
+              <Info aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-secondary" />
+              <div>
+                <h2 className="text-base font-semibold text-primary">{PAID_CHECKOUT_PAUSED_TITLE}</h2>
+                <p className="mt-1 text-sm text-text-soft">{PAID_CHECKOUT_PAUSED_MESSAGE}</p>
+              </div>
+            </Card>
+            <Card>
+              <dl className="flex items-center justify-between text-sm">
+                <dt className="text-text-soft">{version.publicTitle}</dt>
+                <dd className="font-semibold text-text">{breakdown.originalAmountMinorUnits === 0 ? "Free" : formatMoney(breakdown.originalAmountMinorUnits, breakdown.currency)}</dd>
+              </dl>
+              <p className="mt-3 text-xs text-muted">Shown for information. No purchase or invoice is created from this page.</p>
+            </Card>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <LinkButton href={DISCOVERY_SESSION_BOOKING_PATH} size="lg" className="justify-center">
+                Book a Free Discovery Session
+              </LinkButton>
+              <LinkButton href="/pricing" variant="outline" size="lg" className="justify-center">
+                Back to pricing
+              </LinkButton>
+            </div>
+          </div>
+        </Section>
+      </>
+    );
+  }
 
   await recordPricingAnalyticsEvent({ eventType: "plan_selected", planId: plan.id, offerId: validOffer?.id ?? null });
 

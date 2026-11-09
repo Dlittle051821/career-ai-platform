@@ -36,7 +36,7 @@ export function SectionHeading({
         <p
           className={cn(
             "mb-3 text-sm font-semibold uppercase tracking-wide",
-            light ? "text-on-primary-muted" : "text-secondary"
+            light ? "text-on-primary-strong" : "text-secondary"
           )}
         >
           {eyebrow}
@@ -46,7 +46,7 @@ export function SectionHeading({
         {title}
       </Tag>
       {description ? (
-        <p className={cn("mt-4 text-base sm:text-lg leading-relaxed", light ? "text-on-primary-muted" : "text-muted")}>
+        <p className={cn("mt-4 text-base sm:text-lg leading-relaxed", light ? "text-on-primary-strong" : "text-muted")}>
           {description}
         </p>
       ) : null}

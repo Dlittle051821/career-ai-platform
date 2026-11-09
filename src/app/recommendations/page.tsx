@@ -9,6 +9,7 @@ import { calculateCompletion } from "@/lib/profile/completion";
 import { listMyInvoices } from "@/lib/supabase/payments/student-invoices";
 import { listMyAgreements } from "@/lib/supabase/agreements/my-agreements";
 import { PAYABLE_INVOICE_STATUSES } from "@/types/payments";
+import { isPaidCheckoutEnabled } from "@/lib/payments/launch-mode";
 import { listSavedItems } from "@/lib/supabase/education/saved-items";
 import { getUniversitiesByIds } from "@/lib/supabase/education/universities";
 import { getCoursesByIds } from "@/lib/supabase/education/courses";
@@ -154,6 +155,7 @@ export default async function RecommendationsPage() {
     profileStatus: completion.status,
     profilePercent: completion.percent,
     payableInvoiceCount: payableInvoices.length,
+    onlinePaymentAvailable: isPaidCheckoutEnabled(),
     pendingSignatureAgreement: agreements.find((a) => a.signatureStatus === "pending_signature"),
     careerReadiness,
     hasUsableCareerRecommendations: results.length > 0,

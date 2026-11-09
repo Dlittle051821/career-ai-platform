@@ -13,6 +13,12 @@ export interface NextBestActionInput {
   profileStatus: ProfileStatus;
   profilePercent: number;
   payableInvoiceCount: number;
+  /**
+   * CC-22B — whether online payment is open (src/lib/payments/launch-mode.ts).
+   * When it isn't, an open invoice is still surfaced honestly, but never as
+   * "a payment due" with a route the student cannot complete.
+   */
+  onlinePaymentAvailable: boolean;
   pendingSignatureAgreement: MyAgreementSummary | undefined;
   careerReadiness: RecommendationReadiness | null;
   /**
@@ -58,6 +64,7 @@ export function getNextBestAction(args: NextBestActionInput): NextBestAction {
     profileStatus,
     profilePercent,
     payableInvoiceCount,
+    onlinePaymentAvailable,
     pendingSignatureAgreement,
     careerReadiness,
     hasUsableCareerRecommendations,
@@ -79,6 +86,15 @@ export function getNextBestAction(args: NextBestActionInput): NextBestAction {
       description: "Pick up where you left off. The more you add, the more useful your recommendations become.",
       href: "/profile/onboarding",
       cta: "Continue my profile",
+    };
+  }
+
+  if (payableInvoiceCount > 0 && !onlinePaymentAvailable) {
+    return {
+      title: payableInvoiceCount === 1 ? "An invoice is open on your account" : `${payableInvoiceCount} invoices are open on your account`,
+      description: "Online payment isn't available on Nextwise yet, so there is nothing to pay here right now. You can review the invoice details at any time.",
+      href: "/payments",
+      cta: payableInvoiceCount === 1 ? "View invoice" : "View invoices",
     };
   }
 

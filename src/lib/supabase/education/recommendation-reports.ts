@@ -38,24 +38,34 @@ interface MyRecommendationReportSummaryRow {
 
 /** The student's own list of RELEASED recommendation reports only. Returns `[]` (never throws) for a logged-out caller or any RPC error. */
 export async function listMyRecommendationReports(): Promise<MyRecommendationReportSummary[]> {
+  return (await loadMyRecommendationReports()).reports;
+}
+
+/**
+ * CC-22B — same read, but tells the caller when the reports could not be
+ * loaded (e.g. the NW07 RPC is missing or failing) so the page can say
+ * "temporarily unavailable" instead of "no reports yet".
+ */
+export async function loadMyRecommendationReports(): Promise<{ reports: MyRecommendationReportSummary[]; unavailable: boolean }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return [];
+  if (!user) return { reports: [], unavailable: false };
 
   const { data, error } = await supabase.rpc("get_my_recommendation_reports");
   if (error) {
     logDbError("listMyRecommendationReports", error);
-    return [];
+    return { reports: [], unavailable: true };
   }
-  return ((data ?? []) as unknown as MyRecommendationReportSummaryRow[]).map((row) => ({
+  const reports = ((data ?? []) as unknown as MyRecommendationReportSummaryRow[]).map((row) => ({
     id: row.id,
     title: row.title,
     recommendationType: row.recommendation_type,
     releasedAt: row.released_at,
     updatedAt: row.updated_at,
   }));
+  return { reports, unavailable: false };
 }
 
 export interface MyRecommendationReportContent {

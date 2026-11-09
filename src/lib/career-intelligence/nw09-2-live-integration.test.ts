@@ -68,8 +68,7 @@ function gateway(over: Partial<CareerIntelligenceGateway> = {}) {
     getConsent: async () => VALID,
     reserveRun: vi.fn(async () => ({ kind: "reserved" as const, runId: "run-9" })),
     completeRun: vi.fn(async () => {}),
-    createDraft: vi.fn(async () => "draft-9"),
-    linkDraft: vi.fn(async () => {}),
+    finalizeRun: vi.fn(async () => ({ kind: "finalized" as const, draftId: "draft-9" })),
     audit: vi.fn(async () => {}),
     ...over,
   };
@@ -86,17 +85,18 @@ describe("OpenAI through the real service — fictional pilot student", () => {
     expect(create).toHaveBeenCalledTimes(1);
     expect((create.mock.calls[0] as unknown[])[0]).toMatchObject({ model: MODEL, store: false, text: { format: { type: "json_schema", strict: true } } });
     expect(gw.reserveRun).toHaveBeenCalledWith(expect.objectContaining({ provider: "openai", model: MODEL, dataClass: "fictional", consentId: VALID.status === "valid" ? VALID.consentId : "", paid: { maxRuns: 5, totalBudgetUsd: 2 } }));
-    expect(gw.completeRun).toHaveBeenCalledWith(
-      "run-9",
-      expect.objectContaining({ status: "succeeded", inputTokens: 5000, outputTokens: 2500, reasoningTokens: 600, providerResponseId: "resp_pilot_001", attempts: 1, estimatedCostUsd: expect.any(Number) }),
-    );
+    expect(gw.finalizeRun).toHaveBeenCalledWith(expect.objectContaining({
+      runId: "run-9", consentId: VALID.status === "valid" ? VALID.consentId : "",
+      usage: expect.objectContaining({ inputTokens: 5000, outputTokens: 2500, reasoningTokens: 600, providerResponseId: "resp_pilot_001", attempts: 1, estimatedCostUsd: expect.any(Number) }),
+    }));
+    expect(gw.completeRun).not.toHaveBeenCalled();
     if (o.kind !== "draft_created") return;
     expect(CareerIntelligenceReportSchema.safeParse(o.report).success).toBe(true);
     expect(o.report.generation).toMatchObject({ provider: "openai", providerResponseId: "resp_pilot_001" });
     expect(o.report.generation.estimatedCostUsd).toBeGreaterThan(0);
     for (const c of o.report.careers) expect(catalogue.some((k) => k.id === c.careerId)).toBe(true);
     expect(o.report.inputProvenance.find((p) => p.section === "education")?.verification).toBe("verified");
-    expect(gw.createDraft).toHaveBeenCalledWith(expect.objectContaining({ content: expect.objectContaining({ aiAssisted: true }) }));
+    expect(gw.finalizeRun).toHaveBeenCalledWith(expect.objectContaining({ content: expect.objectContaining({ aiAssisted: true }) }));
     expect(describeOutcome(o).notice).toMatch(/OpenAI analysis complete/);
   });
   it("the pilot profile is a fictional ADULT with enough data for an analysis", () => {
@@ -172,7 +172,7 @@ describe("OpenAI failures — recorded truthfully, no draft, no mock fallback", 
     expect(o).toMatchObject({ kind: "not_generated", outcome: { kind: "failed", errorKind: kind } });
     expect(create).toHaveBeenCalledTimes(calls);
     expect(gw.completeRun).toHaveBeenCalledWith("run-9", expect.objectContaining({ status: "failed", reason: expect.stringContaining(`(${kind})`), report: null }));
-    expect(gw.createDraft).not.toHaveBeenCalled();
+    expect(gw.finalizeRun).not.toHaveBeenCalled();
     const ui = describeOutcome(o);
     expect(ui.error).toMatch(message);
     expect(ui.error).not.toContain("raw provider message");
@@ -182,7 +182,7 @@ describe("OpenAI failures — recorded truthfully, no draft, no mock fallback", 
     const gw = gateway();
     const o = await requestCareerAnalysis(input, gw, { config: openaiConfig(), provider });
     expect(o.kind).toBe("not_generated");
-    expect(gw.createDraft).not.toHaveBeenCalled();
+    expect(gw.finalizeRun).not.toHaveBeenCalled();
   });
   it("an answer that is not valid JSON is discarded after ONE paid call", async () => {
     const { create, provider } = fakeOpenAi(() => ({ output: [{ type: "message", content: [{ type: "output_text", text: "Sure! Here are some careers…" }] }] }));
@@ -368,11 +368,12 @@ describe("static audit — live pilot scripts", () => {
   it("the pilot's gateway calls exactly the RPCs the app's gateway calls", () => {
     const rpcs = (s: string) => new Set([...s.matchAll(/\.rpc\("([a-z_0-9]+)"/g)].map((m) => m[1]));
     const app = rpcs(appGateway);
-    for (const name of ["counsellor_has_case_access", "staff_reserve_ai_generation_run_v2", "staff_complete_ai_generation_run_v2", "staff_create_recommendation_draft", "staff_link_ai_generation_run_draft"]) {
+    for (const name of ["counsellor_has_case_access", "staff_reserve_ai_generation_run_v2", "staff_complete_ai_generation_run_v2", "staff_finalize_ai_generation_run"]) {
       expect(app.has(name), name).toBe(true);
       expect(rpcs(pilot).has(name), name).toBe(true);
     }
     expect(pilot).not.toMatch(/staff_reserve_ai_generation_run"/);
+    for (const source of [pilot, appGateway]) expect(source).not.toMatch(/\.rpc\("staff_(create_recommendation_draft|link_ai_generation_run_draft)"/);
   });
   it("both scripts accept only the QA project ref and refuse production / Vercel environments", () => {
     for (const s of [pilot, verify]) {
@@ -397,5 +398,33 @@ describe("static audit — live pilot scripts", () => {
       expect(s).not.toMatch(/writeFileSync\([^)]*(OPENAI_API_KEY|serviceKey|apiKey)/);
     }
     expect(verify).not.toMatch(/insert\(|update\(|delete\(|upsert\(|staff_(reserve|complete|create|record|withdraw)/);
+  });
+});
+
+describe("NW-F01-S4 atomic consent and outcome recording", () => {
+  it("withdrawal after the application precheck is decided by finalization; usage is retained there", async () => {
+    const { create, provider } = fakeOpenAi();
+    const gw = gateway({ getConsent: vi.fn(async () => VALID), finalizeRun: vi.fn(async () => ({ kind: "consent_withdrawn" as const })) });
+    const result = await requestCareerAnalysis(input, gw, { config: openaiConfig(), provider });
+    expect(result.kind).toBe("needs_consent");
+    expect(gw.getConsent).toHaveBeenCalledTimes(1); // precheck cannot authorize persistence
+    expect(gw.finalizeRun).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+      runId: "run-9", studentUserId: STUDENT, consentId: VALID.status === "valid" ? VALID.consentId : "",
+      usage: expect.objectContaining({ inputTokens: 5000, providerResponseId: "resp_pilot_001" }),
+    }));
+    expect(gw.completeRun).not.toHaveBeenCalled(); expect(create).toHaveBeenCalledTimes(1);
+  });
+  it("an unknown finalization commit result is never overwritten or reported as success", async () => {
+    const { create, provider } = fakeOpenAi();
+    const gw = gateway({ finalizeRun: vi.fn(async () => { throw new Error("offline transport failure"); }) });
+    await expect(requestCareerAnalysis(input, gw, { config: openaiConfig(), provider })).rejects.toThrow("offline transport failure");
+    expect(gw.completeRun).not.toHaveBeenCalled(); expect(create).toHaveBeenCalledTimes(1);
+    expect(gw.audit).not.toHaveBeenCalled();
+  });
+  it("a finalization retry result returns the original draft without recording another success", async () => {
+    const { provider } = fakeOpenAi();
+    const gw = gateway({ finalizeRun: vi.fn(async () => ({ kind: "duplicate" as const, draftId: "original-draft" })) });
+    expect(await requestCareerAnalysis(input, gw, { config: openaiConfig(), provider })).toMatchObject({ kind: "duplicate", draftId: "original-draft" });
+    expect(gw.completeRun).not.toHaveBeenCalled(); expect(gw.audit).not.toHaveBeenCalled();
   });
 });

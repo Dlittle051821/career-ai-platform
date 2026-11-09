@@ -6,7 +6,8 @@ import { Card } from "@/components/ui/Card";
 import { LinkButton } from "@/components/ui/Button";
 import { getCurrentUser } from "@/lib/supabase/profile";
 import { listMyApplications, getMyApplicationHistory } from "@/lib/supabase/education/applications";
-import { listMyOpenApplicationTasks } from "@/lib/supabase/education/application-tasks";
+import { loadMyOpenApplicationTasks } from "@/lib/supabase/education/application-tasks";
+import { UnavailableNotice } from "@/components/ui/UnavailableNotice";
 import { isAbroadDestinationName } from "@/lib/abroad/scope";
 import { getApplicationBucket } from "@/lib/applications/application-lifecycle";
 import { isApplicationTaskStatus, summarizeApplicationTasks, type ApplicationTaskStatus } from "@/lib/applications/application-tasks";
@@ -49,7 +50,8 @@ export default async function AbroadApplicationsDashboardPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/studio/abroad/applications");
 
-  const [applications, openTasks] = await Promise.all([listMyApplications(), listMyOpenApplicationTasks()]);
+  const [applications, taskLoad] = await Promise.all([listMyApplications(), loadMyOpenApplicationTasks()]);
+  const openTasks = taskLoad.tasks;
   const abroadApplications = applications.filter((a) => isAbroadDestinationName(a.universityCountryName));
   const abroadApplicationIds = new Set(abroadApplications.map((a) => a.id));
   const abroadOpenTasks = openTasks.filter((t) => abroadApplicationIds.has(t.applicationId));
@@ -118,6 +120,13 @@ export default async function AbroadApplicationsDashboardPage() {
           tasks, and recent updates, all in one place.
         </p>
       </div>
+
+      {taskLoad.unavailable ? (
+        <UnavailableNotice title="Application tasks are temporarily unavailable">
+          We couldn&apos;t load your open tasks just now, so the &ldquo;action required&rdquo; numbers below may be incomplete.
+          Check each application for details.
+        </UnavailableNotice>
+      ) : null}
 
       <AbroadApplicationsSummaryTiles
         totalCount={abroadApplications.length}

@@ -66,7 +66,7 @@ export type ReserveResult =
   | { kind: "denied"; reason: string };
 
 export interface RunCompletion {
-  status: "succeeded" | "failed" | "refused" | "invalid_output" | "blocked";
+  status: "failed" | "refused" | "invalid_output" | "blocked";
   reason: string | null;
   model: string;
   inputTokens: number;
@@ -77,7 +77,7 @@ export interface RunCompletion {
   estimatedCostUsd: number;
   attempts: number;
   latencyMs: number;
-  report: CareerIntelligenceReport | null;
+  report: null;
 }
 
 /** NW09.2 — the student's recorded AI-processing consent, as the database holds it. */
@@ -96,6 +96,12 @@ export type ConsentStatus =
   | { status: "withdrawn"; withdrawnAt: string }
   /** The consent register does not exist yet (NW09.2 migration not applied) or could not be read. */
   | { status: "unavailable" };
+
+export type FinalizeResult =
+  | { kind: "finalized"; draftId: string }
+  | { kind: "duplicate"; draftId: string }
+  | { kind: "consent_withdrawn" }
+  | { kind: "failed" };
 
 export interface CareerIntelligenceGateway {
   getStaff(): Promise<StaffContext | null>;
@@ -126,8 +132,15 @@ export interface CareerIntelligenceGateway {
     regenerationReason: string | null;
   }): Promise<ReserveResult>;
   completeRun(runId: string, completion: RunCompletion): Promise<void>;
-  createDraft(args: { studentUserId: string; title: string; content: RecommendationDraftContent }): Promise<string>;
-  linkDraft(runId: string, draftId: string): Promise<void>;
+  /** One database transaction: consent, draft/version, report, link and audit. */
+  finalizeRun(args: {
+    runId: string;
+    studentUserId: string;
+    consentId: string;
+    content: RecommendationDraftContent;
+    report: CareerIntelligenceReport;
+    usage: Omit<RunCompletion, "status" | "reason" | "report">;
+  }): Promise<FinalizeResult>;
   audit(action: string, studentUserId: string, context: Record<string, unknown>): Promise<void>;
 }
 
@@ -259,7 +272,7 @@ export async function requestCareerAnalysis(input: RequestInput, gw: CareerIntel
             latencyMs: Math.max(0, Math.round(outcome.latencyMs ?? 0)),
             report: null,
           }
-        : { status: "blocked", reason: outcome.kind, model, inputTokens: 0, outputTokens: 0, estimatedCostUsd: 0, attempts: 0, latencyMs: 0, report: null };
+        : { status: deps.config.mode === "openai" ? "failed" : "blocked", reason: outcome.kind, model, inputTokens: 0, outputTokens: 0, estimatedCostUsd: 0, attempts: 0, latencyMs: 0, report: null };
     await gw.completeRun(reserve.runId, completion);
     await gw.audit("AI career analysis not generated", input.studentUserId, {
       runId: reserve.runId,
@@ -269,9 +282,8 @@ export async function requestCareerAnalysis(input: RequestInput, gw: CareerIntel
     return { kind: "not_generated", runId: reserve.runId, outcome };
   }
 
-  // 9. The result becomes an ordinary NW07 DRAFT — never submitted, approved or
-  // released here. The draft is created BEFORE the run is marked succeeded, so
-  // the ledger can never claim "draft created" for an analysis whose draft failed.
+  // Provider I/O is outside PostgreSQL. Only the finalization RPC may persist
+  // a successful result; its lock is shared with consent withdrawal.
   const usage = {
     model: outcome.model,
     inputTokens: outcome.usage?.inputTokens ?? 0,
@@ -283,29 +295,26 @@ export async function requestCareerAnalysis(input: RequestInput, gw: CareerIntel
     attempts: outcome.attempts,
     latencyMs: outcome.report.generation.latencyMs,
   };
-  let draftId: string;
-  try {
-    draftId = await gw.createDraft({ studentUserId: input.studentUserId, title: "Career guidance (AI-assisted draft)", content: outcome.draftContent });
-  } catch (error) {
-    const reason = "failed: The analysis succeeded but its draft could not be created.";
-    await gw.completeRun(reserve.runId, { status: "failed", reason, ...usage, report: null });
-    await gw.audit("AI career analysis not generated", input.studentUserId, { runId: reserve.runId, outcome: "failed", status: "draft_not_created" });
-    if (error instanceof Error && error.name === "CareerIntelligenceUnavailableError") throw error;
+  // No application consent recheck can authorize persistence. The RPC must
+  // revalidate the exact reservation consent after acquiring its database lock.
+  // A transport error can mean COMMIT succeeded: never overwrite the result or
+  // retry the provider. Reconcile/retry finalization with the same run ID.
+  const finalized = await gw.finalizeRun({
+    runId: reserve.runId, studentUserId: input.studentUserId,
+    consentId: consent.consentId, content: outcome.draftContent,
+    report: outcome.report, usage,
+  });
+  if (finalized.kind === "consent_withdrawn") {
+    return { kind: "needs_consent", reason: "AI-processing consent changed during generation. No report draft was stored." };
+  }
+  if (finalized.kind === "failed") {
     return {
-      kind: "not_generated",
-      runId: reserve.runId,
-      outcome: { kind: "failed", status: "failed", reason: "The analysis succeeded but its draft could not be created.", usage: outcome.usage, estimatedCostUsd: outcome.estimatedCostUsd, attempts: outcome.attempts, model: outcome.model },
+      kind: "not_generated", runId: reserve.runId,
+      outcome: { kind: "failed", status: "failed", reason: "The analysis result could not be saved. No new report draft was stored.", usage: outcome.usage, estimatedCostUsd: outcome.estimatedCostUsd, attempts: outcome.attempts, model: outcome.model },
     };
   }
-  await gw.completeRun(reserve.runId, { status: "succeeded", reason: null, ...usage, report: outcome.report });
-  await gw.linkDraft(reserve.runId, draftId);
-  await gw.audit("AI-assisted career draft generated", input.studentUserId, {
-    runId: reserve.runId,
-    draftId,
-    provider: outcome.report.generation.provider,
-    model: outcome.model,
-    careers: outcome.report.careers.length,
-    estimatedCostUsd: outcome.estimatedCostUsd,
-  });
-  return { kind: "draft_created", runId: reserve.runId, draftId, report: outcome.report };
+  if (finalized.kind === "duplicate") {
+    return { kind: "duplicate", runId: reserve.runId, draftId: finalized.draftId, status: "succeeded" };
+  }
+  return { kind: "draft_created", runId: reserve.runId, draftId: finalized.draftId, report: outcome.report };
 }

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { cloneElement, isValidElement, type ReactNode } from "react";
 import { AlertCircle } from "lucide-react";
 
 interface FormFieldProps {
@@ -14,6 +14,14 @@ interface FormFieldProps {
 export function FormField({ id, label, required, hint, error, children }: FormFieldProps) {
   const hintId = hint ? `${id}-hint` : undefined;
   const errorId = error ? `${id}-error` : undefined;
+  // CC-22B — connect the hint and the error to the control so screen readers
+  // announce them with the field. Only applied to a single child element that
+  // has not set its own aria-describedby (composite children are left alone).
+  const ariaDescribedBy = describedBy(hintId, errorId);
+  const control =
+    ariaDescribedBy && isValidElement<{ "aria-describedby"?: string }>(children) && children.props["aria-describedby"] === undefined
+      ? cloneElement(children, { "aria-describedby": ariaDescribedBy })
+      : children;
 
   return (
     <div className="space-y-1.5">
@@ -32,7 +40,7 @@ export function FormField({ id, label, required, hint, error, children }: FormFi
           {hint}
         </p>
       ) : null}
-      {children}
+      {control}
       {error ? (
         <p id={errorId} role="alert" className="flex items-center gap-1.5 text-sm text-error">
           <AlertCircle aria-hidden="true" className="h-4 w-4 shrink-0" />

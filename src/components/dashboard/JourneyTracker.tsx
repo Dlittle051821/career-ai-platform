@@ -68,6 +68,7 @@ export function JourneyTracker({ progress }: { progress: JourneyProgress }) {
                       stage.state === "upcoming" && "border-border-strong bg-surface-alt text-muted"
                     )}
                     aria-current={stage.state === "current" ? "step" : undefined}
+                    aria-label={`${stage.label}: ${stage.state === "complete" ? "complete" : stage.state === "current" ? "in progress" : stage.informational ? "coming soon" : "upcoming"}`}
                   >
                     {stage.state === "complete" ? <BadgeCheck aria-hidden="true" className="h-5 w-5" /> : <Icon aria-hidden="true" className="h-5 w-5" />}
                   </Link>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { utcIsoToIstDateTimeLocal } from "@/lib/discovery-sessions/ist";
 import { FormField } from "@/components/forms/FormField";
 import { Select } from "@/components/forms/Select";
 import { Input } from "@/components/forms/Input";
@@ -12,12 +13,6 @@ import { INITIAL_ACTION_STATE, type ActionState } from "@/lib/admin/form-state";
 import { nextStatusOptions, DISCOVERY_SESSION_STATUS_TRANSITIONS } from "@/lib/admin/status";
 import { DISCOVERY_SESSION_STATUS_LABELS, type DiscoverySession, type DiscoverySessionStatus } from "@/types/discovery-session";
 
-function toLocalDateTimeInputValue(iso: string | null): string {
-  if (!iso) return "";
-  const date = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
 
 export function DiscoverySessionActionForm({
   action,
@@ -59,7 +54,7 @@ export function DiscoverySessionActionForm({
           </FormField>
 
           <FormField id="scheduledAt" label="Scheduled date/time (IST)" hint="Required before moving to 'Scheduled'. Enter this in India Standard Time — every student-facing display of this time is always shown in IST, regardless of the student's own country.">
-            <Input id="scheduledAt" name="scheduledAt" type="datetime-local" defaultValue={toLocalDateTimeInputValue(session.scheduledAt)} />
+            <Input id="scheduledAt" name="scheduledAt" type="datetime-local" defaultValue={utcIsoToIstDateTimeLocal(session.scheduledAt)} />
           </FormField>
         </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { WORK_PREFERENCE_OPTIONS } from "@/data/profile-options";
 import { calculateCompletion } from "@/lib/profile/completion";
@@ -36,6 +36,9 @@ import { StudyLocationStep } from "./steps/StudyLocationStep";
 import { BudgetFundingStep } from "./steps/BudgetFundingStep";
 import { ExperienceStep, type ExperienceDraft } from "./steps/ExperienceStep";
 import { ReviewStep } from "./steps/ReviewStep";
+
+const SAVE_CONNECTION_ERROR =
+  "We couldn't reach Nextwise to save this step. Your answers are still here — check your connection and try again.";
 
 /**
  * UX10-P01 — the real step-by-step save/validation/navigation logic that
@@ -209,6 +212,32 @@ export function useProfileWizard({
   const [stepError, setStepError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // CC-22B — a failed server-action call (dropped connection, or an action
+  // that changed during a deploy) used to throw inside the transition and
+  // replace the page with the default error screen. Catch it, keep the
+  // student's answers, and say what to do.
+  function runSafely(task: () => Promise<void>) {
+    startTransition(async () => {
+      try {
+        await task();
+      } catch (error) {
+        console.error("[profile wizard] save failed:", error);
+        setStepError(SAVE_CONNECTION_ERROR);
+      }
+    });
+  }
+
+  // CC-22B — after moving between steps, bring the new step into view (on a
+  // phone the student was otherwise left at the bottom of the next step).
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "auto" });
+  }, [step]);
+
   function updateDraft<K extends keyof OnboardingDraftState>(key: K, value: OnboardingDraftState[K]) {
     setDraft((prev) => ({ ...prev, [key]: value }));
   }
@@ -224,7 +253,7 @@ export function useProfileWizard({
     }
     setStepError(null);
 
-    startTransition(async () => {
+    runSafely(async () => {
       const result = await saveStepData(step, preparedDraft);
       if (!result.success) {
         setStepError(result.error ?? "Something went wrong saving this step. Please try again.");
@@ -243,7 +272,7 @@ export function useProfileWizard({
     if (preparedDraft !== draft) setDraft(preparedDraft);
     setStepError(null);
 
-    startTransition(async () => {
+    runSafely(async () => {
       // Persist valid data on the way back too, but never trap the student
       // here — an invalid step just skips its own save rather than
       // blocking Back navigation (their in-memory draft is unaffected
@@ -269,7 +298,7 @@ export function useProfileWizard({
     }
     setStepError(null);
 
-    startTransition(async () => {
+    runSafely(async () => {
       const result = await saveStepData(step, preparedDraft);
       if (!result.success) {
         setStepError(result.error ?? "Something went wrong saving this step. Please try again.");
@@ -283,7 +312,7 @@ export function useProfileWizard({
 
   function handleCompleteProfile() {
     setStepError(null);
-    startTransition(async () => {
+    runSafely(async () => {
       const result = await completeOnboarding();
       if (result.completion) setCompletion(result.completion);
       if (!result.success) {

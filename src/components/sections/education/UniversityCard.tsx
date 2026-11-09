@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { EDUCATION_FRESHNESS_BAND_LABELS } from "@/types/education";
 import type { PublicUniversitySummary } from "@/lib/supabase/education/universities";
+import { DataStatusBadge } from "@/components/sections/education/DataStatusBadge";
 
 /** "online_platform" -> "Online platform", "on_campus" -> "On campus". Shared display helper for any snake_case education enum value — used here and by the university detail page. */
 export function humanizeEnumValue(value: string): string {
@@ -43,7 +44,7 @@ export function UniversityCard({ university }: { university: PublicUniversitySum
           />
         ) : null}
         <div className="ml-auto">
-          <FreshnessBadge band={university.freshnessBand} />
+          <DataStatusBadge verificationStatus={university.verificationStatus} freshnessBand={university.freshnessBand} />
         </div>
       </div>
 

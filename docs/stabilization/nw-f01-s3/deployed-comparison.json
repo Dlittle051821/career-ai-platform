@@ -1,0 +1,44 @@
+[
+  {
+    "signature": "record_system_audit_log(text,text,text,text,jsonb,jsonb)",
+    "body_matches_source": true,
+    "source": "supabase/migrations/0011_electronic_signature.sql",
+    "security_definer": true,
+    "path_public": true
+  },
+  {
+    "signature": "set_signature_document_path(text,text,text)",
+    "body_matches_source": true,
+    "source": "supabase/migrations/0011_electronic_signature.sql",
+    "security_definer": true,
+    "path_public": true
+  },
+  {
+    "signature": "set_stamp_document_path(text,text,text)",
+    "body_matches_source": true,
+    "source": "supabase/migrations/0012_electronic_stamping_and_assisted_onboarding.sql",
+    "security_definer": true,
+    "path_public": true
+  },
+  {
+    "signature": "staff_complete_ai_generation_run(uuid,text,text,text,integer,integer,numeric,integer,integer,jsonb)",
+    "body_matches_source": true,
+    "source": "supabase/migrations-proposed/NW09_ai_career_intelligence.sql",
+    "security_definer": true,
+    "path_public": true
+  },
+  {
+    "signature": "staff_link_ai_generation_run_draft(uuid,uuid)",
+    "body_matches_source": true,
+    "source": "supabase/migrations-proposed/NW09_ai_career_intelligence.sql",
+    "security_definer": true,
+    "path_public": true
+  },
+  {
+    "signature": "staff_reserve_ai_generation_run(uuid,text,text,text,text,text,text,boolean,numeric,integer,integer,integer,numeric,uuid,text)",
+    "body_matches_source": true,
+    "source": "supabase/migrations-proposed/NW09_ai_career_intelligence.sql",
+    "security_definer": true,
+    "path_public": true
+  }
+]

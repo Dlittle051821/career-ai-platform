@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   experimental: {
+    // CC-22B: branded 404 for unmatched top-level URLs (src/app/global-not-found.tsx).
+    globalNotFound: true,
     serverActions: {
       // The CSV import pipeline (src/lib/education/csv.ts) enforces a
       // 10MB file-size limit of its own; the Server Action default (1MB)

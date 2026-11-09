@@ -9,7 +9,10 @@ import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
 import { Textarea } from "@/components/forms/Textarea";
-import { FreshnessBadge, humanizeEnumValue } from "@/components/sections/education/UniversityCard";
+import { humanizeEnumValue } from "@/components/sections/education/UniversityCard";
+import { DataStatusBadge } from "@/components/sections/education/DataStatusBadge";
+import { UnverifiedRecordNotice } from "@/components/sections/education/UnverifiedRecordNotice";
+import { isVerifiedEducationRecord, lastCheckedLabel, UNVERIFIED_SCHOLARSHIP_NOTE } from "@/lib/education/verification-display";
 import { SaveCourseButton } from "@/components/sections/education/SaveCourseButton";
 import { IntakeTracker } from "@/components/sections/education/IntakeTracker";
 import {
@@ -235,7 +238,7 @@ export default async function CourseDetailPage({ params, searchParams }: CourseD
           <div className="flex flex-wrap items-center gap-2">
             {course.educationLevel ? <Badge tone="info">{humanizeEnumValue(course.educationLevel)}</Badge> : null}
             {course.deliveryMode ? <Badge tone="neutral">{humanizeEnumValue(course.deliveryMode)}</Badge> : null}
-            <FreshnessBadge band={course.freshnessBand} />
+            <DataStatusBadge verificationStatus={course.verificationStatus} freshnessBand={course.freshnessBand} />
           </div>
           <h1 className="mt-3 text-3xl font-semibold text-primary balance sm:text-4xl">{course.name}</h1>
           <Link href={`/universities/${course.universitySlug}`} className="mt-2 inline-block text-sm font-semibold text-secondary-dark hover:text-primary">
@@ -250,6 +253,10 @@ export default async function CourseDetailPage({ params, searchParams }: CourseD
         </div>
         <SaveCourseButton courseId={course.id} universitySlug={course.universitySlug} courseSlug={course.slug} isLoggedIn={isLoggedIn} initialSaved={savedIds.includes(course.id)} />
       </div>
+
+      {!isVerifiedEducationRecord(course.verificationStatus) ? (
+        <UnverifiedRecordNotice officialUrl={course.courseUrl} officialLabel="Open the official course page" />
+      ) : null}
 
       {applyError ? (
         <Card className="mb-6 flex items-center gap-2 border-error/25 bg-error-light text-sm text-error">
@@ -294,6 +301,7 @@ export default async function CourseDetailPage({ params, searchParams }: CourseD
                 <dt className="text-xs font-medium uppercase tracking-wide text-muted">Scholarships available</dt>
                 <dd className="mt-1 text-sm text-text-soft">
                   {course.scholarshipsAvailable == null ? "Not available" : course.scholarshipsAvailable ? "Yes" : "No"}
+                  {course.scholarshipsAvailable && !isVerifiedEducationRecord(course.verificationStatus) ? <span className="block text-xs text-muted">Not yet verified</span> : null}
                 </dd>
               </div>
               {course.award ? (
@@ -554,6 +562,7 @@ export default async function CourseDetailPage({ params, searchParams }: CourseD
           {scholarships.length > 0 ? (
             <Card>
               <h2 className="text-lg font-semibold text-primary">Scholarships for this course</h2>
+              {!isVerifiedEducationRecord(course.verificationStatus) ? <p className="mt-1 text-xs text-muted">{UNVERIFIED_SCHOLARSHIP_NOTE}</p> : null}
               <div className="mt-3 space-y-3">
                 {scholarships.map((scholarship) => (
                   <div key={scholarship.id} className="rounded-[var(--radius-control)] border border-border p-3">
@@ -657,7 +666,7 @@ export default async function CourseDetailPage({ params, searchParams }: CourseD
                 <dd className="mt-1 text-text-soft">{verificationLabel(course.verificationStatus)}</dd>
               </div>
               <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Last verified</dt>
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted">{lastCheckedLabel(course.verificationStatus)}</dt>
                 <dd className="mt-1 text-text-soft">{lastVerifiedLabel ?? "Not available"}</dd>
               </div>
               {course.sourceUrl ? (
@@ -682,7 +691,7 @@ export default async function CourseDetailPage({ params, searchParams }: CourseD
 
       <GuidanceNotice className="mt-8">
         This page is a representative starter dataset entry, not an exhaustive or guaranteed-current record — see
-        the verification status and last-verified date above, and confirm anything time-sensitive directly with the
+        the verification status and date above, and confirm anything time-sensitive directly with the
         institution. Save this course to come back to it later at{" "}
         <Link href="/saved" className="font-medium underline underline-offset-2">/saved</Link>.
       </GuidanceNotice>

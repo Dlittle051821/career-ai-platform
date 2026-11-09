@@ -1,7 +1,7 @@
 import "server-only";
-import { rpcRowId } from "@/lib/supabase/rpc-result";
 import { createClient } from "../server";
 import { getCurrentAdmin, requireAdminPermission } from "../admin-auth";
+import { getServiceRoleClient, isServiceRoleConfigured } from "../service-role";
 import { recordAuditLog } from "./audit";
 import { getStudentProfileSnapshotForAdmin } from "./student-profile";
 import { getCareersForMatching } from "../careers";
@@ -20,8 +20,8 @@ import type { PricingCategory, PricingPurchase } from "@/types/pricing";
  * Every read runs with the caller's own session (RLS applies: admins see
  * everything, a counsellor only students they have case access to). Every
  * write is an RPC that re-validates the caller in the database
- * (supabase/migrations-proposed/NW09_ai_career_intelligence.sql and NW07's
- * staff_create_recommendation_draft). No service-role key is used anywhere.
+ * (supabase/migrations-proposed/nw-f01-s3/02_nw09_2_replacement.sql).
+ * No service-role key is used anywhere in this gateway.
  *
  * Database errors are logged WITHOUT request content (no profile data, no
  * prompt, no model output) and surfaced as a generic message.
@@ -180,6 +180,11 @@ export function createCareerIntelligenceGateway(config: AiConfig): CareerIntelli
     getConsent: (studentUserId) => readConsentStatus(studentUserId),
 
     async reserveRun(a): Promise<ReserveResult> {
+      // Without the trusted finalization path a provider call could never be
+      // persisted, so refuse before any tokens are spent (CC-16, F1).
+      if (!isServiceRoleConfigured()) {
+        return { kind: "denied", reason: "AI analysis is not configured on this server (trusted finalization unavailable)." };
+      }
       const supabase = await createClient();
       const { data, error } = await supabase.rpc("staff_reserve_ai_generation_run_v2", {
         p_student_user_id: a.studentUserId,
@@ -229,31 +234,39 @@ export function createCareerIntelligenceGateway(config: AiConfig): CareerIntelli
         p_provider_response_id: c.providerResponseId ?? null,
         p_report: (c.report as unknown as Json) ?? null,
       });
-      if (error) logDbError("staff_complete_ai_generation_run_v2", error);
-    },
-
-    async createDraft({ studentUserId, title, content }) {
-      const supabase = await createClient();
-      const { data, error } = await supabase.rpc("staff_create_recommendation_draft", {
-        p_student_user_id: studentUserId,
-        p_title: title,
-        p_recommendation_type: "career",
-        p_content: content as unknown as Json,
-      });
-      // staff_create_recommendation_draft() returns ONE row → PostgREST sends an object, not an array.
-      const id = rpcRowId(data);
-      if (error || !id) {
-        if (isMissingObject(error)) throw new CareerIntelligenceUnavailableError();
-        logDbError("staff_create_recommendation_draft", error);
-        throw new Error("The draft could not be created.");
+      if (error) {
+        logDbError("staff_complete_ai_generation_run_v2", error);
+        throw new Error("The AI outcome could not be recorded. Do not retry the provider call.");
       }
-      return id;
     },
 
-    async linkDraft(runId, draftId) {
-      const supabase = await createClient();
-      const { error } = await supabase.rpc("staff_link_ai_generation_run_draft", { p_run_id: runId, p_draft_id: draftId });
-      if (error) logDbError("staff_link_ai_generation_run_draft", error);
+    async finalizeRun(a) {
+      // CC-16 (F1): AI results are submitted only by this trusted server, with
+      // the service-role key, on behalf of the staff user authenticated from
+      // their own session here — never a client-supplied identity. The RPC
+      // re-checks that user's role, case access, run ownership and consent.
+      const admin = await getCurrentAdmin();
+      if (!admin) throw new Error("The AI result could not be confirmed. Do not retry the provider call.");
+      const trusted = getServiceRoleClient();
+      if (!trusted) throw new CareerIntelligenceUnavailableError();
+      const { data, error } = await trusted.rpc("staff_finalize_ai_generation_run", {
+        p_requester_user_id: admin.userId,
+        p_run_id: a.runId, p_student_user_id: a.studentUserId,
+        p_consent_id: a.consentId, p_report: a.report as unknown as Json,
+        p_draft_content: a.content as unknown as Json,
+        p_usage: a.usage as unknown as Json,
+      });
+      if (error) {
+        if (isMissingObject(error)) throw new CareerIntelligenceUnavailableError();
+        logDbError("staff_finalize_ai_generation_run", error);
+        throw new Error("The AI result could not be confirmed. Do not retry the provider call.");
+      }
+      const row = data as { outcome?: string; draft_id?: string } | null;
+      if ((row?.outcome === "finalized" || row?.outcome === "duplicate") && typeof row.draft_id === "string" && row.draft_id) {
+        return { kind: row.outcome, draftId: row.draft_id };
+      }
+      if (row?.outcome === "consent_withdrawn" || row?.outcome === "failed") return { kind: row.outcome };
+      throw new Error("The AI result could not be confirmed. Do not retry the provider call.");
     },
 
     async audit(action, studentUserId, context) {
