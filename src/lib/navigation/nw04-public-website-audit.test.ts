@@ -33,16 +33,14 @@ function stripComments(source: string): string {
 }
 
 describe("NW04.2 — homepage: new sections exist and are wired in without touching HomeHero", () => {
-  it("page.tsx renders ProductEntryCards and StudioIntro directly after HomeHero", () => {
+  // V5.4 production homepage release: `/` now renders the approved V5.4 landing page (its own Career Intelligence,
+  // Study Abroad and Studio scenes). The NW04.2 sections are superseded and stay on disk unreferenced, as UX10A did.
+  it("page.tsx renders the approved V5.4 homepage; the NW04.2 section components remain on disk (superseded)", () => {
     const content = read("app/(site)/page.tsx");
-    const heroIndex = content.indexOf("<HomeHero");
-    const cardsIndex = content.indexOf("<ProductEntryCards");
-    const studioIndex = content.indexOf("<StudioIntro");
-    const pillarsIndex = content.indexOf("<DiscoveryPillars");
-    expect(heroIndex).toBeGreaterThan(-1);
-    expect(cardsIndex).toBeGreaterThan(heroIndex);
-    expect(studioIndex).toBeGreaterThan(cardsIndex);
-    expect(pillarsIndex).toBeGreaterThan(studioIndex);
+    expect(content).toContain("<NextwiseV54Home />");
+    expect(content).not.toMatch(/<(HomeHero|ProductEntryCards|StudioIntro|DiscoveryPillars)\b/);
+    expect(read("components/sections/home/ProductEntryCards.tsx").length).toBeGreaterThan(0);
+    expect(read("components/sections/home/StudioIntro.tsx").length).toBeGreaterThan(0);
   });
 
   it("HomeHero.tsx's own hero CTAs are untouched (still /career-discovery and /study-europe) — the regression-sensitive file this stage deliberately did not edit", () => {

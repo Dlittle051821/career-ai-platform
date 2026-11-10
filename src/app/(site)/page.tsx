@@ -1,49 +1,19 @@
 import type { Metadata } from "next";
 import { publicPageMetadata } from "@/config/seo";
-import { HomeHero } from "@/components/sections/home/HomeHero";
-import { SignatureHero } from "@/components/sections/home/signature/SignatureHero";
-import { getHomepageHeroVariant } from "@/lib/home/signature-hero/variant";
-import { ProductEntryCards } from "@/components/sections/home/ProductEntryCards";
-import { StudioIntro } from "@/components/sections/home/StudioIntro";
-import { DiscoveryPillars } from "@/components/sections/home/DiscoveryPillars";
-import { TrustedStudyExplorer } from "@/components/sections/home/TrustedStudyExplorer";
-import { HowItWorks } from "@/components/sections/home/HowItWorks";
-import { WhyNextwise } from "@/components/sections/home/WhyNextwise";
-import { HomeFinalCTA } from "@/components/sections/home/HomeFinalCTA";
+import { NextwiseV54Home } from "@/components/sections/home/v54/NextwiseV54Home";
 
-// Public search and sharing metadata describe the services on this page.
+// V5.4 PRODUCTION HOMEPAGE — the approved V5.4 landing page (full-screen,
+// chapter scrolling, the original N reveal and N-led story, organic question
+// cards, Log in / Sign up). See docs/home-v5-4/IMPLEMENTATION.md.
 //
-// UX10A — the homepage's section COMPOSITION below was rebuilt to match
-// the approved premium-homepage reference image's own six-section
-// structure (Hero / Discovery Pillars / Trusted Study Explorer / How It
-// Works / Why Nextwise / Final CTA) end to end, replacing the prior
-// ad-hoc section list (DecisionProblems/CareerJourneyPreview/
-// StudentParentSplit/IndiaAbroadPreview/TrustPreview/HowSupportWorks/
-// PricingPreview/HomeFaq/CTASection).
+// The previous homepage sections (HomeHero, SignatureHero, ProductEntryCards,
+// StudioIntro, DiscoveryPillars, TrustedStudyExplorer, HowItWorks,
+// WhyNextwise, HomeFinalCTA) are no longer rendered here. Their component
+// files stay on disk, unreferenced, exactly as UX10A left the sections it
+// superseded: src/config/site.test.ts asserts that some of them exist, and
+// keeping them makes this release trivially revertible.
 //
-// UX10-H04 "EXACT MATCH TO FINAL APPROVED HOMEPAGE MOCKUP" — AnnouncementStrip
-// is no longer rendered on the homepage. This milestone's own final
-// reference shows a clean header with no navy announcement bar beneath it,
-// and its brief explicitly permits removing (or subtly integrating) that
-// bar "if not product-critical." Its message (Odisha career-first
-// positioning) is marketing copy, not functional/critical to the page, so
-// it's removed here rather than force-fit into the reference's clean
-// header — the same judgment call this milestone's brief asks for. The
-// component file itself is deliberately left on disk, unreferenced, same
-// as the nine superseded section files below — nothing imports it outside
-// this file, and deleting it is not necessary to satisfy either
-// milestone's brief.
-//
-// The nine superseded section COMPONENT FILES themselves are deliberately
-// NOT deleted from src/components/sections/home/ even though nothing
-// imports them anymore: src/config/site.test.ts's own rebrand regression
-// guard asserts (by exact relative path) that both
-// src/components/sections/home/Hero.tsx and .../PricingPreview.tsx exist
-// on disk and do not mention the old brand name. Deleting either file
-// would fail that pre-existing test, which this milestone's own
-// instruction ("Preserve all existing tests") does not permit working
-// around. See docs/ux10a-premium-homepage-design-system.md for the full
-// reasoning and the complete list of files left in place unreferenced.
+// Public search and sharing metadata are unchanged.
 export const metadata: Metadata = publicPageMetadata(
   "/",
   "Career Guidance & Study Abroad",
@@ -51,24 +21,5 @@ export const metadata: Metadata = publicPageMetadata(
 );
 
 export default function HomePage() {
-  // NW08.7 — the signature motion hero is integrated but OFF by default: `/`
-  // renders the current approved HomeHero unless NEXTWISE_HOMEPAGE_HERO is
-  // exactly "signature" at build time (see src/lib/home/signature-hero/
-  // variant.ts). Compare both locally at `/` and `/homepage-preview`.
-  const heroVariant = getHomepageHeroVariant();
-  return (
-    <>
-      {heroVariant === "signature" ? <SignatureHero /> : <HomeHero />}
-      {/* NW04.2 — the two-product "choose where to start" entry section
-          and the Student Studio introduction, both new and additive.
-          See ProductEntryCards.tsx's and StudioIntro.tsx's own docblocks. */}
-      <ProductEntryCards />
-      <StudioIntro />
-      <DiscoveryPillars />
-      <TrustedStudyExplorer />
-      <HowItWorks />
-      <WhyNextwise />
-      <HomeFinalCTA />
-    </>
-  );
+  return <NextwiseV54Home />;
 }

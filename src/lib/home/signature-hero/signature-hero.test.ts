@@ -51,12 +51,13 @@ describe("homepage integration — off by default, previewable locally", () => {
     }
   });
 
-  it("page.tsx keeps HomeHero as the default and the existing section order", () => {
+  // V5.4 production homepage release: `/` renders the approved V5.4 landing page in every environment. The signature
+  // hero stays available only on its development preview route (checked below) and is not used on `/`.
+  it("page.tsx renders the approved V5.4 homepage (no hero variant switch, no signature hero on /)", () => {
     const page = read("src/app/(site)/page.tsx");
-    expect(page).toMatch(/heroVariant === "signature" \? <SignatureHero \/> : <HomeHero \/>/);
-    const order = ["<HomeHero", "<ProductEntryCards", "<StudioIntro", "<DiscoveryPillars", "<TrustedStudyExplorer", "<HowItWorks", "<WhyNextwise", "<HomeFinalCTA"].map((t) => page.indexOf(t));
-    expect(order.every((i) => i > -1)).toBe(true);
-    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(page).toMatch(/export default function HomePage\(\) \{\s*return <NextwiseV54Home \/>;\s*\}/);
+    expect(page.replace(/\/\/.*$/gm, "")).not.toMatch(/SignatureHero|getHomepageHeroVariant|isHomepagePreviewEnabled/);
+    expect(page).toMatch(/publicPageMetadata\(\s*"\/",\s*"Career Guidance & Study Abroad"/);
   });
 
   it("the homepage never receives the preview-only dev controls", () => {

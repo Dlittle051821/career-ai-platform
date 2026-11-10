@@ -1,0 +1,318 @@
+/*
+ * NW-V5.4 — the approved V5.3 landing page as a full-screen experience:
+ * no page frame, every scene's background edge to edge, Electric Coral
+ * navigation pills, Log in / Sign up, a mobile menu.
+ *
+ * Loaded only where NextwiseV54Home renders. Every rule is scoped under
+ * `.nw4.nw54` (the root carries both classes, so V4's stage layout applies
+ * and every V5 rule out-ranks the V4 rule it refines) — nothing reaches the
+ * V4 homepage, whose root is `.nw4` alone.
+ *
+ * Hero geometry is the approved reference measured in reference px × 0.9078
+ * (1440 / 1586) — see src/lib/home/v54/config.ts.
+ *
+ * Deep Sea palette: Deep Navy #03045F · Ocean Blue #0077B6 · Bright Cyan
+ * #00B4D8 · Soft Aqua #90E0EF · Ice Blue #CAF0F8, on white and neutral paper.
+ */
+
+.nw4.nw54{
+  --nw-navy:#03045F;--nw-ocean:#0077B6;--nw-cyan:#00B4D8;--nw-aqua:#90E0EF;--nw-ice:#CAF0F8;
+  --v54-ink:#070B1F; /* near-black navy: headline */
+  --v54-accent:#0077B6; /* Ocean Blue: 4.7:1 on white — AA at headline sizes */
+  /* brand colours (information, decoration) — Deep Sea */
+  --nw-brand-navy:#03045F;--nw-brand-ocean:#0077B6;--nw-brand-cyan:#00B4D8;--nw-brand-aqua:#90E0EF;--nw-brand-ice:#CAF0F8;
+  /* ACTION colours — Electric Coral is reserved for the primary actions ("Get started") and Sign in's hover/focus mark.
+     Navy on coral = 5.5:1 (AA). */
+  --nw-action-primary:#FF4D6D;--nw-action-primary-hover:#FF5F7B;--nw-action-primary-text:#03045F;
+  /* hero display face: Option A Space Grotesk (default), Option B Sora */
+  --v54-display:var(--font-v54-grotesk),"Space Grotesk",var(--font-jakarta),system-ui,sans-serif;
+  --v54-text:#4A5068;--v54-paper:#FBFAFB;--v54-white:#FFFFFF;
+  --v54-ui:var(--font-jakarta),"Plus Jakarta Sans",system-ui,sans-serif;
+  --v54-head:var(--font-v54-sora),"Sora",var(--font-jakarta),system-ui,sans-serif;
+  /* V4 scene palettes re-pointed at Deep Sea (structure untouched) */
+  --p0:#020240;--p1:#03045F;--p2:#0077B6;--p3:#00B4D8;--p4:#CAF0F8;--p5:#14205A;
+  --f0:#03045F;--f1:#03045F;--f2:#3E4F72;--f3:#6A7A98;--f4:#90E0EF;--f5:#F7FBFD;
+  --t0:#03045F;--t1:#0B1468;--t2:#3E5578;--t3:#7FA6C4;--t4:#CAF0F8;--t5:#F7FBFD;
+  --b0:#03045F;--b1:#03045F;--b2:#0077B6;--b3:#0077B6;--b4:#90E0EF;--b5:#EEF9FC;
+  background:#FFFFFF;
+}
+.nw4.nw54 .nw4-sticky{background:#FFFFFF}
+/* V5.4: the stage is transparent — the backdrop behind it carries every scene's background edge to edge, so there are
+   no white bands and no frame at any viewport size. It is clipped exactly to its box (so an outgoing scene's recede
+   blur never spills over the edge-to-edge panels), except below it while the hero shows, where the torso continues. */
+.nw4.nw54 .nw4-stage{background:transparent;overflow:visible;clip-path:inset(1px)}
+.nw4.nw54:not([data-v54-state="scroll-story"]) .nw4-stage{clip-path:inset(1px 1px calc(-1 * var(--v54-band,0px)) 1px)}
+.nw4.nw54 .L0{overflow:visible}
+.nw4.nw54 .nw4-layer:focus{outline:none}
+/* the section links stay in the viewport, so tabbing to them never scrolls the story away from the current chapter */
+.nw4.nw54 .nw4-skipnav{position:fixed}
+/* the story's full height before the engine runs ((TOTAL + 1) viewport heights = 11.85), so a refresh or Back restores
+   the exact scroll position instead of a clamped one; the engine then sets the same height in px */
+.nw4.nw54 .nw4-scroller{height:1185vh;height:1185svh}
+.nw4.nw54 .v54-backdrop{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;
+  --v54-sc:1;--v54-oy:0px;--v54-sh:100%}
+.nw4.nw54 .v54-panel{position:absolute;inset:0;visibility:hidden}
+.nw4.nw54 .v54-p0{visibility:visible;background:radial-gradient(calc(900px * var(--v54-sc)) calc(520px * var(--v54-sc)) at 50% calc(var(--v54-oy) + var(--v54-sh) * .4),#FFFFFF 0%,#FBFAFB 70%,#F6F7FA 100%)}
+.nw4.nw54 .v54-p1{background:linear-gradient(180deg,#03045F 0,#03045F calc(var(--v54-oy) + var(--v54-sh) * .18),#023A86 calc(var(--v54-oy) + var(--v54-sh) * .72),#0077B6 calc(var(--v54-oy) + var(--v54-sh) * 1.28))}
+.nw4.nw54 .v54-p2{background:#F7FBFD}
+.nw4.nw54 .v54-p3{background:#EEF9FC}
+.nw4.nw54 .v54-p4{background:#F7FBFD}
+.nw4.nw54 .v54-p5{background:linear-gradient(180deg,#020240 0,#020240 var(--v54-oy),#03045F calc(var(--v54-oy) + var(--v54-sh)))}
+.nw4.nw54 .v54-p6{background:radial-gradient(calc(1100px * var(--v54-sc)) calc(760px * var(--v54-sc)) at 50% calc(var(--v54-oy) + var(--v54-sh) * .18),#0077B6 0%,#023C8A 38%,#03045F 72%,#020240 100%)}
+/* the final scene's faint photo feathers into the edge-to-edge background instead of ending at the stage edge */
+.nw4.nw54 .f-photo{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 14%,#000 86%,transparent 100%),linear-gradient(180deg,transparent 0,#000 14%);mask-image:linear-gradient(90deg,transparent 0,#000 14%,#000 86%,transparent 100%),linear-gradient(180deg,transparent 0,#000 14%);-webkit-mask-composite:source-in;mask-composite:intersect}
+
+/* ---------- scenes after the hero: V4 structure, Deep Sea grounds, geometric headings ---------- */
+.nw4.nw54 .serif{font-family:var(--v54-head);font-weight:600;letter-spacing:-.04em}
+.nw4.nw54 em{font-family:var(--v54-head);font-style:normal;font-weight:600}
+.nw4.nw54 .h2{font-size:56px;line-height:60px;letter-spacing:-.04em}
+.nw4.nw54 .m .h2{font-size:36px;line-height:40px}
+.nw4.nw54 .eb{font-family:var(--v54-head);font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+.nw4.nw54 .pcard h3{font-family:var(--v54-head);font-weight:600;font-size:34px;line-height:38px;letter-spacing:-.035em}
+.nw4.nw54 .steps .n,.nw4.nw54 .pillar .ix{font-family:var(--v54-head);font-weight:600}
+.nw4.nw54 .btn{font-family:var(--v54-ui);font-weight:700;letter-spacing:-.01em}
+.nw4.nw54 .t-st{font-family:var(--v54-head);font-weight:600;letter-spacing:-.035em}
+.nw4.nw54 .L1{background:linear-gradient(180deg,#03045F 0%,#03045F 18%,#023A86 72%,#0077B6 128%);color:#fff}
+.nw4.nw54 .L2{background:#F7FBFD;color:#03045F}
+.nw4.nw54 .L3{background:#EEF9FC;color:#03045F}
+.nw4.nw54 .L4{background:#F7FBFD;color:#03045F}
+.nw4.nw54 .L5{background:linear-gradient(180deg,#020240 0%,#03045F 100%);color:#CAF0F8}
+.nw4.nw54 .L6{background:radial-gradient(1100px 760px at 50% 18%,#0077B6 0%,#023C8A 38%,#03045F 72%,#020240 100%);color:#fff}
+.nw4.nw54 .f-foot{color:rgba(202,240,248,.72)}
+/* the closing headline in the geometric face is wider than V4's: on the portrait stage it is set so each line fits (two lines, never overlapping the copy below) */
+.nw4.nw54 .m .f-h2{font-size:44px;line-height:48px;white-space:nowrap}
+.nw4.nw54 .btn.light{background:#fff;color:#03045F}
+.nw4.nw54 .btn.light:hover,.nw4.nw54 .btn.light.is-hover{box-shadow:0 12px 30px -12px rgba(144,224,239,.7)}
+.nw4.nw54 .btn.forest,.nw4.nw54 .btn.blue,.nw4.nw54 .btn.navy{background:#03045F;color:#fff}
+.nw4.nw54 .btn.forest:hover,.nw4.nw54 .btn.blue:hover,.nw4.nw54 .btn.navy:hover{background:#0077B6}
+.nw4.nw54 :focus-visible{outline:2px solid #00B4D8;outline-offset:3px;border-radius:12px}
+
+/* ================= the approved V5 hero (L0) ================= */
+.nw4.nw54 .L0{background:transparent;color:var(--v54-ink)}
+.nw4.nw54 .L0 .glow{background:radial-gradient(closest-side,rgba(202,240,248,.7),rgba(202,240,248,.25) 55%,rgba(202,240,248,0) 100%)}
+/* V5.4: no page frame — the hero's layers fill the stage, and its paper ground is the backdrop's first panel */
+.nw4.nw54 .v54-hero-layers{position:absolute;inset:0}
+
+/* layer order inside the hero */
+.nw4.nw54 .L0 .v54-portrait{z-index:10;background:none;-webkit-mask-image:none;mask-image:none}
+.nw4.nw54 .L0 .v54-portrait::after{content:none}
+.nw4.nw54 .d .L0 .v54-portrait{left:290.6px;top:336px;width:844.3px;height:532.9px}
+.nw4.nw54 .m .L0 .v54-portrait{left:-95px;top:448px;width:614px;height:387.5px}
+.nw4.nw54 .v54-portrait img{display:block;width:100%;height:100%;object-fit:contain;user-select:none}
+/* without the frame the torso continues to the bottom edge: the PNG's stray last rows are clipped and a one-pixel row
+   averaged from the portrait's own rows 1140–1150 (outline of row 1150, which sits at 97.95 % of the image) is stretched below */
+.nw4.nw54 .L0 .v54-portrait{overflow:visible}
+.nw4.nw54 .v54-portrait img{clip-path:inset(0 0 1.62% 0)}
+.nw4.nw54 .v54-portrait-base{position:absolute;left:0;top:97.95%;width:100%;height:calc(32px + var(--v54-band,0px));pointer-events:none;background:url(/home-v54/v54-portrait-base.png) 0 0/100% 100% no-repeat;
+  /* down to the stage's bottom edge it is solid (as the approved composition); through any extra band below it feathers into the paper */
+  -webkit-mask-image:linear-gradient(180deg,#000 0,#000 32px,transparent 100%);mask-image:linear-gradient(180deg,#000 0,#000 32px,transparent 100%)}
+.nw4.nw54 .m .v54-portrait-base{height:calc(12px + var(--v54-band,0px));-webkit-mask-image:linear-gradient(180deg,#000 0,#000 12px,transparent 100%);mask-image:linear-gradient(180deg,#000 0,#000 12px,transparent 100%)}
+/* once the story leaves the hero, the continuation below the stage steps aside so it never sits over an incoming scene */
+.nw4.nw54 .v54-portrait-base{transition:opacity .3s}
+.nw4.nw54[data-v54-state="scroll-story"] .v54-portrait-base{opacity:0}
+.nw4.nw54 .v54-veil{position:absolute;inset:0 0 calc(-1 * var(--v54-band,0px)) 0;z-index:12;opacity:0;pointer-events:none;background:linear-gradient(180deg,rgba(251,250,251,.6),rgba(251,250,251,.92))}
+.nw4.nw54 .L0 .a:not(.v54-portrait){z-index:30}
+
+/* ---------- V5.3 hero typography: Space Grotesk display (Option A) or Sora (Option B), Plus Jakarta Sans interface ---------- */
+.nw4.nw54[data-v54-type="b"]{--v54-display:var(--font-v54-sora),"Sora",var(--font-jakarta),system-ui,sans-serif}
+/* eyebrow: one small label instead of repeating the brand tagline above the headline */
+.nw4.nw54 .v54-eyebrow{display:flex;align-items:center;justify-content:center;gap:9px;font-family:var(--v54-ui);font-weight:700;font-size:12px;line-height:18px;letter-spacing:.16em;text-transform:uppercase;color:var(--nw-navy)}
+.nw4.nw54 .v54-eyebrow i{display:block;width:7px;height:7px;border-radius:50%;background:var(--nw-brand-cyan);box-shadow:0 0 0 4px rgba(0,180,216,.16)}
+/* headline (Option A, technology display): Space Grotesk Bold — statement in Deep Navy, resolution in Ocean Blue.
+   Tight but open tracking, a touch of extra word space, and the full stops optically hung so each line centres on its letters. */
+.nw4.nw54 .v54-h1{font-family:var(--v54-display);font-weight:700;font-size:68px;line-height:70px;letter-spacing:-.047em;word-spacing:.05em;color:var(--nw-brand-navy);text-align:center;white-space:nowrap;font-kerning:normal;font-optical-sizing:auto;font-variant-ligatures:common-ligatures}
+.nw4.nw54 .v54-h1 .ln{display:block;overflow:hidden;padding:0 .06em .08em}
+.nw4.nw54 .v54-accent{color:var(--nw-brand-ocean);font-weight:600;letter-spacing:-.044em}
+.nw4.nw54 .v54-p{margin-right:-.24em;letter-spacing:0} /* optical: hang the full stop so the line centres on its letters */
+.nw4.nw54[data-v54-type="b"] .v54-h1{font-size:62px;line-height:66px;letter-spacing:-.045em;word-spacing:0}
+.nw4.nw54[data-v54-type="b"] .v54-accent{font-weight:700;letter-spacing:-.045em}
+.nw4.nw54 .v54-sub{font-family:var(--v54-ui);font-size:17px;line-height:26px;font-weight:500;letter-spacing:-.003em;color:#3E4560;text-align:center;text-wrap:balance}
+.nw4.nw54 .v54-cta{display:flex;gap:12px;justify-content:center;align-items:center}
+.nw4.nw54 .v54-btn{height:48px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:0 26px;font-family:var(--v54-ui);font-size:15.5px;font-weight:600;letter-spacing:-.005em;white-space:nowrap;cursor:pointer;
+  transition:transform .35s var(--eo),background-color .25s,box-shadow .25s,border-color .25s,color .25s}
+.nw4.nw54 .v54-btn-primary{background:var(--nw-action-primary);color:var(--nw-action-primary-text);font-weight:650;padding:0 7px 0 26px;
+  box-shadow:0 14px 28px -16px rgba(200,30,69,.65),0 2px 6px -2px rgba(3,4,95,.18),inset 0 1px 0 rgba(255,255,255,.28)}
+/* microinteraction: a small lift, a slightly brighter coral and the arrow sliding 3px — no bounce, no pulse, no glow */
+.nw4.nw54 .v54-arrow{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:rgba(3,4,95,.1);color:var(--nw-action-primary-text);font-size:16px;line-height:1;
+  transition:transform .35s var(--eo),background-color .25s}
+.nw4.nw54 .v54-btn-primary:hover{background:var(--nw-action-primary-hover);transform:translateY(-2px);box-shadow:0 18px 30px -16px rgba(200,30,69,.7),0 3px 8px -3px rgba(3,4,95,.2),inset 0 1px 0 rgba(255,255,255,.3)}
+.nw4.nw54 .v54-btn-primary:hover .v54-arrow,.nw4.nw54 .v54-btn-primary:focus-visible .v54-arrow{transform:translateX(3px);background:rgba(3,4,95,.14)}
+.nw4.nw54 .v54-btn-primary:focus-visible{outline:2px solid var(--nw-brand-navy);outline-offset:3px}
+.nw4.nw54 .v54-btn-ghost{background:rgba(255,255,255,.9);color:var(--nw-navy);padding:0 22px 0 14px;border:1px solid rgba(3,4,95,.14)}
+.nw4.nw54 .v54-btn-ghost:hover{border-color:var(--nw-ocean);color:var(--nw-ocean);transform:translateY(-2px)}
+.nw4.nw54 .v54-play{width:24px;height:24px;border-radius:50%;background:#EAF7FB;border:1px solid rgba(0,119,182,.25);position:relative;flex:none}
+.nw4.nw54 .v54-play::after{content:"";position:absolute;left:9px;top:6.5px;border-left:7px solid var(--nw-ocean);border-top:4.5px solid transparent;border-bottom:4.5px solid transparent}
+.nw4.nw54[data-v54-touring] .v54-play::after{left:7.5px;top:7.5px;width:7px;height:7px;border:0;background:var(--nw-ocean);border-radius:1px}
+.nw4.nw54 .v54-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.nw4.nw54 .d .v54-eyebrow{left:0;top:96px;width:1440px}
+.nw4.nw54 .d .v54-h1{left:0;top:121px;width:1440px}
+.nw4.nw54 .d .v54-sub{left:340px;top:270px;width:760px}
+.nw4.nw54 .d .v54-cta{left:0;top:308px;width:1440px}
+
+.nw4.nw54 .m .v54-eyebrow{left:0;top:84px;width:390px;font-size:10.5px;letter-spacing:.14em}
+.nw4.nw54 .m .v54-h1{left:12px;top:108px;width:366px;font-size:35px;line-height:38px;letter-spacing:-.045em;word-spacing:.03em}
+.nw4.nw54 .m .v54-lp{display:none}
+.nw4.nw54 .m .v54-sub{left:28px;top:200px;width:334px;font-size:14.5px;line-height:21px}
+.nw4.nw54 .m .v54-cta{left:20px;top:258px;width:350px;gap:8px}
+.nw4.nw54 .m .v54-btn{height:44px;padding:0 12px;font-size:13.5px;flex:1;gap:7px}
+.nw4.nw54 .m .v54-play{width:20px;height:20px}
+.nw4.nw54 .m .v54-play::after{left:7.5px;top:5px;border-left-width:6px;border-top-width:4px;border-bottom-width:4px}
+
+/* peripheral notes */
+.nw4.nw54 .v54-badge{position:absolute;left:1216.5px;top:140.5px;width:109px;height:109px;z-index:28}
+.nw4.nw54 .v54-badge svg{width:109px;height:109px}
+.nw4.nw54 .v54-badge text{font-family:var(--v54-head);font-weight:600}
+.nw4.nw54 .v54-badge-star{fill:var(--nw-brand-navy)}
+.nw4.nw54 .v54-badge-spin{transform-origin:60px 60px;animation:v54-spin 48s linear infinite}
+@keyframes v54-spin{to{transform:rotate(360deg)}}
+.nw4.nw54 .v54-trust{position:absolute;left:84px;top:786px;width:280px;z-index:28;font-family:var(--v54-ui)}
+.nw4.nw54 .v54-trust>i{display:none}
+.nw4.nw54 .v54-trust p{font-size:14px;line-height:20px;font-weight:500;color:var(--v54-text);margin-bottom:10px}
+.nw4.nw54 .v54-roles{display:flex;gap:6px}
+.nw4.nw54 .v54-roles b{font-size:11.5px;font-weight:600;letter-spacing:.01em;color:#03045F;background:#fff;border:1px solid rgba(3,4,95,.1);border-radius:999px;padding:5px 10px}
+.nw4.nw54 .v54-note{position:absolute;left:1176px;top:782px;width:190px;z-index:28;font-family:var(--v54-ui)}
+.nw4.nw54 .v54-note p{position:relative;padding-left:45px;font-family:var(--v54-display);font-size:15px;line-height:20px;font-weight:600;letter-spacing:-.01em;color:var(--nw-navy)}
+.nw4.nw54 .v54-note p i{position:absolute;left:2px;top:9px;width:28px;height:1.5px;background:var(--nw-cyan)}
+
+
+/* ---------- question cards (positioned, scaled, blurred and layered by the ThoughtOrbitController) ---------- */
+.nw4.nw54 .v54-thoughts{position:absolute;inset:0;margin:0;padding:0;list-style:none;pointer-events:none}
+.nw4.nw54 .v54-card{--v54-resolved:0;--v54-sh:.6;--v54-hl:0;position:absolute;left:0;top:0;opacity:0;display:flex;align-items:center;
+  gap:calc(14px - 3px * var(--v54-resolved));padding:0 22px 0 calc(16px - 4px * var(--v54-resolved));border-radius:22px;overflow:hidden;
+  transform-origin:50% 50%;will-change:transform,opacity,filter;backface-visibility:hidden;
+  /* frosted ice: translucent white into Ice Blue */
+  background:linear-gradient(150deg,rgba(255,255,255,.9) 0%,rgba(248,253,254,.78) 52%,rgba(202,240,248,.62) 100%);
+  border:1px solid rgba(255,255,255,.88);
+  /* depth-aware: a nearer card casts a deeper, softer, further-offset shadow */
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95),inset 0 -1px 0 rgba(144,224,239,.4),0 0 0 1px rgba(3,4,95,calc(.03 + .04 * var(--v54-sh))),
+    0 calc(8px + 22px * var(--v54-sh)) calc(14px + 30px * var(--v54-sh)) calc(-10px - 8px * var(--v54-sh)) rgba(3,4,95,calc(.12 + .3 * var(--v54-sh))),
+    0 calc(2px + 4px * var(--v54-sh)) calc(6px + 6px * var(--v54-sh)) -4px rgba(3,4,95,calc(.04 + .08 * var(--v54-sh)));
+  font-family:var(--v54-ui);color:#0B1033}
+/* a specular sweep that slides across the surface as the card turns on the ring */
+.nw4.nw54 .v54-card::before{content:"";position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(108deg,rgba(255,255,255,0) 32%,rgba(255,255,255,.6) 48%,rgba(255,255,255,0) 64%);
+  transform:translateX(calc(var(--v54-hl) * -42%));opacity:calc(.75 * (1 - var(--v54-resolved)))}
+/* frost: the card refracts what passes behind it (desktop only; eight small cards, no full-screen filter) */
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .nw4.nw54 .d .v54-card{background:linear-gradient(150deg,rgba(255,255,255,.82) 0%,rgba(248,253,254,.66) 52%,rgba(202,240,248,.5) 100%);
+    -webkit-backdrop-filter:blur(12px) saturate(1.3);backdrop-filter:blur(12px) saturate(1.3)}
+}
+.nw4.nw54 .v54-card[data-resolved="true"]{border-color:rgba(0,180,216,.5)}
+.nw4.nw54 .v54-ic{transition:color .6s,background .6s,border-color .6s}
+.nw4.nw54 .v54-ic{position:relative;flex:none;display:grid;place-items:center;width:calc(44px - 10px * var(--v54-resolved));height:calc(44px - 10px * var(--v54-resolved));border-radius:13px;
+  color:var(--nw-ocean);background:linear-gradient(160deg,#F3FBFD,#CAF0F8);border:1px solid rgba(0,119,182,.14);box-shadow:inset 0 1px 0 #fff,0 6px 12px -8px rgba(0,119,182,.45);transition:background .4s,color .4s}
+.nw4.nw54 .v54-ic svg{width:21px;height:21px}
+.nw4.nw54 .v54-card[data-resolved="true"][data-pathway="career"] .v54-ic{background:linear-gradient(160deg,#1590D0,#0077B6);color:#fff;border-color:transparent}
+.nw4.nw54 .v54-card[data-resolved="true"][data-pathway="abroad"] .v54-ic{background:linear-gradient(160deg,#0A1680,#03045F);color:#fff;border-color:transparent}
+.nw4.nw54 .v54-tx{position:relative;display:flex;flex-direction:column;min-width:0}
+.nw4.nw54 .v54-tx b{display:block;font-weight:650;font-size:calc(var(--v54-fs,19.5px) - (var(--v54-fs,19.5px) - 14.5px) * var(--v54-resolved));line-height:1.2;letter-spacing:-.018em;color:#0B1033}
+.nw4.nw54 .v54-tx b>span{display:block;white-space:nowrap}
+.nw4.nw54 .v54-ans{display:flex;align-items:center;gap:6px;font-size:12px;line-height:15px;font-weight:600;color:var(--nw-ocean);opacity:var(--v54-resolved);max-height:calc(16px * var(--v54-resolved));overflow:hidden;white-space:nowrap;margin-top:calc(4px * var(--v54-resolved))}
+.nw4.nw54 .v54-ans::before{content:"";flex:none;width:5px;height:5px;border-radius:50%;background:var(--nw-cyan)}
+.nw4.nw54 .m .v54-card{border-radius:15px;gap:9px;padding:0 12px 0 9px}
+.nw4.nw54 .m .v54-ic{width:30px;height:30px;border-radius:9px}
+.nw4.nw54 .m .v54-ic svg{width:16px;height:16px}
+.nw4.nw54 .v54-ans-m,.nw4.nw54 .m .v54-ans-d{display:none}
+.nw4.nw54 .m .v54-ans-m{display:inline}
+.nw4.nw54 .m .v54-ans{font-size:10.5px;line-height:13px}
+
+.nw4.nw54 .v54-label{position:absolute;z-index:31;display:flex;align-items:center;gap:10px;opacity:0;pointer-events:none;
+  font-family:var(--v54-head);font-weight:600;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:#03045F}
+.nw4.nw54 .v54-label i{display:block;width:7px;height:7px;border-radius:50%;background:var(--nw-brand-cyan)}
+.nw4.nw54 .d .v54-label-career{left:146px;top:322px}
+.nw4.nw54 .d .v54-label-abroad{left:994px;top:406px}
+.nw4.nw54 .m .v54-label{font-size:10.5px;letter-spacing:.06em;gap:6px}
+.nw4.nw54 .m .v54-label i{width:6px;height:6px}
+.nw4.nw54 .m .v54-label-career{left:14px;top:480px}
+.nw4.nw54 .m .v54-label-abroad{left:202px;top:512px}
+
+@media (prefers-reduced-motion: reduce){
+  .nw4.nw54 .v54-badge-spin{animation:none}
+  .nw4.nw54 .v54-btn{transition:none}
+  .nw4.nw54 .v54-btn:hover{transform:none}
+}
+
+/* ================= navigation (master logo; the site header is hidden on this page only) ================= */
+body:has(.nw54)>header{display:none!important}
+.nw4.nw54 .v54-header{position:fixed;z-index:50;left:var(--v54-hx,40px);right:var(--v54-hx,40px);top:calc(var(--v54-hy,24px) + (1 - var(--nw4-nav,1)) * -14px);
+  height:86px;zoom:var(--v54-hz,1);display:flex;align-items:center;justify-content:space-between;padding:0 45px 0 44px;border-radius:30px;
+  opacity:var(--nw4-nav,1);font-family:var(--v54-ui);transition:background-color .35s,box-shadow .35s,height .35s}
+.nw4.nw54:not([data-nw4-ready]) .v54-header{opacity:0}
+.nw4.nw54 .v54-header:focus-within{opacity:1}
+.nw4.nw54[data-v54-state="scroll-story"] .v54-header{height:60px;top:var(--v54-hy,24px);padding:0 10px 0 22px;background:rgba(255,255,255,.95);box-shadow:0 12px 32px -20px rgba(3,4,95,.45);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.nw4.nw54 .v54-brand{display:flex;align-items:center;border-radius:10px}
+.nw4.nw54 .v54-nav{position:absolute;left:50%;transform:translateX(-50%);display:flex;gap:2px;padding:0 4px;height:38px;align-items:center;border-radius:999px;border:1px solid rgba(3,4,95,.1);background:rgba(255,255,255,.72);font-size:14.5px;font-weight:500;letter-spacing:-.005em;color:#0B1033}
+/* Navigation pills: the hit area and padding never change (no layout shift) — an Electric Coral pill grows in behind the label
+   on hover / keyboard focus (opacity + scale on a pseudo-element, ~220 ms), with a soft lift shadow; pressed = a slight press-in. */
+.nw4.nw54 .v54-pill{position:relative;z-index:0;display:flex;align-items:center;height:30px;padding:0 18px;border-radius:999px;color:#0B1033;
+  -webkit-tap-highlight-color:transparent;transition:color .2s cubic-bezier(.2,.8,.2,1)}
+.nw4.nw54 .v54-pill::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:var(--nw-action-primary);opacity:0;transform:scale(.86);
+  box-shadow:0 8px 18px -10px rgba(200,30,69,0);transition:opacity .2s cubic-bezier(.2,.8,.2,1),transform .22s cubic-bezier(.2,.8,.2,1),box-shadow .22s cubic-bezier(.2,.8,.2,1)}
+.nw4.nw54 .v54-pill:hover,.nw4.nw54 .v54-pill:focus-visible{color:var(--nw-action-primary-text)}
+.nw4.nw54 .v54-pill:hover::before,.nw4.nw54 .v54-pill:focus-visible::before{opacity:1;transform:scale(1);box-shadow:0 8px 18px -10px rgba(200,30,69,.75)}
+.nw4.nw54 .v54-pill:active::before{opacity:1;transform:scale(.95)}
+.nw4.nw54 .v54-pill:focus-visible{outline:2px solid var(--nw-brand-navy);outline-offset:2px}
+/* current page: weight and a small marker, not colour alone */
+.nw4.nw54 .v54-pill[aria-current="page"]{font-weight:700;color:var(--nw-brand-navy)}
+.nw4.nw54 .v54-pill[aria-current="page"]::after{content:"";position:absolute;left:50%;bottom:3px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:currentColor}
+@media (hover:none){.nw4.nw54 .v54-pill:hover::before{opacity:0;transform:scale(.86)}.nw4.nw54 .v54-pill:hover{color:#0B1033}}
+
+.nw4.nw54 .v54-actions{display:flex;align-items:center;gap:8px}
+/* Log in: clearly readable, quietly outlined; Sign up: the Electric Coral pill — one dominant action */
+.nw4.nw54 .v54-login{font-size:14.5px;font-weight:600;color:#03045F;padding:0 18px;height:38px;display:inline-flex;align-items:center;border-radius:999px;
+  border:1px solid rgba(3,4,95,.18);background:rgba(255,255,255,.6);transition:border-color .2s,background-color .2s,box-shadow .2s}
+.nw4.nw54 .v54-login:hover{border-color:rgba(3,4,95,.42);background:#fff;box-shadow:0 6px 14px -10px rgba(3,4,95,.5)}
+.nw4.nw54 .v54-login:active{background:#F1F6FB}
+.nw4.nw54 .v54-login:focus-visible{outline:2px solid var(--nw-brand-navy);outline-offset:2px}
+.nw4.nw54 .v54-signup{font-size:15px;font-weight:650;color:var(--nw-action-primary-text);background:var(--nw-action-primary);height:38px;padding:0 20px;display:inline-flex;align-items:center;gap:8px;border-radius:999px;
+  box-shadow:0 10px 20px -14px rgba(3,4,95,.8);transition:background-color .2s,transform .22s cubic-bezier(.2,.8,.2,1),box-shadow .22s}
+.nw4.nw54 .v54-signup:hover{background:var(--nw-action-primary-hover);transform:translateY(-1px);box-shadow:0 12px 22px -14px rgba(200,30,69,.8)}
+.nw4.nw54 .v54-signup:active{transform:translateY(0) scale(.98)}
+.nw4.nw54 .v54-signup:focus-visible{outline:2px solid var(--nw-brand-navy);outline-offset:3px}
+.nw4.nw54 .v54-signup .v54-arrow{width:auto;height:auto;background:none;font-size:15px}
+
+/* menu (phones, portrait tablets) */
+.nw4.nw54 .v54-menu-btn{display:none;position:relative;width:44px;height:44px;border-radius:50%;border:1px solid rgba(3,4,95,.14);background:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.nw4.nw54 .v54-menu-btn span,.nw4.nw54 .v54-menu-btn span::before,.nw4.nw54 .v54-menu-btn span::after{position:absolute;left:50%;top:50%;width:18px;height:2px;margin:-1px 0 0 -9px;border-radius:2px;background:#03045F;transition:transform .22s cubic-bezier(.2,.8,.2,1),opacity .15s}
+.nw4.nw54 .v54-menu-btn span::before,.nw4.nw54 .v54-menu-btn span::after{content:"";margin:0;left:0;top:0}
+.nw4.nw54 .v54-menu-btn span::before{transform:translateY(-6px)}
+.nw4.nw54 .v54-menu-btn span::after{transform:translateY(6px)}
+.nw4.nw54 .v54-menu-btn[aria-expanded="true"] span{background:transparent}
+.nw4.nw54 .v54-menu-btn[aria-expanded="true"] span::before{transform:rotate(45deg)}
+.nw4.nw54 .v54-menu-btn[aria-expanded="true"] span::after{transform:rotate(-45deg)}
+.nw4.nw54 .v54-menu-btn:focus-visible{outline:2px solid var(--nw-brand-navy);outline-offset:2px}
+.nw4.nw54 .v54-menu{position:absolute;right:0;top:calc(100% + 8px);width:min(320px,calc(100vw - 28px));padding:8px;border-radius:22px;background:#fff;
+  box-shadow:0 0 0 1px rgba(3,4,95,.06),0 24px 48px -20px rgba(3,4,95,.45);display:flex;flex-direction:column;gap:6px}
+.nw4.nw54 .v54-menu[hidden]{display:none}
+.nw4.nw54 .v54-menu nav{display:flex;flex-direction:column}
+.nw4.nw54 .v54-menu nav a{display:flex;align-items:center;min-height:48px;padding:0 16px;border-radius:14px;font-size:16px;font-weight:600;color:#03045F}
+.nw4.nw54 .v54-menu nav a:active,.nw4.nw54 .v54-menu nav a:hover{background:#FFE4E9}
+.nw4.nw54 .v54-menu-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 4px 4px;border-top:1px solid rgba(3,4,95,.08)}
+.nw4.nw54 .v54-menu-actions a{height:48px;justify-content:center;font-size:15px}
+.nw4.nw54 .v54-menu-actions a:only-child{grid-column:1 / -1}
+
+/* the portrait stage: phones, and portrait tablets (src/lib/home/v54/stage.ts: aspect below ≈ 0.86) */
+@media (max-width:699.98px),(max-aspect-ratio:86/100){
+  .nw4.nw54 .v54-header{height:56px;padding:0 6px 0 14px;left:var(--v54-hx,14px);right:var(--v54-hx,14px);top:calc(var(--v54-hy,14px) + (1 - var(--nw4-nav,1)) * -14px);gap:8px}
+  .nw4.nw54[data-v54-state="scroll-story"] .v54-header{height:56px;padding:0 6px 0 12px}
+  .nw4.nw54 .v54-header>.v54-nav,.nw4.nw54 .v54-header>.v54-actions .v54-login{display:none}
+  .nw4.nw54 .v54-header>.v54-actions{margin-left:auto}
+  .nw4.nw54 .v54-header>.v54-actions .v54-signup{height:40px;padding:0 16px;font-size:14px}
+  .nw4.nw54 .v54-menu-btn{display:block;flex:none}
+}
+
+/* ---------- V5.3 Future Horizon: a faint aspirational scene behind the student ----------
+   V5.4: the scene lives in the full-bleed backdrop (panel 0), so it reaches every edge of the viewport.
+   Layer order: paper → this scene (z 1) → rear cards (z 2–8) → portrait (z 10) → front cards → text.
+   Only the scene IMAGE is translucent; the mask keeps the headline area light and lets the horizon show
+   mostly around and below the student. Moved by transform/opacity only (ThoughtMotionController). */
+.nw4.nw54 .v54-scene{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;transform-origin:50% 72%;will-change:transform,opacity}
+.nw4.nw54 .v54-scene picture,.nw4.nw54 .v54-scene img{display:block;width:100%;height:100%}
+.nw4.nw54 .v54-scene img{object-fit:cover;object-position:50% 62%;opacity:.3;user-select:none;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0%,transparent 30%,rgba(0,0,0,.55) 46%,#000 62%,#000 100%),radial-gradient(120% 95% at 50% 70%,#000 62%,transparent 100%);
+  mask-image:linear-gradient(180deg,transparent 0%,transparent 30%,rgba(0,0,0,.55) 46%,#000 62%,#000 100%),radial-gradient(120% 95% at 50% 70%,#000 62%,transparent 100%);
+  -webkit-mask-composite:source-in;mask-composite:intersect}
+@media (max-width:699.98px),(max-aspect-ratio:86/100){.nw4.nw54 .v54-scene img{object-position:50% 70%;opacity:.32;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0%,transparent 38%,#000 60%,#000 100%);mask-image:linear-gradient(180deg,transparent 0%,transparent 38%,#000 60%,#000 100%)}}
+@media (prefers-reduced-motion: reduce){.nw4.nw54 .v54-scene{opacity:1}}
