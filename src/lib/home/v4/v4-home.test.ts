@@ -27,9 +27,11 @@ const COMPONENT = "src/components/sections/home/v4/V4ConnectedHome.tsx";
 const CSS = "src/components/sections/home/v4/v4-home.css";
 
 describe("NW-V4 — the homepage renders the Connected Experience", () => {
-  it("`/` renders V4ConnectedHome and keeps its public metadata", () => {
-    const page = read("src/app/(site)/page.tsx");
-    expect(page).toContain("<V4ConnectedHome />");
+  // V5.4: `/` renders the V5.4 homepage, which runs on this V4 engine, content and imagery (all unchanged and still
+  // tested below). V4ConnectedHome stays on disk. Line endings are normalised so Windows checkouts pass too.
+  it("`/` renders the V5.4 homepage (built on the V4 engine) and keeps its public metadata", () => {
+    const page = read("src/app/(site)/page.tsx").replace(/\r\n/g, "\n");
+    expect(page).toContain("<NextwiseV54Home />");
     expect(page).toContain('publicPageMetadata(\n  "/",');
   });
 

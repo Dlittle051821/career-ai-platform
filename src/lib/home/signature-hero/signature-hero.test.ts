@@ -54,9 +54,9 @@ describe("homepage integration — off by default, previewable locally", () => {
   // NW-V4 — `/` renders the V4 Connected Experience directly (approved
   // rollout: "replace the homepage"). The hero variants and their dev-only
   // preview routes are untouched and still covered below.
-  it("page.tsx renders the V4 Connected Experience instead of the hero variants", () => {
+  it("page.tsx renders the V5.4 homepage instead of the hero variants", () => {
     const page = read("src/app/(site)/page.tsx");
-    expect(page).toContain("<V4ConnectedHome />");
+    expect(page).toContain("<NextwiseV54Home />");
     expect(page).not.toMatch(/<HomeHero|<SignatureHero|<FilmHero|getHomepageHeroVariant/);
   });
 

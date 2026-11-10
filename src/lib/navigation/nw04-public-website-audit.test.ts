@@ -37,9 +37,9 @@ describe("NW04.2 — homepage: new sections exist and are wired in without touch
   // NW04.2 entry sections (its own Two Pathways scene links /careers and
   // /abroad with equal weight). The NW04.2 component files stay on disk and
   // keep their own source audits below.
-  it("page.tsx renders the V4 Connected Experience; the NW04.2 section files remain on disk", () => {
+  it("page.tsx renders the V5.4 homepage; the NW04.2 section files remain on disk", () => {
     const content = read("app/(site)/page.tsx");
-    expect(content).toContain("<V4ConnectedHome />");
+    expect(content).toContain("<NextwiseV54Home />");
     expect(content).not.toContain("<HomeHero");
     for (const file of ["HomeHero", "ProductEntryCards", "StudioIntro", "DiscoveryPillars"]) {
       expect(read(`components/sections/home/${file}.tsx`).length).toBeGreaterThan(0);

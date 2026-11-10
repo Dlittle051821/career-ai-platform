@@ -1,56 +1,23 @@
 import type { Metadata } from "next";
 import { publicPageMetadata } from "@/config/seo";
-import { V4ConnectedHome } from "@/components/sections/home/v4/V4ConnectedHome";
+import { NextwiseV54Home } from "@/components/sections/home/v54/NextwiseV54Home";
 
-// Public search and sharing metadata describe the services on this page.
+// V5.4 HOMEPAGE — the approved V5.4 landing page: the original N reveal and
+// N-led scroll story (one gesture → one complete chapter), the organic
+// question cards, Career Intelligence, Study Abroad, Student Studio and the
+// closing call to action, full-screen and responsive, with Log in / Sign up.
+// It builds on the V4 engine, content and images already in this codebase
+// (src/lib/home/v4, src/components/sections/home/v4, public/home-v4), which
+// stay unchanged. V4ConnectedHome stays on disk, unreferenced, so this switch
+// is a one-file revert. See docs/home-v5-4/IMPLEMENTATION.md.
 //
-// UX10A — the homepage's section COMPOSITION below was rebuilt to match
-// the approved premium-homepage reference image's own six-section
-// structure (Hero / Discovery Pillars / Trusted Study Explorer / How It
-// Works / Why Nextwise / Final CTA) end to end, replacing the prior
-// ad-hoc section list (DecisionProblems/CareerJourneyPreview/
-// StudentParentSplit/IndiaAbroadPreview/TrustPreview/HowSupportWorks/
-// PricingPreview/HomeFaq/CTASection).
-//
-// UX10-H04 "EXACT MATCH TO FINAL APPROVED HOMEPAGE MOCKUP" — AnnouncementStrip
-// is no longer rendered on the homepage. This milestone's own final
-// reference shows a clean header with no navy announcement bar beneath it,
-// and its brief explicitly permits removing (or subtly integrating) that
-// bar "if not product-critical." Its message (Odisha career-first
-// positioning) is marketing copy, not functional/critical to the page, so
-// it's removed here rather than force-fit into the reference's clean
-// header — the same judgment call this milestone's brief asks for. The
-// component file itself is deliberately left on disk, unreferenced, same
-// as the nine superseded section files below — nothing imports it outside
-// this file, and deleting it is not necessary to satisfy either
-// milestone's brief.
-//
-// The nine superseded section COMPONENT FILES themselves are deliberately
-// NOT deleted from src/components/sections/home/ even though nothing
-// imports them anymore: src/config/site.test.ts's own rebrand regression
-// guard asserts (by exact relative path) that both
-// src/components/sections/home/Hero.tsx and .../PricingPreview.tsx exist
-// on disk and do not mention the old brand name. Deleting either file
-// would fail that pre-existing test, which this milestone's own
-// instruction ("Preserve all existing tests") does not permit working
-// around. See docs/ux10a-premium-homepage-design-system.md for the full
-// reasoning and the complete list of files left in place unreferenced.
+// Public search and sharing metadata are unchanged.
 export const metadata: Metadata = publicPageMetadata(
   "/",
   "Career Guidance & Study Abroad",
   "Explore careers, compare courses and universities, and plan study in India or Europe. Start with a free discovery session with NextWise.",
 );
 
-// NW-V4 — the homepage is the V4 "Connected Experience": one pinned,
-// scroll-driven story (Intro → Two Pathways → Career Intelligence → Study
-// Abroad → Student Studio → Trust & Guidance → Final conversion) guided by
-// the official N. It replaces the previous section composition below the
-// hero (ProductEntryCards, StudioIntro, DiscoveryPillars,
-// TrustedStudyExplorer, HowItWorks, WhyNextwise, HomeFinalCTA) and the
-// HomeHero / SignatureHero / FilmHero variants. Those component files are
-// deliberately left on disk, unreferenced from `/` (the dev-only
-// /homepage-preview routes and the regression guards that read them keep
-// working) — see docs/home-v4/IMPLEMENTATION.md.
 export default function HomePage() {
-  return <V4ConnectedHome />;
+  return <NextwiseV54Home />;
 }
