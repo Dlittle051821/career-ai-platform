@@ -30,7 +30,7 @@ describe("NW-V4 — the homepage renders the Connected Experience", () => {
   it("`/` renders V4ConnectedHome and keeps its public metadata", () => {
     const page = read("src/app/(site)/page.tsx");
     expect(page).toContain("<V4ConnectedHome />");
-    expect(page).toMatch(/publicPageMetadata\(\s*"\/",/);
+    expect(page).toContain('publicPageMetadata(\n  "/",');
   });
 
   it("has exactly one h1 and seven labelled scenes in story order", () => {
