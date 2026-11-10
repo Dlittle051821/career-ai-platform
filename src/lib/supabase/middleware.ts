@@ -25,6 +25,12 @@ const PROTECTED_PATHS = [
 ];
 const AUTH_ONLY_PATHS = ["/login", "/register"];
 
+/** A plain page navigation, as opposed to a Server Action or other POST to the same path. */
+export function isPageNavigation(request: Pick<NextRequest, "method" | "headers">): boolean {
+  const method = request.method.toUpperCase();
+  return (method === "GET" || method === "HEAD") && !request.headers.has("next-action");
+}
+
 /**
  * Runs on every request (see middleware.ts at the project root).
  *
@@ -82,7 +88,14 @@ export async function updateSession(request: NextRequest) {
   // auth-only page), so the one extra `admin_roles` lookup it now costs is
   // not the "every /admin/* navigation" hot path the comment above is
   // protecting — it only runs here, on /login and /register.
-  if (isAuthOnly && user) {
+  // CC-23 — only page navigations (GET/HEAD) are bounced off /login and
+  // /register. LoginForm calls a Server Action (resolveMyDefaultWorkspace)
+  // right after signInWithPassword; that action is POSTed to /login *with*
+  // the new session cookie, and redirecting it with a 307 broke the action,
+  // so every successful login showed "Something went wrong" and stayed on
+  // /login. This redirect is a convenience, not an access control: protected
+  // paths above are unaffected, and Server Actions authorise themselves.
+  if (isAuthOnly && user && isPageNavigation(request)) {
     const target = await resolveDefaultWorkspacePath(supabase, user.id);
     return NextResponse.redirect(new URL(target, request.url));
   }

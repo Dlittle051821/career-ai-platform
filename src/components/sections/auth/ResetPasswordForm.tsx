@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Eye, EyeOff, KeyRound, Loader2 } from "lucide-react";
-import { FormField } from "@/components/forms/FormField";
+import { FormField, describedBy } from "@/components/forms/FormField";
 import { Input } from "@/components/forms/Input";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
@@ -123,6 +123,9 @@ export function ResetPasswordForm() {
         <div className="relative">
           <Input
             id="reset-password"
+            // CC-23: FormField links hint/error to its direct child, which here is a wrapper,
+            // so the input is linked explicitly for screen readers.
+            aria-describedby={describedBy("reset-password-hint", fieldError ? "reset-password-error" : undefined)}
             name="password"
             type={showPassword ? "text" : "password"}
             autoComplete="new-password"

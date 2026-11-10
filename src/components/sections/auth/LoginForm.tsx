@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
-import { FormField } from "@/components/forms/FormField";
+import { FormField, describedBy } from "@/components/forms/FormField";
 import { Input } from "@/components/forms/Input";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
@@ -133,6 +133,9 @@ export function LoginForm() {
         <div className="relative">
           <Input
             id="login-password"
+            // CC-23: FormField links hint/error to its direct child, which here is a wrapper,
+            // so the input is linked explicitly for screen readers.
+            aria-describedby={describedBy(errors.password ? "login-password-error" : undefined)}
             name="password"
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"

@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { LinkButton } from "@/components/ui/Button";
 import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
 import { CourseComparisonTable } from "@/components/sections/education/CourseComparisonTable";
-import { MAX_COMPARE_COURSES } from "@/components/sections/education/CompareTray";
+import { MAX_COMPARE_COURSES } from "@/lib/education/compare-limits";
 import { getCoursesByIds } from "@/lib/supabase/education/courses";
 import { trackEvent } from "@/lib/supabase/analytics/track";
 

@@ -106,7 +106,7 @@ export default async function DiscoverySessionBookPage() {
         <SectionHeading
           eyebrow="Ready when you are"
           title="Book Your Free Discovery Session"
-          description="Choose a convenient time and our team will confirm your session."
+          description="Tell us how and when you'd prefer to talk, and a counsellor will contact you to agree a time."
         />
         <div className="mt-8 grid gap-10 lg:grid-cols-[1.3fr_1fr]">
           <div>
@@ -137,6 +137,19 @@ export default async function DiscoverySessionBookPage() {
                         ? `${activeSession.assignedCounsellorName} will be in touch to confirm a time, if they haven't already.`
                         : "A counsellor will reach out to confirm a time that works for you."}
                   </p>
+                  {/*
+                    CC-23 — after a successful request the server re-render
+                    lands here (revalidatePath), so the form's own success
+                    card is never seen. Repeat its honesty notes here while
+                    the request is still unscheduled.
+                  */}
+                  {activeSession.scheduledAt ? null : (
+                    <p className="mt-2 text-sm leading-relaxed text-muted">
+                      This is a request, not a booked slot yet. Nextwise does not send email or app notifications about
+                      it yet, so check this page or your dashboard for the confirmed time. You can&rsquo;t change or
+                      cancel a request online yet — tell your counsellor when they contact you.
+                    </p>
+                  )}
                   <Link href="/dashboard" className="mt-4 inline-block text-sm font-semibold text-secondary-dark hover:text-primary">
                     Back to my dashboard
                   </Link>

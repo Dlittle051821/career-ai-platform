@@ -4,12 +4,12 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Loader2, MailCheck, UserPlus } from "lucide-react";
-import { FormField } from "@/components/forms/FormField";
+import { FormField, describedBy } from "@/components/forms/FormField";
 import { Input } from "@/components/forms/Input";
 import { Checkbox } from "@/components/forms/Checkbox";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
-import { ALREADY_REGISTERED_MESSAGE, friendlyAuthError } from "@/lib/supabase/auth-errors";
+import { friendlyAuthError } from "@/lib/supabase/auth-errors";
 import { focusFirstInvalidField } from "@/lib/ui/form-focus";
 import { isRequired, isValidEmail, isValidIndianPhone, isValidPassword } from "@/lib/validation";
 import { trackEventClient } from "@/lib/supabase/analytics/track-client";
@@ -141,13 +141,11 @@ export function RegisterForm() {
         return;
       }
 
-      // CC-22B — with email confirmation on, Supabase answers a sign-up for an
-      // email that already has an account with a user object that has no
-      // identities and sends no email. Say so instead of "check your email".
-      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-        setFormError(ALREADY_REGISTERED_MESSAGE);
-        return;
-      }
+      // CC-23 (replaces the CC-22B "may already exist" message) — an already-registered email comes back from Supabase as an
+      // obfuscated user with no identities (account-enumeration protection).
+      // Show the same neutral "check your email" screen as a new sign-up so
+      // the page does not reveal whether this email has an account; that
+      // screen tells existing users to log in or reset their password.
 
       // Email confirmation is required — Supabase created the account but
       // withheld a session until the student clicks the emailed link.
@@ -168,10 +166,21 @@ export function RegisterForm() {
         <div>
           <p className="text-base font-semibold text-primary">Check your email</p>
           <p className="mt-2 text-sm leading-relaxed text-muted">
-            We&apos;ve sent a confirmation link to <span className="font-medium text-text">{values.email}</span>.
-            Open it in this browser on this device — the link confirms your email and signs you in.
+            If <span className="font-medium text-text">{values.email}</span> is new to Nextwise, we&apos;ve sent it a
+            confirmation link. Open it in this browser on this device — the link confirms your email and signs you in.
           </p>
         </div>
+        <p className="text-xs text-muted">
+          If you already have a Nextwise account with this email, no new link is sent:{" "}
+          <Link href={loginHref} className="font-medium text-secondary-dark underline underline-offset-2">
+            log in
+          </Link>{" "}
+          or{" "}
+          <Link href="/forgot-password" className="font-medium text-secondary-dark underline underline-offset-2">
+            reset your password
+          </Link>
+          .
+        </p>
         <p className="text-xs text-muted">
           Didn&apos;t get it after a few minutes? Check your spam folder. If you mistyped your email,{" "}
           <button
@@ -239,6 +248,9 @@ export function RegisterForm() {
         <div className="relative">
           <Input
             id="register-password"
+            // CC-23: FormField links hint/error to its direct child, which here is a wrapper,
+            // so the input is linked explicitly for screen readers.
+            aria-describedby={describedBy("register-password-hint", errors.password ? "register-password-error" : undefined)}
             name="password"
             type={showPassword ? "text" : "password"}
             autoComplete="new-password"

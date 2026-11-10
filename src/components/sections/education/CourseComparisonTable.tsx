@@ -114,7 +114,7 @@ export function CourseComparisonTable({ courses, removeHrefs }: CourseComparison
   ];
 
   return (
-    <div className="overflow-x-auto rounded-[var(--radius-card)] border border-border bg-surface">
+    <div tabIndex={0} role="region" aria-label="Course comparison table (scrolls sideways on small screens)" className="overflow-x-auto rounded-[var(--radius-card)] border border-border bg-surface">
       <table className="w-full min-w-[640px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-border">

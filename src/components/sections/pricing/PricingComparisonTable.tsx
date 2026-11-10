@@ -53,7 +53,7 @@ export function PricingComparisonTable({
   const metrics = metricLabels ? allMetrics.filter((m) => metricLabels.includes(m.label)) : allMetrics;
 
   return (
-    <div className="overflow-x-auto rounded-[var(--radius-card)] border border-border bg-surface">
+    <div tabIndex={0} role="region" aria-label="Plan comparison table (scrolls sideways on small screens)" className="overflow-x-auto rounded-[var(--radius-card)] border border-border bg-surface">
       <table className="w-full min-w-[560px] border-collapse text-sm">
         <caption className="border-b border-border px-4 py-3 text-left text-sm font-semibold text-primary">
           Compare {categoryLabel} packages

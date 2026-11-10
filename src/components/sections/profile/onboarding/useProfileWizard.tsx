@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { WORK_PREFERENCE_OPTIONS } from "@/data/profile-options";
 import { calculateCompletion } from "@/lib/profile/completion";
 import { snapshotToDraft } from "@/lib/profile/draft";
@@ -39,6 +40,27 @@ import { ReviewStep } from "./steps/ReviewStep";
 
 const SAVE_CONNECTION_ERROR =
   "We couldn't reach Nextwise to save this step. Your answers are still here — check your connection and try again.";
+
+/** CC-23 — shown instead of the connection message when the save failed because the student's session ended. */
+export const SESSION_ENDED_ERROR =
+  "Your session has ended, so this step wasn't saved. Log in again to continue — steps you already saved are kept.";
+
+/**
+ * True only when Supabase positively reports that there is no valid session
+ * (401/403 or no session at all). A network failure is NOT treated as a
+ * session end, so offline students still see the connection message.
+ */
+async function hasSessionEnded(): Promise<boolean> {
+  try {
+    const { data, error } = await createBrowserSupabaseClient().auth.getUser();
+    if (data.user) return false;
+    if (!error) return true;
+    const status = (error as { status?: number }).status;
+    return error.name === "AuthSessionMissingError" || status === 401 || status === 403;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * UX10-P01 — the real step-by-step save/validation/navigation logic that
@@ -216,13 +238,22 @@ export function useProfileWizard({
   // that changed during a deploy) used to throw inside the transition and
   // replace the page with the default error screen. Catch it, keep the
   // student's answers, and say what to do.
+  // CC-23 — `isPending` disables the buttons only after React re-renders, so
+  // several clicks in the same instant could each start a save (seen as a
+  // duplicate delete + insert of the same step). This ref closes that gap.
+  const busyRef = useRef(false);
+
   function runSafely(task: () => Promise<void>) {
+    if (busyRef.current) return;
+    busyRef.current = true;
     startTransition(async () => {
       try {
         await task();
       } catch (error) {
         console.error("[profile wizard] save failed:", error);
-        setStepError(SAVE_CONNECTION_ERROR);
+        setStepError((await hasSessionEnded()) ? SESSION_ENDED_ERROR : SAVE_CONNECTION_ERROR);
+      } finally {
+        busyRef.current = false;
       }
     });
   }

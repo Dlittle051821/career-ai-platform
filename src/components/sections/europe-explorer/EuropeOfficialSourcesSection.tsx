@@ -42,7 +42,7 @@ import {
 export function EuropeOfficialSourcesSection() {
   return (
     <div>
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {EUROPE_COUNTRIES.map((country) => {
           const Flag = EUROPE_EXPLORER_FLAGS[country.code];
           const { officialSource } = country;
@@ -69,7 +69,7 @@ export function EuropeOfficialSourcesSection() {
                 rel="noopener noreferrer"
                 variant="outline"
                 size="md"
-                className="mt-5 w-full justify-center"
+                className="mt-5 w-full justify-center whitespace-normal! text-center"
                 trailingIcon={<ExternalLink aria-hidden="true" className="h-4 w-4" />}
                 aria-label={`${CONTINUE_ON_OFFICIAL_SOURCE_LABEL} for ${country.name} — ${officialSource.authority}. Opens in a new tab.`}
               >

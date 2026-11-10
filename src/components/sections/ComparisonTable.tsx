@@ -24,7 +24,7 @@ export function ComparisonTable({ caption, columns, rows }: ComparisonTableProps
         <MoveHorizontal aria-hidden="true" className="h-3.5 w-3.5" />
         Scroll sideways to see all columns
       </p>
-      <div className="overflow-x-auto rounded-[var(--radius-card)] border border-border">
+      <div tabIndex={0} role="region" aria-label="Comparison table (scrolls sideways on small screens)" className="overflow-x-auto rounded-[var(--radius-card)] border border-border">
         <table className="w-full min-w-[640px] border-collapse text-sm">
           <caption className="sr-only">{caption}</caption>
           <thead>

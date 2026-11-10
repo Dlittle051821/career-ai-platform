@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { CalendarCheck, Send } from "lucide-react";
-import { FormField } from "@/components/forms/FormField";
+import { FormField, describedBy } from "@/components/forms/FormField";
 import { Input } from "@/components/forms/Input";
 import { Select } from "@/components/forms/Select";
 import { Textarea } from "@/components/forms/Textarea";
@@ -157,6 +157,9 @@ export function BookingForm() {
             </span>
             <Input
               id="booking-phone"
+              // CC-23: FormField links hint/error to its direct child, which here is a wrapper,
+              // so the input is linked explicitly for screen readers.
+              aria-describedby={describedBy("booking-phone-hint", errors.phone ? "booking-phone-error" : undefined)}
               name="phone"
               type="tel"
               inputMode="tel"

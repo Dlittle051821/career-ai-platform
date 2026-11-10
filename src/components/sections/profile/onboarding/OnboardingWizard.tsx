@@ -1,11 +1,13 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+import Link from "next/link";
 import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ProfileProgressBar } from "../ProfileProgressBar";
 import type { StudentProfileSnapshot } from "@/types/student-profile";
-import { STEP_TITLES, TOTAL_STEPS, renderOnboardingStep, useProfileWizard } from "./useProfileWizard";
+import { SESSION_ENDED_ERROR, STEP_TITLES, TOTAL_STEPS, renderOnboardingStep, useProfileWizard } from "./useProfileWizard";
 
 interface OnboardingWizardProps {
   initialSnapshot: StudentProfileSnapshot;
@@ -32,11 +34,26 @@ export function OnboardingWizard({ initialSnapshot, initialStep }: OnboardingWiz
   const { draft, step, completion, stepError, isPending, updateDraft, handleContinue, handleBack, handleSaveAndExit, handleCompleteProfile, goToStep } =
     useProfileWizard({ initialSnapshot, initialStep });
 
+  // CC-23 — move focus to the new step's heading after Continue/Back/Edit so
+  // keyboard and screen-reader users land on the step instead of the top of
+  // the page (the clicked button unmounts or changes, dropping focus to <body>).
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const firstStepRender = useRef(true);
+  useEffect(() => {
+    if (firstStepRender.current) {
+      firstStepRender.current = false;
+      return;
+    }
+    headingRef.current?.focus();
+  }, [step]);
+
   return (
     <Section tone="muted" className="pt-10 sm:pt-14">
       <div className="mb-6">
         <p className="text-sm font-semibold uppercase tracking-wide text-secondary">Student Digital Profile</p>
-        <h1 className="mt-2 text-3xl font-semibold text-primary balance sm:text-4xl">{STEP_TITLES[step]}</h1>
+        <h1 ref={headingRef} tabIndex={-1} className="mt-2 text-3xl font-semibold text-primary balance outline-none sm:text-4xl">
+          {STEP_TITLES[step]}
+        </h1>
         <p className="mt-2 text-sm text-muted">
           Step {step} of {TOTAL_STEPS}
         </p>
@@ -50,6 +67,17 @@ export function OnboardingWizard({ initialSnapshot, initialStep }: OnboardingWiz
             className="mb-6 rounded-[var(--radius-control)] border border-error/25 bg-error-light px-4 py-3 text-sm text-error"
           >
             {stepError}
+            {stepError === SESSION_ENDED_ERROR ? (
+              <>
+                {" "}
+                <Link
+                  href={`/login?next=${encodeURIComponent(`/profile/onboarding?step=${step}`)}`}
+                  className="font-semibold underline underline-offset-2"
+                >
+                  Log in again
+                </Link>
+              </>
+            ) : null}
           </p>
         ) : null}
 

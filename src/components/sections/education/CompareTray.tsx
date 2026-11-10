@@ -4,9 +4,10 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from "re
 import Link from "next/link";
 import { Scale, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MAX_COMPARE_COURSES } from "@/lib/education/compare-limits";
 
-/** Matches getCoursesByIds' default cap (src/lib/supabase/education/courses.ts) — the comparison page can never usefully hold more than this many courses, so the tray refuses to select a fifth. */
-export const MAX_COMPARE_COURSES = 4;
+/** Matches getCoursesByIds' default cap (src/lib/supabase/education/courses.ts) — the comparison page can never usefully hold more than this many courses, so the tray refuses to select a fifth. Defined in a plain module (CC-23) so server code gets the real number. */
+export { MAX_COMPARE_COURSES };
 
 interface SelectedCourse {
   id: string;

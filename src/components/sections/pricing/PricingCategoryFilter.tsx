@@ -93,7 +93,7 @@ export function PricingCategoryFilter({ items }: { items: PricingFilterItem[] })
         })}
       </div>
 
-      <div className="mt-9 grid gap-7 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-9 grid grid-cols-1 gap-7 sm:grid-cols-2 xl:grid-cols-4">
         {items.map((item) => {
           const visible = active === "all" || item.groups.includes(active);
           return (

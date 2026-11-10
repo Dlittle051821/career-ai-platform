@@ -6,7 +6,11 @@ interface CheckboxProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
 }
 
-export function Checkbox({ id, label, error, className, ...rest }: CheckboxProps) {
+export function Checkbox({ id, label, error, className, "aria-describedby": ariaDescribedBy, ...rest }: CheckboxProps) {
+  // CC-23 — link the error to the checkbox so screen readers announce it
+  // (e.g. the required Terms consent on /register), keeping any caller-provided description.
+  const errorId = error && id ? `${id}-error` : undefined;
+  const describedBy = [ariaDescribedBy, errorId].filter(Boolean).join(" ") || undefined;
   return (
     <div>
       <label htmlFor={id} className="flex cursor-pointer items-start gap-3 text-sm text-text-soft">
@@ -18,12 +22,13 @@ export function Checkbox({ id, label, error, className, ...rest }: CheckboxProps
             className
           )}
           aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy}
           {...rest}
         />
         <span>{label}</span>
       </label>
       {error ? (
-        <p role="alert" className="mt-1.5 pl-8 text-sm text-error">
+        <p id={errorId} role="alert" className="mt-1.5 pl-8 text-sm text-error">
           {error}
         </p>
       ) : null}

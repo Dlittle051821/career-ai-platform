@@ -37,7 +37,7 @@ export function EuropeComparisonSection() {
         Swipe sideways to compare all 6 countries
       </p>
 
-      <div className="overflow-x-auto rounded-2xl border border-border/80 bg-surface shadow-[0_6px_18px_-10px_rgba(15,23,42,0.18)]">
+      <div tabIndex={0} role="region" aria-label="Country comparison table (scrolls sideways on small screens)" className="overflow-x-auto rounded-2xl border border-border/80 bg-surface shadow-[0_6px_18px_-10px_rgba(15,23,42,0.18)]">
         <table className="w-full min-w-[860px] border-collapse text-sm">
           <caption className="sr-only">Comparison of Germany, Ireland, Netherlands, France, Sweden, and Denmark across tuition, English-taught availability, admission structure, living cost, and post-study opportunities.</caption>
           <thead>

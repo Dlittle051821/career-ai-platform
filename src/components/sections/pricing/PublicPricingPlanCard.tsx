@@ -275,7 +275,7 @@ export function PublicPricingPlanCard({
               href={version.amountMinorUnits === 0 ? "/register" : DISCOVERY_SESSION_BOOKING_PATH}
               variant={premium ? "secondary" : "primary"}
               size="lg"
-              className={cn("w-full justify-center font-semibold", premium && "bg-[#38bdf8] text-[#06273f] hover:bg-[#67d4fb]")}
+              className={cn("w-full justify-center whitespace-normal! text-center font-semibold", premium && "bg-[#38bdf8] text-[#06273f] hover:bg-[#67d4fb]")}
             >
               {version.amountMinorUnits === 0 ? "Create a free account" : "Book a Free Discovery Session"}
             </LinkButton>
@@ -289,13 +289,13 @@ export function PublicPricingPlanCard({
             href={`/pricing/checkout/${plan.slug}`}
             variant={premium ? "secondary" : "primary"}
             size="lg"
-            className={cn("w-full justify-center font-semibold", premium && "bg-[#38bdf8] text-[#06273f] hover:bg-[#67d4fb]")}
+            className={cn("w-full justify-center whitespace-normal! text-center font-semibold", premium && "bg-[#38bdf8] text-[#06273f] hover:bg-[#67d4fb]")}
           >
             {version.ctaText || "Choose package"}
           </LinkButton>
         ) : null}
         {paidCheckoutEnabled || !hasLiveVersion || version?.amountMinorUnits === 0 ? (
-          <LinkButton href="/book-counselling" variant="ghost" className={cn("w-full justify-center", premium && "text-white/70 hover:bg-white/10 hover:text-white")}>
+          <LinkButton href="/book-counselling" variant="ghost" className={cn("w-full justify-center whitespace-normal! text-center", premium && "text-white/70 hover:bg-white/10 hover:text-white")}>
             Book a free consultation
           </LinkButton>
         ) : null}

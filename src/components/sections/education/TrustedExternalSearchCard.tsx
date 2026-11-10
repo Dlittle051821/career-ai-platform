@@ -123,6 +123,7 @@ export function TrustedExternalSearchCard({ result }: { result: AdapterResult })
             href={goHref}
             target="_blank"
             rel="noopener noreferrer"
+            className="whitespace-normal! text-center"
             trailingIcon={<ExternalLink aria-hidden="true" className="h-4 w-4" />}
           >
             {CONTINUE_ON_OFFICIAL_SOURCE_LABEL}
