@@ -51,6 +51,11 @@ vi.mock("@/lib/supabase/admin-auth", () => ({ requireAdminPermission: async () =
 vi.mock("@/lib/supabase/analytics/track", () => ({ trackEvent: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
+    // CC-25: these CC-24 cases model a database WITHOUT migration 0023 CC-25,
+    // where the identity RPC does not exist yet (PostgREST PGRST202) and the
+    // loader falls back to the RLS-limited profiles read. The CC-25 RPC path
+    // is covered in cc25-identity-lookup.test.ts.
+    rpc: async () => ({ data: null, error: { code: "PGRST202", message: "Could not find the function" } }),
     from: (table: string) => {
       const sessions = [
         { id: "s-assigned", student_user_id: "stu-a", assigned_counsellor_id: "c-1", status: "scheduled", session_type: "DISCOVERY_SESSION", created_at: "2026-11-11T10:00:00Z", updated_at: "2026-11-11T10:00:00Z" },

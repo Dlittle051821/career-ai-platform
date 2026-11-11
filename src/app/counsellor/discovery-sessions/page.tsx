@@ -101,7 +101,12 @@ export default async function CounsellorDiscoverySessionsPage({ searchParams }: 
                 <Td>
                   <StatusBadge status={s.status} labelOverride={DISCOVERY_SESSION_STATUS_LABELS[s.status]} />
                 </Td>
-                <Td className="text-text-soft">{s.assignedCounsellorName ?? "Unassigned"}</Td>
+                <Td className="text-text-soft">
+                  {s.assignedCounsellorName ?? "Unassigned"}
+                  {s.assignedCounsellorId && s.assignmentApproved === false ? (
+                    <div className="text-xs font-normal text-muted">Awaiting admin approval</div>
+                  ) : null}
+                </Td>
                 <Td className="text-text-soft">{s.preferredTimeRange ?? "No preference"}</Td>
                 <Td className="text-text-soft">{new Date(s.createdAt).toLocaleDateString("en-IN")}</Td>
                 <Td>

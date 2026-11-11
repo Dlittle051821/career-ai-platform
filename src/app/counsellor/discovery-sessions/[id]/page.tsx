@@ -57,6 +57,16 @@ export default async function CounsellorDiscoverySessionDetailPage({ params }: D
         <StatusBadge status={session.status} labelOverride={DISCOVERY_SESSION_STATUS_LABELS[session.status]} />
       </div>
 
+      {session.assignedCounsellorId && session.assignmentApproved === false ? (
+        <div role="status" className="mb-6 rounded-[var(--radius-card)] border border-border bg-surface-alt p-4 text-sm text-text-soft">
+          <p className="font-semibold text-primary">Waiting for admin approval</p>
+          <p className="mt-1">
+            This assignment hasn&apos;t been approved by an admin yet. Until it is, the student&apos;s name and email stay hidden and the
+            session and its workspace can&apos;t be changed.
+          </p>
+        </div>
+      ) : null}
+
       <Card className="mb-6">
         <h2 className="text-base font-semibold text-primary">Booking preferences</h2>
         <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">

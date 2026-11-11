@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "../server";
-import { requireAdminPermission } from "../admin-auth";
+import { requireAdminPermission, requireAdminRole } from "../admin-auth";
 import { recordAuditLog } from "./audit";
 import { AdminValidationError } from "@/lib/admin/form-state";
 import { DISCOVERY_SESSION_STATUS_TRANSITIONS, isValidTransition } from "@/lib/admin/status";
@@ -9,6 +9,8 @@ import {
   validateCancelDiscoverySession,
   validateScheduleDiscoverySession,
 } from "@/lib/discovery-sessions/rules";
+import { discoverySessionWriteErrorMessage } from "@/lib/discovery-sessions/assignment-approval";
+import { rpcSetAssignmentApproval, rpcStudentIdentities } from "./discovery-session-rpc";
 import { cleanFilterParam, clampPageSize, pageToRange, parsePageParam } from "@/lib/admin/pagination";
 import type { AdminListResult } from "@/types/admin";
 import { trackEvent } from "../analytics/track";
@@ -41,19 +43,74 @@ interface DiscoverySessionRow {
   cancellation_reason: string | null;
   created_at: string;
   updated_at: string;
+  /** CC-25 0023 — absent until that migration is applied. */
+  assignment_approved_counsellor_id?: string | null;
+  assignment_approved_at?: string | null;
 }
 
-async function buildStudentNameMap(supabase: Supabase, ids: string[]): Promise<Map<string, { name: string | null; email: string | null }>> {
+type StudentIdentity = { name: string | null; email: string | null };
+
+/** CC-25 — the identity RPC accepts at most this many session ids per call. */
+export const IDENTITY_LOOKUP_BATCH_SIZE = 100;
+
+/** PostgREST / Postgres codes for "this function does not exist (yet)". */
+function isMissingFunctionError(error: { code?: string | null } | null): boolean {
+  return error?.code === "PGRST202" || error?.code === "42883";
+}
+
+async function buildStudentNameMapFromProfiles(supabase: Supabase, ids: string[]): Promise<Map<string, StudentIdentity>> {
   const uniqueIds = Array.from(new Set(ids));
   if (uniqueIds.length === 0) return new Map();
   const { data, error } = await supabase.from("profiles").select("id, full_name, email").in("id", uniqueIds);
   if (error) {
-    logDbError("buildStudentNameMap", error);
+    logDbError("buildStudentNameMapFromProfiles", error);
     return new Map();
   }
-  // CC-24 — keep a blank name as null; a student missing from this map means
-  // RLS did not return their profile to this viewer (see toDiscoverySession).
   return new Map((data ?? []).map((p) => [p.id, { name: p.full_name ?? null, email: p.email ?? null }]));
+}
+
+/**
+ * CC-25 — the student identity (name and email only) for each session the
+ * viewer may identify, keyed by SESSION id. Uses the least-privilege
+ * staff_discovery_session_student_identities RPC (migration 0023 CC-25):
+ * admins see every student; a counsellor only for an admin-approved, active
+ * assignment, or a student on their caseload. It never reads other profile
+ * columns and never widens profiles RLS.
+ *
+ * Until that migration is applied the RPC does not exist; the lookup then
+ * falls back to the pre-CC-25 profiles read, which RLS already limits (so
+ * a counsellor simply sees "restricted", exactly as in CC-24). A session
+ * missing from the returned map means the viewer may not identify it.
+ */
+async function buildStudentIdentityMap(
+  supabase: Supabase,
+  rows: Pick<DiscoverySessionRow, "id" | "student_user_id">[]
+): Promise<Map<string, StudentIdentity>> {
+  const sessionIds = Array.from(new Set(rows.map((r) => r.id)));
+  if (sessionIds.length === 0) return new Map();
+
+  const bySession = new Map<string, StudentIdentity>();
+  for (let start = 0; start < sessionIds.length; start += IDENTITY_LOOKUP_BATCH_SIZE) {
+    const batch = sessionIds.slice(start, start + IDENTITY_LOOKUP_BATCH_SIZE);
+    const { data, error } = await rpcStudentIdentities(supabase, batch);
+    if (error) {
+      if (isMissingFunctionError(error)) {
+        const byStudent = await buildStudentNameMapFromProfiles(supabase, rows.map((r) => r.student_user_id));
+        return new Map(
+          rows.flatMap((r) => {
+            const identity = byStudent.get(r.student_user_id);
+            return identity ? [[r.id, identity] as const] : [];
+          })
+        );
+      }
+      logDbError("buildStudentIdentityMap", error);
+      return bySession;
+    }
+    for (const identity of data ?? []) {
+      bySession.set(identity.session_id, { name: identity.full_name ?? null, email: identity.email ?? null });
+    }
+  }
+  return bySession;
 }
 
 async function buildCounsellorNameMap(supabase: Supabase, ids: (string | null)[]): Promise<Map<string, string>> {
@@ -67,18 +124,33 @@ async function buildCounsellorNameMap(supabase: Supabase, ids: (string | null)[]
   return new Map((data ?? []).map((c) => [c.id, c.display_name]));
 }
 
+/**
+ * CC-25 — whether the CURRENT assignment is admin-approved. null when the
+ * database predates migration 0023 (no approval columns yet).
+ */
+export function isAssignmentApproved(row: Pick<DiscoverySessionRow, "assigned_counsellor_id" | "assignment_approved_counsellor_id" | "assignment_approved_at">): boolean | null {
+  if (!("assignment_approved_counsellor_id" in row) || row.assignment_approved_counsellor_id === undefined) return null;
+  return (
+    row.assigned_counsellor_id !== null &&
+    row.assignment_approved_counsellor_id === row.assigned_counsellor_id &&
+    Boolean(row.assignment_approved_at)
+  );
+}
+
 function toDiscoverySession(
   row: DiscoverySessionRow,
-  studentById: Map<string, { name: string | null; email: string | null }>,
+  studentBySession: Map<string, StudentIdentity>,
   counsellorNameById: Map<string, string>
 ): DiscoverySession {
-  const student = studentById.get(row.student_user_id);
+  const student = studentBySession.get(row.id);
   return {
     id: row.id,
     studentUserId: row.student_user_id,
     studentName: student?.name ?? null,
     studentEmail: student?.email ?? null,
     studentIdentityVisible: student !== undefined,
+    assignmentApproved: isAssignmentApproved(row),
+    assignmentApprovedAt: row.assignment_approved_at ?? null,
     sessionType: row.session_type as DiscoverySession["sessionType"],
     status: row.status as DiscoverySessionStatus,
     assignedCounsellorId: row.assigned_counsellor_id,
@@ -128,7 +200,7 @@ export async function listDiscoverySessions(filters: DiscoverySessionFilters = {
   }
   const rows = data ?? [];
   const [studentById, counsellorNameById] = await Promise.all([
-    buildStudentNameMap(supabase, rows.map((r) => r.student_user_id)),
+    buildStudentIdentityMap(supabase, rows),
     buildCounsellorNameMap(supabase, rows.map((r) => r.assigned_counsellor_id)),
   ]);
   return { items: rows.map((row) => toDiscoverySession(row, studentById, counsellorNameById)), total: count ?? 0, page, pageSize };
@@ -145,7 +217,7 @@ export async function getDiscoverySessionById(id: string): Promise<DiscoverySess
   if (!data) return null;
 
   const [studentById, counsellorNameById] = await Promise.all([
-    buildStudentNameMap(supabase, [data.student_user_id]),
+    buildStudentIdentityMap(supabase, [data]),
     buildCounsellorNameMap(supabase, [data.assigned_counsellor_id]),
   ]);
   return toDiscoverySession(data, studentById, counsellorNameById);
@@ -241,7 +313,7 @@ export async function updateDiscoverySession(id: string, formData: FormData): Pr
     .eq("id", id);
   if (error) {
     logDbError("updateDiscoverySession", error);
-    throw new Error(error.message);
+    throw new AdminValidationError(discoverySessionWriteErrorMessage(error));
   }
 
   const fieldChangeSummaries: string[] = [];
@@ -269,5 +341,27 @@ export async function updateDiscoverySession(id: string, formData: FormData): Pr
       entityType: "discovery_session",
       entityId: id,
     });
+  }
+}
+
+/**
+ * CC-25 — an admin approves (or revokes approval of) the CURRENT counsellor
+ * assignment. The database does the real work and the authorization: the
+ * admin_set_discovery_session_assignment_approval RPC re-checks the admin
+ * role, refuses a stale counsellor id, an inactive counsellor or an inactive
+ * session, stamps approved_by/approved_at from auth.uid() and writes the
+ * audit log row in the same transaction.
+ */
+export async function setDiscoverySessionAssignmentApproval(id: string, counsellorId: string, approved: boolean): Promise<void> {
+  await requireAdminRole(["super_admin", "admin"]);
+  if (!id || !counsellorId) throw new AdminValidationError("Choose a session that has an assigned counsellor.");
+  const supabase = await createClient();
+  const { error } = await rpcSetAssignmentApproval(supabase, { sessionId: id, counsellorId, approved });
+  if (error) {
+    logDbError("setDiscoverySessionAssignmentApproval", error);
+    if (error.code === "PGRST202" || error.code === "42883") {
+      throw new AdminValidationError("Assignment approval is not available yet: the CC-25 database update has not been applied.");
+    }
+    throw new AdminValidationError(discoverySessionWriteErrorMessage(error));
   }
 }

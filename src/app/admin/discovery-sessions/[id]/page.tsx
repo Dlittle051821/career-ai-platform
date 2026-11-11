@@ -6,12 +6,13 @@ import { Card } from "@/components/ui/Card";
 import { LinkButton } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { DiscoverySessionActionForm } from "@/components/admin/discovery-sessions/DiscoverySessionActionForm";
+import { AssignmentApprovalCard } from "@/components/admin/discovery-sessions/AssignmentApprovalCard";
 import { getDiscoverySessionById } from "@/lib/supabase/admin/discovery-sessions";
 import { getDiscoverySessionWorkspace } from "@/lib/supabase/admin/discovery-session-workspace";
 import { listCounsellorOptions } from "@/lib/supabase/admin/counsellors";
 import { DISCOVERY_SESSION_STATUS_LABELS } from "@/types/discovery-session";
 import { formatDiscoverySessionDateTime } from "@/lib/discovery-sessions/format";
-import { updateDiscoverySessionAction } from "../actions";
+import { setAssignmentApprovalAction, updateDiscoverySessionAction } from "../actions";
 import { describeDiscoverySessionStudent } from "@/lib/discovery-sessions/student-identity";
 
 interface DiscoverySessionDetailPageProps {
@@ -30,6 +31,7 @@ export default async function DiscoverySessionDetailPage({ params }: DiscoverySe
   if (!session) notFound();
 
   const boundAction = updateDiscoverySessionAction.bind(null, id);
+  const boundApprovalAction = setAssignmentApprovalAction.bind(null, id);
 
   return (
     <div className="max-w-3xl">
@@ -90,6 +92,8 @@ export default async function DiscoverySessionDetailPage({ params }: DiscoverySe
           {workspace ? "Open workspace" : "Start workspace"}
         </LinkButton>
       </Card>
+
+      <AssignmentApprovalCard action={boundApprovalAction} session={session} />
 
       <DiscoverySessionActionForm action={boundAction} session={session} counsellorOptions={counsellorOptions} />
     </div>

@@ -37,6 +37,13 @@ export interface DiscoverySession {
    * "Unnamed student". Undefined on the student's own views.
    */
   studentIdentityVisible?: boolean;
+  /**
+   * CC-25 — whether an admin approved the CURRENT counsellor assignment
+   * (database-controlled). null when the database predates migration 0023
+   * CC-25; undefined on the student's own views.
+   */
+  assignmentApproved?: boolean | null;
+  assignmentApprovedAt?: string | null;
   sessionType: DiscoverySessionType;
   status: DiscoverySessionStatus;
   assignedCounsellorId: string | null;

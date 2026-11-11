@@ -9,9 +9,11 @@
  * so a missing permission looked like missing data (CC-23 F11). This
  * keeps the two apart and says plainly when the details are restricted.
  *
- * It never widens access: it only labels what RLS already decided. The
- * access fix for an assigned counsellor is the separate, approval-gated
- * migration 0023 (docs/cc24/CC24-03-SECURITY-AND-RLS-REPORT.md).
+ * It never widens access: it only labels what the database already decided.
+ * CC-25: the identity now comes from the least-privilege
+ * staff_discovery_session_student_identities RPC (migration 0023 CC-25),
+ * which returns name and email only for an admin-approved, active
+ * assignment or the counsellor's caseload (docs/cc25/CC25-02).
  */
 
 import type { DiscoverySession } from "@/types/discovery-session";
@@ -28,15 +30,29 @@ export interface DiscoverySessionStudentIdentity {
   restricted: boolean;
 }
 
-type IdentityFields = Pick<DiscoverySession, "studentName" | "studentEmail" | "studentIdentityVisible" | "assignedCounsellorId">;
+type IdentityFields = Pick<DiscoverySession, "studentName" | "studentEmail" | "studentIdentityVisible" | "assignedCounsellorId"> &
+  Partial<Pick<DiscoverySession, "assignmentApproved" | "status">>;
+
+/**
+ * CC-25 — why the details are hidden, in the order the database checks it
+ * (staff_discovery_session_student_identities): no assignment, assignment
+ * not approved by an admin, session no longer active, otherwise access was
+ * withheld for this account (e.g. reassigned or inactive).
+ */
+function restrictedDetail(session: IdentityFields): string {
+  if (!session.assignedCounsellorId) return "Name and contact details appear once this request is assigned to you and approved by an admin.";
+  if (session.assignmentApproved === false) return "Waiting for an admin to approve this assignment.";
+  if (session.status && session.status !== "requested" && session.status !== "scheduled") {
+    return "Details are only shown for requested or scheduled sessions.";
+  }
+  return "Your account can't view this student's details. Ask an admin to check the assignment.";
+}
 
 export function describeDiscoverySessionStudent(session: IdentityFields): DiscoverySessionStudentIdentity {
   if (session.studentIdentityVisible === false) {
     return {
       name: RESTRICTED_STUDENT_LABEL,
-      detail: session.assignedCounsellorId
-        ? "Your account can't read this student's profile yet. Ask an admin to check your access."
-        : "Name and contact details appear once this request is assigned to you.",
+      detail: restrictedDetail(session),
       restricted: true,
     };
   }
