@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "../server";
+import { lookupValue, type DetailLookup } from "../detail-lookup";
 import { calculateFreshnessBand } from "@/lib/education/data-quality";
 import { clampPublicPageSize, parsePageParam, sanitizeSearchQuery, sanitizeFilterList } from "@/lib/education/search";
 import type {
@@ -388,6 +389,11 @@ export async function searchCourses(filters: CourseSearchFilters = {}): Promise<
 
 /** Public course detail by (universitySlug, courseSlug) — course slugs are only unique per-university (`unique(university_id, slug)`), so the route is `/courses/[universitySlug]/[courseSlug]`, never a flat `/courses/[slug]`. Returns null for a draft/archived/unknown/merged-away slug pair, or an unpublished parent university, rather than leaking existence. */
 export async function getPublicCourseBySlugPair(universitySlug: string, courseSlug: string): Promise<PublicCourseDetail | null> {
+  return lookupValue(await lookupPublicCourseBySlugPair(universitySlug, courseSlug));
+}
+
+/** CC-24 — like getPublicCourseBySlugPair, but tells "no such published course" (a real 404) apart from "the lookup failed". */
+export async function lookupPublicCourseBySlugPair(universitySlug: string, courseSlug: string): Promise<DetailLookup<PublicCourseDetail>> {
   const supabase = await createClient();
 
   const { data: university, error: universityError } = await supabase
@@ -399,9 +405,9 @@ export async function getPublicCourseBySlugPair(universitySlug: string, courseSl
     .maybeSingle();
   if (universityError) {
     logDbError("getPublicCourseBySlugPair(university)", universityError);
-    return null;
+    return { status: "unavailable" };
   }
-  if (!university) return null;
+  if (!university) return { status: "not_found" };
 
   const { data, error } = await supabase
     .from("courses")
@@ -413,9 +419,9 @@ export async function getPublicCourseBySlugPair(universitySlug: string, courseSl
     .maybeSingle();
   if (error) {
     logDbError("getPublicCourseBySlugPair(course)", error);
-    return null;
+    return { status: "unavailable" };
   }
-  if (!data) return null;
+  if (!data) return { status: "not_found" };
 
   const row = data as unknown as PublicCourseRow;
   const universityById = new Map<string, UniversityLookup>([
@@ -424,7 +430,7 @@ export async function getPublicCourseBySlugPair(universitySlug: string, courseSl
   const countryNameById = await buildCountryNameMap(supabase, [university.country_id]);
   const campusNameById = await buildCampusNameMap(supabase, [row.campus_id]);
 
-  return toDetail(row, universityById, countryNameById, campusNameById);
+  return { status: "found", value: toDetail(row, universityById, countryNameById, campusNameById) };
 }
 
 /** Fetches up to `limit` published+active courses by id — defaults to MAX_COMPARE_COURSES for the course comparison page's use (preserves the caller's requested order; comparison tables read left-to-right in selection order); pass a higher `limit` for other batch-lookup uses (e.g. resolving course names for a student's own application list, src/lib/supabase/education/applications.ts). Silently drops any id that is missing, unpublished, or beyond the cap. */

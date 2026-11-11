@@ -6,6 +6,7 @@ import { Textarea } from "@/components/forms/Textarea";
 import { CAREER_GOAL_CLARITY_OPTIONS } from "@/data/profile-options";
 import { cn } from "@/lib/utils";
 import type { CareerGoalsInput } from "@/lib/supabase/student-profile-actions";
+import { PROFILE_TEXT_LIMITS } from "@/lib/profile/input-limits";
 
 interface CareerGoalsStepProps {
   value: CareerGoalsInput;
@@ -53,6 +54,7 @@ export function CareerGoalsStep({ value, onChange }: CareerGoalsStepProps) {
           <FormField id="goal-job-title" label="Dream job title" required>
             <Input
               id="goal-job-title"
+              maxLength={PROFILE_TEXT_LIMITS.dreamJobTitle}
               value={value.dreamJobTitle ?? ""}
               onChange={(e) => set("dreamJobTitle", e.target.value || null)}
             />
@@ -60,6 +62,7 @@ export function CareerGoalsStep({ value, onChange }: CareerGoalsStepProps) {
           <FormField id="goal-industry" label="Dream industry" hint="Optional">
             <Input
               id="goal-industry"
+              maxLength={PROFILE_TEXT_LIMITS.dreamIndustry}
               value={value.dreamIndustry ?? ""}
               onChange={(e) => set("dreamIndustry", e.target.value || null)}
             />
@@ -68,6 +71,7 @@ export function CareerGoalsStep({ value, onChange }: CareerGoalsStepProps) {
             <FormField id="goal-reason" label="Why this career?" hint="Optional">
               <Textarea
                 id="goal-reason"
+                maxLength={PROFILE_TEXT_LIMITS.dreamReason}
                 rows={3}
                 value={value.dreamReason ?? ""}
                 onChange={(e) => set("dreamReason", e.target.value || null)}
@@ -84,6 +88,7 @@ export function CareerGoalsStep({ value, onChange }: CareerGoalsStepProps) {
             <Input
               key={index}
               aria-label={`Career idea ${index + 1}`}
+              maxLength={PROFILE_TEXT_LIMITS.careerIdea}
               placeholder={`Idea ${index + 1}`}
               value={value.careerIdeas[index] ?? ""}
               onChange={(e) => setIdea(index, e.target.value)}
@@ -99,6 +104,7 @@ export function CareerGoalsStep({ value, onChange }: CareerGoalsStepProps) {
       >
         <Textarea
           id="goal-life"
+          maxLength={PROFILE_TEXT_LIMITS.lifeGoalsText}
           rows={3}
           value={value.lifeGoalsText ?? ""}
           onChange={(e) => set("lifeGoalsText", e.target.value || null)}

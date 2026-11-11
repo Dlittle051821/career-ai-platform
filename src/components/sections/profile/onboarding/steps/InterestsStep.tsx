@@ -4,6 +4,7 @@ import { FormField } from "@/components/forms/FormField";
 import { Input } from "@/components/forms/Input";
 import { INTEREST_OPTIONS, INTEREST_STRENGTH_LABELS } from "@/data/profile-options";
 import { SelectableRatingList } from "../SelectableRatingList";
+import { PROFILE_TEXT_LIMITS } from "@/lib/profile/input-limits";
 
 interface InterestsStepProps {
   value: Record<string, number>;
@@ -46,7 +47,7 @@ export function InterestsStep({ value, onChange, otherText, onOtherTextChange }:
       />
       {"other" in value ? (
         <FormField id="interests-other-text" label="Tell us more about your other interest" hint="Optional">
-          <Input id="interests-other-text" value={otherText} onChange={(e) => onOtherTextChange(e.target.value)} />
+          <Input id="interests-other-text" maxLength={PROFILE_TEXT_LIMITS.interestsOtherText} value={otherText} onChange={(e) => onOtherTextChange(e.target.value)} />
         </FormField>
       ) : null}
     </div>

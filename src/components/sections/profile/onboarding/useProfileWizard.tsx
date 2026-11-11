@@ -77,6 +77,10 @@ async function hasSessionEnded(): Promise<boolean> {
 
 export const TOTAL_STEPS = 12;
 
+/** CC-24 — what the * marker means in the wizard (shown under every step heading except Review). */
+export const REQUIRED_FIELDS_NOTE =
+  "Fields marked * are needed to finish your profile. You can continue or save and come back to them later.";
+
 export const STEP_TITLES: Record<number, string> = {
   1: "About You",
   2: "Education",

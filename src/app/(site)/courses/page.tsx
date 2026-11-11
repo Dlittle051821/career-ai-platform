@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { publicPageMetadata } from "@/config/seo";
 import Link from "next/link";
@@ -23,6 +24,7 @@ import type { CourseDurationUnit } from "@/types/education";
 import { GeometricBackdrop } from "@/components/graphics/GeometricBackdrop";
 import { FADE_UP_CLASSES } from "@/lib/ui/motion";
 import { cn } from "@/lib/utils";
+import CoursesLoading from "./list-skeleton";
 
 // M17A Step 5 — canonical is deliberately static and points at the clean
 // list URL regardless of the many filter/search/sort/pagination query
@@ -73,7 +75,23 @@ interface CoursesPageProps {
  * "View courses" link (`/courses?universityId=<id>`) — see
  * src/app/(site)/universities/[slug]/page.tsx.
  */
-export default async function CoursesPage({ searchParams }: CoursesPageProps) {
+/**
+ * CC-24 — the list skeleton used to be this segment's loading.tsx. A
+ * segment-level loading.tsx also wraps every child route
+ * (/courses/[...] detail pages) in a Suspense boundary, which sends HTTP
+ * 200 before a detail page can answer 404 for an unknown or unpublished
+ * record. The same skeleton is now this page's own Suspense fallback, so
+ * the list behaves as before and the detail routes can return a real 404.
+ */
+export default function CoursesPage(props: CoursesPageProps) {
+  return (
+    <Suspense fallback={<CoursesLoading />}>
+      <CoursesPageContent {...props} />
+    </Suspense>
+  );
+}
+
+async function CoursesPageContent({ searchParams }: CoursesPageProps) {
   const params = await searchParams;
   const query = params.q?.trim() ?? "";
   const countryIds = toStringArray(params.country);
@@ -254,7 +272,12 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
         </p>
       </div>
 
-      <LaunchCountryDiscovery selectedCode={selectedLaunchCode} buildHref={buildDestinationHref} className="mb-6" />
+      <LaunchCountryDiscovery
+        selectedCode={selectedLaunchCode}
+        buildHref={buildDestinationHref}
+        note="Choosing a country shows its trusted official course portal below. To narrow the course list itself, use the Country filter."
+        className="mb-6"
+      />
 
       <Card className="mb-8">
         <CourseFilterBar

@@ -41,6 +41,12 @@ export interface VerifyCheckoutResult {
 
 /** Called from the client after Razorpay Checkout's own success handler fires. Never itself decides the payment succeeded — delegates entirely to public.verify_checkout_payment(), which independently re-verifies the signature. See src/lib/supabase/payments/checkout.ts. */
 export async function verifyCheckoutAction(invoiceId: string, params: { paymentAttemptId: string; providerPaymentId: string; providerOrderId: string; signature: string }): Promise<VerifyCheckoutResult> {
+  // CC-24 — defence in depth: while paid checkout is off no checkout can
+  // have been started from this app, so a browser "verify" call has nothing
+  // legitimate to verify. Refuse before any database call. Settlement of a
+  // genuine gateway payment never depends on this action: the signed
+  // Razorpay webhook (apply_webhook_event) handles it independently.
+  if (!isPaidCheckoutEnabled()) return { status: null, error: OPEN_INVOICE_PAYMENT_PAUSED_MESSAGE };
   try {
     const result = await verifyCheckoutPayment(params);
     revalidatePath(`/payments/${invoiceId}`);

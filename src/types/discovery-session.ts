@@ -31,6 +31,12 @@ export interface DiscoverySession {
   studentUserId: string;
   studentName: string | null;
   studentEmail: string | null;
+  /**
+   * CC-24 — false when the viewer's role cannot read this student's profile
+   * (RLS returned no row), so the UI can say "restricted" instead of
+   * "Unnamed student". Undefined on the student's own views.
+   */
+  studentIdentityVisible?: boolean;
   sessionType: DiscoverySessionType;
   status: DiscoverySessionStatus;
   assignedCounsellorId: string | null;

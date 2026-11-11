@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { EXPERIENCE_TYPE_OPTIONS } from "@/data/profile-options";
 import type { ExperienceInput } from "@/lib/supabase/student-profile-actions";
+import { PROFILE_TEXT_LIMITS, MAX_EXPERIENCE_RECORDS } from "@/lib/profile/input-limits";
 
 export interface ExperienceDraft extends ExperienceInput {
   draftId: string;
@@ -73,12 +74,13 @@ export function ExperienceStep({ records, onChange }: ExperienceStepProps) {
             </FormField>
 
             <FormField id={`exp-title-${record.draftId}`} label="Title" required>
-              <Input id={`exp-title-${record.draftId}`} value={record.title} onChange={(e) => updateRecord(record.draftId, { title: e.target.value })} />
+              <Input id={`exp-title-${record.draftId}`} maxLength={PROFILE_TEXT_LIMITS.experienceTitle} value={record.title} onChange={(e) => updateRecord(record.draftId, { title: e.target.value })} />
             </FormField>
 
             <FormField id={`exp-org-${record.draftId}`} label="Organization" hint="Optional">
               <Input
                 id={`exp-org-${record.draftId}`}
+                maxLength={PROFILE_TEXT_LIMITS.experienceOrganization}
                 value={record.organization ?? ""}
                 onChange={(e) => updateRecord(record.draftId, { organization: e.target.value || null })}
               />
@@ -98,6 +100,7 @@ export function ExperienceStep({ records, onChange }: ExperienceStepProps) {
               <FormField id={`exp-desc-${record.draftId}`} label="Description" hint="Optional">
                 <Textarea
                   id={`exp-desc-${record.draftId}`}
+                  maxLength={PROFILE_TEXT_LIMITS.experienceDescription}
                   rows={2}
                   value={record.description ?? ""}
                   onChange={(e) => updateRecord(record.draftId, { description: e.target.value || null })}
@@ -108,7 +111,7 @@ export function ExperienceStep({ records, onChange }: ExperienceStepProps) {
         </Card>
       ))}
 
-      <Button type="button" variant="outline" icon={<Plus aria-hidden="true" className="h-4 w-4" />} onClick={addRecord}>
+      <Button type="button" variant="outline" icon={<Plus aria-hidden="true" className="h-4 w-4" />} onClick={addRecord} disabled={records.length >= MAX_EXPERIENCE_RECORDS}>
         Add an entry
       </Button>
     </div>

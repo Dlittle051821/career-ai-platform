@@ -13,6 +13,7 @@ import {
   SCORE_TYPE_OPTIONS,
 } from "@/data/profile-options";
 import type { EducationInput } from "@/lib/supabase/student-profile-actions";
+import { PROFILE_TEXT_LIMITS, MAX_EDUCATION_RECORDS } from "@/lib/profile/input-limits";
 
 export interface EducationDraft extends EducationInput {
   draftId: string;
@@ -115,6 +116,7 @@ export function EducationStep({ records, onChange, error }: EducationStepProps) 
               <FormField id={`edu-institution-${record.draftId}`} label="Institution name">
                 <Input
                   id={`edu-institution-${record.draftId}`}
+                  maxLength={PROFILE_TEXT_LIMITS.institutionName}
                   value={record.institutionName ?? ""}
                   onChange={(e) => updateRecord(record.draftId, { institutionName: e.target.value || null })}
                 />
@@ -124,6 +126,7 @@ export function EducationStep({ records, onChange, error }: EducationStepProps) 
                 <FormField id={`edu-board-${record.draftId}`} label="Board / University">
                   <Input
                     id={`edu-board-${record.draftId}`}
+                    maxLength={PROFILE_TEXT_LIMITS.boardOrUniversity}
                     value={record.boardOrUniversity ?? ""}
                     onChange={(e) => updateRecord(record.draftId, { boardOrUniversity: e.target.value || null })}
                   />
@@ -134,6 +137,7 @@ export function EducationStep({ records, onChange, error }: EducationStepProps) 
                 <FormField id={`edu-field-${record.draftId}`} label="Field of study / degree">
                   <Input
                     id={`edu-field-${record.draftId}`}
+                    maxLength={PROFILE_TEXT_LIMITS.fieldOfStudy}
                     value={record.fieldOfStudy ?? ""}
                     onChange={(e) => updateRecord(record.draftId, { fieldOfStudy: e.target.value || null })}
                   />
@@ -144,6 +148,7 @@ export function EducationStep({ records, onChange, error }: EducationStepProps) 
                 <FormField id={`edu-specialization-${record.draftId}`} label="Specialization / branch">
                   <Input
                     id={`edu-specialization-${record.draftId}`}
+                    maxLength={PROFILE_TEXT_LIMITS.specialization}
                     value={record.specialization ?? ""}
                     onChange={(e) => updateRecord(record.draftId, { specialization: e.target.value || null })}
                   />
@@ -216,7 +221,7 @@ export function EducationStep({ records, onChange, error }: EducationStepProps) 
         );
       })}
 
-      <Button type="button" variant="outline" icon={<Plus aria-hidden="true" className="h-4 w-4" />} onClick={addRecord}>
+      <Button type="button" variant="outline" icon={<Plus aria-hidden="true" className="h-4 w-4" />} onClick={addRecord} disabled={records.length >= MAX_EDUCATION_RECORDS}>
         Add another education record
       </Button>
     </div>

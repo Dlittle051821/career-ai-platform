@@ -13,6 +13,7 @@ import { DISCOVERY_SESSION_STATUS_LABELS } from "@/types/discovery-session";
 import { RECOMMENDATION_DRAFT_STATUS_LABELS, isRecommendationDraftStatus } from "@/lib/recommendations/drafts";
 import { isApplicationTaskStatus, isApplicationTaskOverdue, APPLICATION_TASK_STATUS_LABELS } from "@/lib/applications/application-tasks";
 import { formatDiscoverySessionDateTime } from "@/lib/discovery-sessions/format";
+import { describeDiscoverySessionStudent } from "@/lib/discovery-sessions/student-identity";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -126,7 +127,7 @@ export default async function CounsellorDashboardPage() {
                 <li key={s.id} className="flex items-center justify-between gap-3 py-3">
                   <div className="min-w-0">
                     <Link href={`/counsellor/discovery-sessions/${s.id}`} className="truncate font-medium text-text hover:text-primary hover:underline">
-                      {s.studentName ?? "Unnamed student"}
+                      {describeDiscoverySessionStudent(s).name}
                     </Link>
                     <p className="text-xs text-muted">{s.scheduledAt ? formatDiscoverySessionDateTime(s.scheduledAt) : "No time set yet"}</p>
                   </div>

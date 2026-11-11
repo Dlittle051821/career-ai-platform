@@ -43,7 +43,7 @@ interface DiscoverySessionRow {
   updated_at: string;
 }
 
-async function buildStudentNameMap(supabase: Supabase, ids: string[]): Promise<Map<string, { name: string; email: string | null }>> {
+async function buildStudentNameMap(supabase: Supabase, ids: string[]): Promise<Map<string, { name: string | null; email: string | null }>> {
   const uniqueIds = Array.from(new Set(ids));
   if (uniqueIds.length === 0) return new Map();
   const { data, error } = await supabase.from("profiles").select("id, full_name, email").in("id", uniqueIds);
@@ -51,7 +51,9 @@ async function buildStudentNameMap(supabase: Supabase, ids: string[]): Promise<M
     logDbError("buildStudentNameMap", error);
     return new Map();
   }
-  return new Map((data ?? []).map((p) => [p.id, { name: p.full_name ?? "Unnamed student", email: p.email ?? null }]));
+  // CC-24 — keep a blank name as null; a student missing from this map means
+  // RLS did not return their profile to this viewer (see toDiscoverySession).
+  return new Map((data ?? []).map((p) => [p.id, { name: p.full_name ?? null, email: p.email ?? null }]));
 }
 
 async function buildCounsellorNameMap(supabase: Supabase, ids: (string | null)[]): Promise<Map<string, string>> {
@@ -67,7 +69,7 @@ async function buildCounsellorNameMap(supabase: Supabase, ids: (string | null)[]
 
 function toDiscoverySession(
   row: DiscoverySessionRow,
-  studentById: Map<string, { name: string; email: string | null }>,
+  studentById: Map<string, { name: string | null; email: string | null }>,
   counsellorNameById: Map<string, string>
 ): DiscoverySession {
   const student = studentById.get(row.student_user_id);
@@ -76,6 +78,7 @@ function toDiscoverySession(
     studentUserId: row.student_user_id,
     studentName: student?.name ?? null,
     studentEmail: student?.email ?? null,
+    studentIdentityVisible: student !== undefined,
     sessionType: row.session_type as DiscoverySession["sessionType"],
     status: row.status as DiscoverySessionStatus,
     assignedCounsellorId: row.assigned_counsellor_id,

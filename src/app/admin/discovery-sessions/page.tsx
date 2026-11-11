@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/admin/EmptyState";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { listDiscoverySessions } from "@/lib/supabase/admin/discovery-sessions";
 import { DISCOVERY_SESSION_STATUS_LABELS, DISCOVERY_SESSION_STATUSES, type DiscoverySessionStatus } from "@/types/discovery-session";
+import { describeDiscoverySessionStudent } from "@/lib/discovery-sessions/student-identity";
 
 export const metadata: Metadata = { title: "Discovery Sessions" };
 
@@ -86,9 +87,9 @@ export default async function AdminDiscoverySessionsPage({ searchParams }: Disco
               <tr key={s.id} className="hover:bg-surface-alt/50">
                 <Td className="font-medium text-text">
                   <Link href={`/admin/discovery-sessions/${s.id}`} className="hover:text-primary hover:underline">
-                    {s.studentName ?? "Unnamed student"}
+                    {describeDiscoverySessionStudent(s).name}
                   </Link>
-                  {s.studentEmail ? <div className="text-xs font-normal text-muted">{s.studentEmail}</div> : null}
+                  <div className="text-xs font-normal text-muted">{describeDiscoverySessionStudent(s).detail}</div>
                 </Td>
                 <Td>
                   <StatusBadge status={s.status} labelOverride={DISCOVERY_SESSION_STATUS_LABELS[s.status]} />

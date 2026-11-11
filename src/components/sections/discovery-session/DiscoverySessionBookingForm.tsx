@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 import { DISCOVERY_SESSION_CONTACT_METHODS, type DiscoverySessionContactMethod } from "@/types/discovery-session";
 import { bookDiscoverySessionAction } from "@/app/(site)/discovery-session/book/actions";
+import { DISCOVERY_SESSION_NOTES_MAX_LENGTH } from "@/lib/discovery-sessions/booking-input";
 
 const CONTACT_METHOD_LABELS: Record<DiscoverySessionContactMethod, string> = {
   phone: "Phone call",
@@ -169,6 +170,7 @@ export function DiscoverySessionBookingForm() {
           id="studentNotes"
           name="studentNotes"
           rows={3}
+          maxLength={DISCOVERY_SESSION_NOTES_MAX_LENGTH}
           value={values.studentNotes}
           onChange={(e) => update("studentNotes", e.target.value)}
           disabled={submitting}

@@ -35,6 +35,12 @@ interface LaunchCountryDiscoveryProps {
    * the six-launch-country set always reads as complete.
    */
   unavailableCodes?: readonly LaunchCountryCode[];
+  /**
+   * CC-24 — an optional one-line explanation of what selecting a country
+   * changes on this page. `/courses` uses it because there the chips pick
+   * the trusted official source, not the internal course list.
+   */
+  note?: string;
   className?: string;
 }
 
@@ -55,7 +61,7 @@ interface LaunchCountryDiscoveryProps {
  * marketing cards — the launch countries are a quick way to jump
  * straight to a trusted official source, not a promotional unit.
  */
-export function LaunchCountryDiscovery({ selectedCode, buildHref, unavailableCodes = [], className }: LaunchCountryDiscoveryProps) {
+export function LaunchCountryDiscovery({ selectedCode, buildHref, unavailableCodes = [], note, className }: LaunchCountryDiscoveryProps) {
   return (
     <nav aria-label="Explore a launch country's trusted official source" className={cn("w-full", className)}>
       <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-secondary-dark">
@@ -111,6 +117,7 @@ export function LaunchCountryDiscovery({ selectedCode, buildHref, unavailableCod
           );
         })}
       </ul>
+      {note ? <p className="mt-2 text-xs text-muted">{note}</p> : null}
     </nav>
   );
 }

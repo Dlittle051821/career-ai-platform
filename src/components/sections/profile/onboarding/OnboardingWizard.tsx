@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ProfileProgressBar } from "../ProfileProgressBar";
 import type { StudentProfileSnapshot } from "@/types/student-profile";
-import { SESSION_ENDED_ERROR, STEP_TITLES, TOTAL_STEPS, renderOnboardingStep, useProfileWizard } from "./useProfileWizard";
+import { REQUIRED_FIELDS_NOTE, SESSION_ENDED_ERROR, STEP_TITLES, TOTAL_STEPS, renderOnboardingStep, useProfileWizard } from "./useProfileWizard";
 
 interface OnboardingWizardProps {
   initialSnapshot: StudentProfileSnapshot;
@@ -57,6 +57,12 @@ export function OnboardingWizard({ initialSnapshot, initialStep }: OnboardingWiz
         <p className="mt-2 text-sm text-muted">
           Step {step} of {TOTAL_STEPS}
         </p>
+        {step < TOTAL_STEPS ? (
+          // CC-24 — fields marked * are what "Complete profile" checks for on the
+          // last step; the wizard deliberately lets a student save a partial
+          // profile and come back, so say that instead of implying a hard stop.
+          <p className="mt-1 text-sm text-muted">{REQUIRED_FIELDS_NOTE}</p>
+        ) : null}
         <ProfileProgressBar percent={completion.percent} className="mt-4 max-w-md" />
       </div>
 

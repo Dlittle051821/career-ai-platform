@@ -1,7 +1,7 @@
 import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
 
-/** UX07 — route-level loading state for /courses. See src/app/(site)/pricing/loading.tsx for the skeleton convention this mirrors. */
+/** UX07 — loading state for /courses. See src/app/(site)/pricing/loading.tsx for the skeleton convention this mirrors. */
 export default function CoursesLoading() {
   return (
     <Section tone="muted" className="pt-10 sm:pt-14">

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { publicPageMetadata } from "@/config/seo";
 import Link from "next/link";
@@ -18,6 +19,7 @@ import { resolveListEmptyState } from "@/lib/ui/list-state";
 import { GeometricBackdrop } from "@/components/graphics/GeometricBackdrop";
 import { FADE_UP_CLASSES } from "@/lib/ui/motion";
 import { cn } from "@/lib/utils";
+import UniversitiesLoading from "./list-skeleton";
 
 // M17A Step 5 — canonical is deliberately static and points at the clean
 // list URL regardless of the q/country/city/studyMode/page query params
@@ -43,7 +45,23 @@ interface UniversitiesPageProps {
  * (src/app/(site)/careers/page.tsx). Server-side paginated via
  * searchUniversities(); never loads the full catalog into the browser.
  */
-export default async function UniversitiesPage({ searchParams }: UniversitiesPageProps) {
+/**
+ * CC-24 — the list skeleton used to be this segment's loading.tsx. A
+ * segment-level loading.tsx also wraps every child route
+ * (/universities/[...] detail pages) in a Suspense boundary, which sends HTTP
+ * 200 before a detail page can answer 404 for an unknown or unpublished
+ * record. The same skeleton is now this page's own Suspense fallback, so
+ * the list behaves as before and the detail routes can return a real 404.
+ */
+export default function UniversitiesPage(props: UniversitiesPageProps) {
+  return (
+    <Suspense fallback={<UniversitiesLoading />}>
+      <UniversitiesPageContent {...props} />
+    </Suspense>
+  );
+}
+
+async function UniversitiesPageContent({ searchParams }: UniversitiesPageProps) {
   const params = await searchParams;
   const query = params.q?.trim() ?? "";
   const countryIds = toStringArray(params.country);

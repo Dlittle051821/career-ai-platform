@@ -14,6 +14,11 @@ import { trackEvent } from "@/lib/supabase/analytics/track";
  * docs/milestones/M11-electronic-stamping-assisted-onboarding.md).
  */
 export async function recordOnboardingChoiceAction(choice: "discovery_session" | "self_serve"): Promise<void> {
+  // CC-24 — exported Server Actions can be called directly with any value;
+  // only the two real paths are accepted (the database CHECK constraint
+  // would reject anything else too, but the student would then be sent on
+  // to the self-serve path with nothing recorded).
+  if (choice !== "discovery_session" && choice !== "self_serve") redirect("/welcome");
   const supabase = await createClient();
   const {
     data: { user },

@@ -5,6 +5,7 @@ import { Input } from "@/components/forms/Input";
 import { Select } from "@/components/forms/Select";
 import { CURRENT_STATUS_OPTIONS, GENDER_OPTIONS } from "@/data/profile-options";
 import type { AboutYouInput } from "@/lib/supabase/student-profile-actions";
+import { PROFILE_TEXT_LIMITS } from "@/lib/profile/input-limits";
 
 interface AboutYouStepProps {
   value: AboutYouInput;
@@ -58,20 +59,21 @@ export function AboutYouStep({ value, onChange, errors }: AboutYouStepProps) {
         </FormField>
 
         <FormField id="about-city" label="City">
-          <Input id="about-city" value={value.city ?? ""} onChange={(e) => set("city", e.target.value || null)} />
+          <Input id="about-city" maxLength={PROFILE_TEXT_LIMITS.city} value={value.city ?? ""} onChange={(e) => set("city", e.target.value || null)} />
         </FormField>
 
         <FormField id="about-state" label="State">
-          <Input id="about-state" value={value.state ?? ""} onChange={(e) => set("state", e.target.value || null)} />
+          <Input id="about-state" maxLength={PROFILE_TEXT_LIMITS.state} value={value.state ?? ""} onChange={(e) => set("state", e.target.value || null)} />
         </FormField>
 
         <FormField id="about-country" label="Country">
-          <Input id="about-country" value={value.country} onChange={(e) => set("country", e.target.value || "India")} />
+          <Input id="about-country" maxLength={PROFILE_TEXT_LIMITS.country} value={value.country} onChange={(e) => set("country", e.target.value || "India")} />
         </FormField>
 
         <FormField id="about-language" label="Preferred language" hint="For future correspondence">
           <Input
             id="about-language"
+            maxLength={PROFILE_TEXT_LIMITS.preferredLanguage}
             value={value.preferredLanguage ?? ""}
             onChange={(e) => set("preferredLanguage", e.target.value || null)}
           />

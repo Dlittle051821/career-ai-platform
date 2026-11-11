@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SearchX } from "lucide-react";
+import { notFound } from "next/navigation";
 import { Section } from "@/components/layout/Section";
+import { DetailRecordNotice } from "@/components/sections/DetailRecordNotice";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { LinkButton } from "@/components/ui/Button";
 import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
 import { CareerCard } from "@/components/sections/careers/CareerCard";
-import { getCareerBySlug, getRelatedCareers } from "@/lib/supabase/careers";
+import { getCareerBySlug, lookupCareerBySlug, getRelatedCareers } from "@/lib/supabase/careers";
 import { subjectLabel, interestLabel, skillLabel, educationLevelLabel, fieldLabel, educationLevelToCourseSearchDegree, SKILL_LEVEL_LABELS, RELEVANCE_LABELS } from "@/lib/careers/labels";
 import { deriveCareerCharacteristics } from "@/lib/careers/characteristics";
 import { trackEvent } from "@/lib/supabase/analytics/track";
@@ -23,9 +24,8 @@ interface CareerDetailPageProps {
 // using the actual slug already fetched (never a fabricated one). A
 // missing/unpublished slug gets a permanent noindex instead of a canonical
 // — there is no legitimate page at that URL to point search engines at,
-// and the route renders a 200 "not found" notice (see below) rather than
-// a real 404, so this is the only signal telling crawlers it isn't real
-// content.
+// and (since CC-24) the route answers with a genuine 404 via notFound()
+// and ./not-found.tsx; the noindex stays as a second signal.
 //
 // M17B FINAL — added an entity-specific `openGraph`/`twitter` block so
 // sharing a career URL shows that career's own title/summary instead of
@@ -69,24 +69,13 @@ export async function generateMetadata({ params }: CareerDetailPageProps): Promi
  */
 export default async function CareerDetailPage({ params }: CareerDetailPageProps) {
   const { slug } = await params;
-  const career = await getCareerBySlug(slug);
-
-  if (!career) {
-    return (
-      <Section tone="muted" className="pt-10 sm:pt-14">
-        <Card className="flex flex-col items-center gap-3 py-14 text-center">
-          <SearchX aria-hidden="true" className="h-10 w-10 text-muted" />
-          <h1 className="text-lg font-semibold text-primary">We couldn&apos;t find that career</h1>
-          <p className="max-w-sm text-sm text-muted">
-            It may have been renamed, isn&apos;t published yet, or the link may be out of date.
-          </p>
-          <LinkButton href="/careers" size="sm" className="mt-2">
-            Browse the Career Explorer
-          </LinkButton>
-        </Card>
-      </Section>
-    );
+  const careerLookup = await lookupCareerBySlug(slug);
+  // CC-24 — a missing record is a genuine 404 (see ./not-found.tsx); a failed lookup is not.
+  if (careerLookup.status === "not_found") notFound();
+  if (careerLookup.status === "unavailable") {
+    return <DetailRecordNotice kind="unavailable" noun="career" browseHref="/careers" browseLabel="Browse the Career Explorer" />;
   }
+  const career = careerLookup.value;
 
   const [related, characteristics] = await Promise.all([
     getRelatedCareers(career.id),

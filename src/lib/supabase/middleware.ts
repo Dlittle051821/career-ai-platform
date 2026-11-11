@@ -22,6 +22,11 @@ const PROTECTED_PATHS = [
   "/welcome",
   "/discovery-session",
   "/studio",
+  // CC-24 — the Counsellor Studio. Its layout already refuses non-staff
+  // (no data is exposed), but a signed-out visitor got "Access denied —
+  // your account is signed in" with no way to log in. Now they are sent
+  // to /login?next=... like every other signed-in area.
+  "/counsellor",
 ];
 const AUTH_ONLY_PATHS = ["/login", "/register"];
 

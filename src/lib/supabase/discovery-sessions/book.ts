@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "../server";
 import { trackEvent } from "../analytics/track";
 import { validateBookDiscoverySession } from "@/lib/discovery-sessions/rules";
+import { normalizeBookingInput } from "@/lib/discovery-sessions/booking-input";
 import type { DiscoverySession, DiscoverySessionContactMethod, DiscoverySessionStatus } from "@/types/discovery-session";
 
 /**
@@ -128,6 +129,12 @@ export async function bookDiscoverySession(input: BookDiscoverySessionInput): Pr
   const supabase = await createClient();
   const userId = await requireUserId(supabase);
 
+  // CC-24 — the Server Action can be called directly with any payload, so
+  // the allow-lists and the note length are enforced here, not only in the form.
+  const normalized = normalizeBookingInput(input);
+  if (!normalized.ok) throw new Error(normalized.reason);
+  const fields = normalized.value;
+
   const existing = await getMyActiveDiscoverySession();
   const check = validateBookDiscoverySession({ isAuthenticated: true, hasActiveSession: Boolean(existing) });
   if (!check.ok) throw new Error(check.reason);
@@ -139,10 +146,10 @@ export async function bookDiscoverySession(input: BookDiscoverySessionInput): Pr
       session_type: "DISCOVERY_SESSION",
       status: "requested",
       assigned_counsellor_id: null,
-      preferred_contact_method: input.preferredContactMethod,
-      preferred_time_range: input.preferredTimeRange,
-      preferred_language: input.preferredLanguage,
-      student_notes: input.studentNotes,
+      preferred_contact_method: fields.preferredContactMethod,
+      preferred_time_range: fields.preferredTimeRange,
+      preferred_language: fields.preferredLanguage,
+      student_notes: fields.studentNotes,
       scheduled_at: null,
       completed_at: null,
       cancelled_at: null,

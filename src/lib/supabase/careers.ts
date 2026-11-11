@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "./server";
+import { lookupValue, type DetailLookup } from "./detail-lookup";
 import type {
   CareerFamily,
   CareerDetail,
@@ -357,16 +358,23 @@ async function hydrateCareerSummaries(
 // ---------------------------------------------------------------------------
 
 export async function getCareerBySlug(slug: string): Promise<CareerDetail | null> {
+  return lookupValue(await lookupCareerBySlug(slug));
+}
+
+/** CC-24 — like getCareerBySlug, but tells "no such published career" (a real 404) apart from "the lookup failed". */
+export async function lookupCareerBySlug(slug: string): Promise<DetailLookup<CareerDetail>> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("careers").select("id").eq("slug", slug).maybeSingle();
 
   if (error) {
     logCareerDbError("getCareerBySlug (slug lookup)", error);
-    return null;
+    return { status: "unavailable" };
   }
-  if (!data) return null; // not found, inactive, or not-yet-approved — RLS already filtered it out
+  if (!data) return { status: "not_found" }; // not found, inactive, or not-yet-approved — RLS already filtered it out
 
-  return getCompleteCareerProfile(data.id);
+  const career = await getCompleteCareerProfile(data.id);
+  // The slug row exists, so a null here means a follow-up query failed, not a missing career.
+  return career ? { status: "found", value: career } : { status: "unavailable" };
 }
 
 export async function getCompleteCareerProfile(careerId: string): Promise<CareerDetail | null> {

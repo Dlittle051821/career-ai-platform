@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "../server";
+import { lookupValue, type DetailLookup } from "../detail-lookup";
 import { calculateFreshnessBand } from "@/lib/education/data-quality";
 import { clampPublicPageSize, parsePageParam, sanitizeSearchQuery } from "@/lib/education/search";
 import type { EducationFreshnessBand, EducationListResult, UniversitySearchFilters, UniversityOwnershipType } from "@/types/education";
@@ -166,6 +167,11 @@ const DETAIL_COLUMNS = `${SUMMARY_COLUMNS}, admissions_url, international_admiss
 
 /** Public university detail by slug — published+active only. Returns null for a draft/archived/unknown/merged-away slug rather than leaking its existence. */
 export async function getPublicUniversityBySlug(slug: string): Promise<PublicUniversityDetail | null> {
+  return lookupValue(await lookupPublicUniversityBySlug(slug));
+}
+
+/** CC-24 — like getPublicUniversityBySlug, but tells "no such published university" (a real 404) apart from "the lookup failed". */
+export async function lookupPublicUniversityBySlug(slug: string): Promise<DetailLookup<PublicUniversityDetail>> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("universities")
@@ -177,12 +183,12 @@ export async function getPublicUniversityBySlug(slug: string): Promise<PublicUni
 
   if (error) {
     logDbError("getPublicUniversityBySlug", error);
-    return null;
+    return { status: "unavailable" };
   }
-  if (!data) return null;
+  if (!data) return { status: "not_found" };
   const row = data as unknown as PublicUniversityDetailRow;
 
-  return {
+  const detail: PublicUniversityDetail = {
     ...toSummary(row),
     websiteUrl: row.website,
     admissionsUrl: row.admissions_url,
@@ -204,6 +210,7 @@ export async function getPublicUniversityBySlug(slug: string): Promise<PublicUni
     verificationStatus: row.verification_status,
     summary: row.summary,
   };
+  return { status: "found", value: detail };
 }
 
 const MAX_BATCH_UNIVERSITIES = 60;

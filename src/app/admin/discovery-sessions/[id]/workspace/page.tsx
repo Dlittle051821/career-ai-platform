@@ -8,6 +8,7 @@ import { getDiscoverySessionById } from "@/lib/supabase/admin/discovery-sessions
 import { getDiscoverySessionWorkspace } from "@/lib/supabase/admin/discovery-session-workspace";
 import { DISCOVERY_SESSION_STATUS_LABELS } from "@/types/discovery-session";
 import { saveDiscoverySessionWorkspaceAction } from "./actions";
+import { describeDiscoverySessionStudent } from "@/lib/discovery-sessions/student-identity";
 
 interface WorkspacePageProps {
   params: Promise<{ id: string }>;
@@ -31,7 +32,7 @@ export default async function DiscoverySessionWorkspacePage({ params }: Workspac
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-secondary">Counsellor Workspace</p>
-          <h1 className="mt-2 text-2xl font-semibold text-primary sm:text-3xl">{session.studentName ?? "Unnamed student"}</h1>
+          <h1 className="mt-2 text-2xl font-semibold text-primary sm:text-3xl">{describeDiscoverySessionStudent(session).name}</h1>
           <p className="mt-2 text-sm text-muted">
             {workspace ? `Last updated ${new Date(workspace.updatedAt).toLocaleString("en-IN")}` : "Not started yet — save any section to begin."}
           </p>

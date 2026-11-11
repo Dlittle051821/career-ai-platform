@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ExternalLink, SearchX, MapPin } from "lucide-react";
+import { ExternalLink, MapPin } from "lucide-react";
 import { Section } from "@/components/layout/Section";
+import { DetailRecordNotice } from "@/components/sections/DetailRecordNotice";
+import { lookupPublicUniversityBySlugCached } from "@/lib/supabase/education/detail-lookups";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
@@ -14,7 +16,6 @@ import { UnverifiedRecordNotice } from "@/components/sections/education/Unverifi
 import { isVerifiedEducationRecord, lastCheckedLabel, shouldShowRankings, UNVERIFIED_SCHOLARSHIP_NOTE } from "@/lib/education/verification-display";
 import { SaveUniversityButton } from "@/components/sections/education/SaveUniversityButton";
 import {
-  getPublicUniversityBySlug,
   listPublicCampusesForUniversity,
   listPublicScholarshipsForUniversity,
 } from "@/lib/supabase/education/universities";
@@ -43,7 +44,8 @@ interface UniversityDetailPageProps {
 // institution.
 export async function generateMetadata({ params }: UniversityDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const university = await getPublicUniversityBySlug(slug);
+  const lookup = await lookupPublicUniversityBySlugCached(slug);
+  const university = lookup.status === "found" ? lookup.value : null;
   if (!university) return { title: "University not found", robots: { index: false, follow: false } };
   const canonicalPath = `/universities/${slug}`;
   const description = university.summary ?? `${university.name} on ${BRAND_NAME}.`;
@@ -93,24 +95,13 @@ function verificationLabel(status: string): string {
  */
 export default async function UniversityDetailPage({ params }: UniversityDetailPageProps) {
   const { slug } = await params;
-  const university = await getPublicUniversityBySlug(slug);
-
-  if (!university) {
-    return (
-      <Section tone="muted" className="pt-10 sm:pt-14">
-        <Card className="flex flex-col items-center gap-3 py-14 text-center">
-          <SearchX aria-hidden="true" className="h-10 w-10 text-muted" />
-          <h1 className="text-lg font-semibold text-primary">We couldn&apos;t find that university</h1>
-          <p className="max-w-sm text-sm text-muted">
-            It may have been renamed, isn&apos;t published yet, or the link may be out of date.
-          </p>
-          <LinkButton href="/universities" size="sm" className="mt-2">
-            Browse the University Explorer
-          </LinkButton>
-        </Card>
-      </Section>
-    );
+  const universityLookup = await lookupPublicUniversityBySlugCached(slug);
+  // CC-24 — a missing record is a genuine 404 (checked first in ./layout.tsx; card in ../not-found.tsx); a failed lookup is not.
+  if (universityLookup.status === "not_found") notFound();
+  if (universityLookup.status === "unavailable") {
+    return <DetailRecordNotice kind="unavailable" noun="university" browseHref="/universities" browseLabel="Browse the University Explorer" />;
   }
+  const university = universityLookup.value;
 
   const profile = await getCurrentProfile();
   const isLoggedIn = profile !== null;

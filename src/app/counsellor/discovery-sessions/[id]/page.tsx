@@ -12,6 +12,7 @@ import { listCounsellorOptions } from "@/lib/supabase/admin/counsellors";
 import { DISCOVERY_SESSION_STATUS_LABELS } from "@/types/discovery-session";
 import { formatDiscoverySessionDateTime } from "@/lib/discovery-sessions/format";
 import { updateDiscoverySessionAction } from "../actions";
+import { describeDiscoverySessionStudent } from "@/lib/discovery-sessions/student-identity";
 
 interface DiscoverySessionDetailPageProps {
   params: Promise<{ id: string }>;
@@ -48,9 +49,9 @@ export default async function CounsellorDiscoverySessionDetailPage({ params }: D
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-secondary">Discovery Session</p>
-          <h1 className="mt-2 text-2xl font-semibold text-primary sm:text-3xl">{session.studentName ?? "Unnamed student"}</h1>
+          <h1 className="mt-2 text-2xl font-semibold text-primary sm:text-3xl">{describeDiscoverySessionStudent(session).name}</h1>
           <p className="mt-2 text-sm text-muted">
-            {session.studentEmail ?? "No email on file"} · Requested {formatDiscoverySessionDateTime(session.createdAt)}
+            {describeDiscoverySessionStudent(session).detail} · Requested {formatDiscoverySessionDateTime(session.createdAt)}
           </p>
         </div>
         <StatusBadge status={session.status} labelOverride={DISCOVERY_SESSION_STATUS_LABELS[session.status]} />

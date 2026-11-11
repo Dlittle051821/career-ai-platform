@@ -27,6 +27,7 @@ import {
   WORK_PREFERENCE_OPTIONS,
   YES_NO_MAYBE_OPTIONS,
 } from "@/data/profile-options";
+import { findTextLimitError, MAX_EDUCATION_RECORDS, MAX_EXPERIENCE_RECORDS } from "@/lib/profile/input-limits";
 import type { CompletionResult } from "@/types/student-profile";
 import type { ProfileSectionKey } from "@/types/profile-provenance";
 
@@ -180,6 +181,14 @@ export async function saveAboutYou(input: AboutYouInput): Promise<SaveResult> {
     if (input.gender && !isOneOf(input.gender, keys(GENDER_OPTIONS))) {
       return { success: false, error: "Please select a valid option." };
     }
+    // CC-24 — text length limits (the database has none on these columns).
+    const aboutYouLimitError = findTextLimitError([
+      ["city", input.city],
+      ["state", input.state],
+      ["country", input.country],
+      ["preferredLanguage", input.preferredLanguage],
+    ]);
+    if (aboutYouLimitError) return { success: false, error: aboutYouLimitError };
 
     const { error } = await supabase.from("student_profiles").upsert(
       {
@@ -227,7 +236,17 @@ export async function saveEducation(records: EducationInput[]): Promise<SaveResu
     const supabase = await createClient();
     const userId = await requireUserId(supabase);
 
+    if (!Array.isArray(records) || records.length > MAX_EDUCATION_RECORDS) {
+      return { success: false, error: `You can add up to ${MAX_EDUCATION_RECORDS} education entries.` };
+    }
     for (const record of records) {
+      const educationLimitError = findTextLimitError([
+        ["institutionName", record.institutionName],
+        ["boardOrUniversity", record.boardOrUniversity],
+        ["fieldOfStudy", record.fieldOfStudy],
+        ["specialization", record.specialization],
+      ]);
+      if (educationLimitError) return { success: false, error: educationLimitError };
       if (!isOneOf(record.educationLevel, keys(EDUCATION_LEVEL_OPTIONS))) {
         return { success: false, error: "Please select a valid education level." };
       }
@@ -333,6 +352,8 @@ export async function saveInterests(items: InterestInput[], otherText: string | 
     const userId = await requireUserId(supabase);
     const validKeys = keys(INTEREST_OPTIONS);
 
+    const interestsLimitError = findTextLimitError([["interestsOtherText", otherText]]);
+    if (interestsLimitError) return { success: false, error: interestsLimitError };
     for (const item of items) {
       if (!isOneOf(item.interestKey, validKeys)) return { success: false, error: "One of the selected interests isn't valid." };
       if (item.strength !== null && !isValidRating(item.strength)) {
@@ -495,9 +516,17 @@ export async function saveCareerGoals(input: CareerGoalsInput): Promise<SaveResu
     if (input.clarity && !isOneOf(input.clarity, keys(CAREER_GOAL_CLARITY_OPTIONS))) {
       return { success: false, error: "Please select a valid option." };
     }
-    if (input.careerIdeas.length > 3) {
+    if (!Array.isArray(input.careerIdeas) || input.careerIdeas.length > 3) {
       return { success: false, error: "You can list up to 3 career ideas." };
     }
+    const careerGoalsLimitError = findTextLimitError([
+      ["dreamJobTitle", input.dreamJobTitle],
+      ["dreamIndustry", input.dreamIndustry],
+      ["dreamReason", input.dreamReason],
+      ["lifeGoalsText", input.lifeGoalsText],
+      ...input.careerIdeas.map((idea) => ["careerIdea", idea] as const),
+    ]);
+    if (careerGoalsLimitError) return { success: false, error: careerGoalsLimitError };
 
     const { error } = await supabase.from("student_career_goals").upsert(
       {
@@ -543,6 +572,14 @@ export async function saveStudyPreferences(input: StudyPreferencesInput): Promis
 
     for (const value of [input.studyFurther, input.studyAbroad, input.relocateWithinIndia, input.relocateInternational]) {
       if (value && !isOneOf(value, yesNoMaybeKeys)) return { success: false, error: "Please select a valid option." };
+    }
+    if (
+      !Array.isArray(input.preferredStudyDestinations) ||
+      !Array.isArray(input.preferredWorkDestinations) ||
+      input.preferredStudyDestinations.length > countryKeys.length ||
+      input.preferredWorkDestinations.length > countryKeys.length
+    ) {
+      return { success: false, error: "One of the selected destinations isn't valid." };
     }
     for (const destination of [...input.preferredStudyDestinations, ...input.preferredWorkDestinations]) {
       if (!isOneOf(destination, countryKeys)) return { success: false, error: "One of the selected destinations isn't valid." };
@@ -632,7 +669,16 @@ export async function saveExperience(records: ExperienceInput[]): Promise<SaveRe
     const userId = await requireUserId(supabase);
     const validTypes = keys(EXPERIENCE_TYPE_OPTIONS);
 
+    if (!Array.isArray(records) || records.length > MAX_EXPERIENCE_RECORDS) {
+      return { success: false, error: `You can add up to ${MAX_EXPERIENCE_RECORDS} experience entries.` };
+    }
     for (const record of records) {
+      const experienceLimitError = findTextLimitError([
+        ["experienceTitle", record.title],
+        ["experienceOrganization", record.organization],
+        ["experienceDescription", record.description],
+      ]);
+      if (experienceLimitError) return { success: false, error: experienceLimitError };
       if (!isOneOf(record.type, validTypes)) return { success: false, error: "Please select a valid experience type." };
       if (!isRequired(record.title)) return { success: false, error: "Each experience entry needs a title." };
       if (record.year !== null && !isValidYear(record.year)) return { success: false, error: "Please enter a valid year." };

@@ -2,8 +2,8 @@ import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
 
 /**
- * UX07 — route-level loading state for /universities (Next.js App Router
- * `loading.tsx`, shown automatically while the async page above streams).
+ * UX07 — loading state for /universities (CC-24: the page's own Suspense fallback; formerly
+ * this segment's loading.tsx).
  * Mirrors src/app/(site)/pricing/loading.tsx's own skeleton convention:
  * `role="status"` + `aria-live="polite"` announce loading to assistive
  * tech without spamming it once content arrives; `aria-hidden` keeps the
