@@ -25,7 +25,8 @@ Payments and paid AI remain off.
 | CC26-10 Production readiness and GO/NO-GO | Checklist and recommendation |
 | CC26-11 Changed files | Every file and its purpose |
 | CC26-12 QA Preview | Prepared Preview steps and smoke test |
-| `qa/Run-CC26-Qa.ps1` | Guarded QA runner (Preflight / Apply / Tests / Rollback) |
+| **CC26-13 QA remediation and approval checkpoint** | **2026-11-12: confirmed NW07 defect on QA, root cause, F4, closure status, hashes, approvals A1–A8** |
+| `qa/Run-CC26-Qa.ps1` | Guarded QA runner (Preflight / Export / Backup / Apply / Tests / Rollback); every SQL file pinned by `qa/CC26-QA-SQL-SHA256.txt` |
 | `templates/PORTRAIT-RIGHTS-RECORD.template.md` | Rights record required before any portrait swap |
 
 The evidence logs and screenshots are in the milestone folder `C:\ClaudeBuilds\Milestones\CC26-LAUNCH-READINESS\evidence`.

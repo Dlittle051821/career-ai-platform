@@ -6,6 +6,11 @@
 .DESCRIPTION
   -Step Preflight  supabase/migrations-proposed/cc26/cc26_qa_preflight_readonly.sql
                    One READ ONLY transaction, rolled back. Counts and booleans only.   (Approval 1)
+  -Step Export     cc26/cc26_qa_export_readonly.sql: every function, policy, grant,
+                   trigger and constraint definition (no rows). READ ONLY.           (Approval 1)
+  -Step Backup     pg_dump --schema-only of schemas public and nextwise_security (no rows) into
+                   this folder, then checks the dump and prints its SHA-256. Read-only.
+                   It is the catalog restore point; it is NOT a data backup.         (Approval 1)
   -Step Apply      cc25/0023 (revision 2), cc25/0024, cc26/0025 — and cc26/0026 only
                    with -IncludeCheckoutGate. Each file is one atomic transaction that
                    checks its own pre- and postconditions.                            (Approval 2; 0026: Approval 3)
@@ -15,6 +20,8 @@
   -Step Rollback   0026 -> 0025 -> 0024 -> 0023 rollback files (only those applied).  (separate approval)
 
   Guards (all steps):
+  - every SQL file must match its SHA-256 (CRLF normalised to LF) in CC26-QA-SQL-SHA256.txt,
+    the hashes quoted in the approval report; a changed file is refused;
   - host/user must contain the QA ref; anything naming production bwlkxunujngksibfzzfv is refused;
   - port 5432 only (single session); psql from PATH; never a linked Supabase CLI;
   - you type the QA ref; write steps also need a typed phrase;
@@ -27,7 +34,7 @@
 #>
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true)][ValidateSet('Preflight', 'Apply', 'Tests', 'Rollback')][string]$Step,
+    [Parameter(Mandatory = $true)][ValidateSet('Preflight', 'Export', 'Backup', 'Apply', 'Tests', 'Rollback')][string]$Step,
     [Parameter(Mandatory = $true)][string]$DbHost,
     [Parameter(Mandatory = $true)][string]$DbUser,
     [switch]$IncludeCheckoutGate,
@@ -39,6 +46,16 @@ $ErrorActionPreference = 'Stop'
 $QaRef = 'ynwzijulzksmrcwdhudv'
 $ProdRef = 'bwlkxunujngksibfzzfv'
 $Approved = 'APPROVED-QA-ynwzijulzksmrcwdhudv'
+
+# SHA-256 of a text file with CRLF normalised to LF (the worktree is CRLF on
+# Windows; the approval report quotes LF hashes, identical to the Git blobs).
+function Get-LfSha256([string]$Path) {
+    $utf8 = New-Object System.Text.UTF8Encoding($false)
+    $text = [System.IO.File]::ReadAllText($Path, $utf8).Replace("`r`n", "`n")
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try { return (($sha.ComputeHash($utf8.GetBytes($text)) | ForEach-Object { $_.ToString('x2') }) -join '') }
+    finally { $sha.Dispose() }
+}
 
 try {
     $target = ($DbHost + ' ' + $DbUser).ToLowerInvariant()
@@ -56,6 +73,12 @@ try {
     switch ($Step) {
         'Preflight' {
             $files = @("$p\cc26\cc26_qa_preflight_readonly.sql")
+        }
+        'Export' {
+            $files = @("$p\cc26\cc26_qa_export_readonly.sql")
+        }
+        'Backup' {
+            $files = @()
         }
         'Apply' {
             $settings = @(
@@ -90,8 +113,21 @@ try {
     }
     foreach ($f in $files) { if (-not (Test-Path -LiteralPath $f)) { throw "Missing $f" } }
 
+    # Pin every SQL file to the hash in the approval report.
+    $manifest = Join-Path $PSScriptRoot 'CC26-QA-SQL-SHA256.txt'
+    if (-not (Test-Path -LiteralPath $manifest)) { throw "Missing $manifest" }
+    $pinned = @{}
+    foreach ($line in [System.IO.File]::ReadAllLines($manifest)) {
+        if ($line -match '^([0-9a-f]{64})  (\S+)$') { $pinned[$Matches[2]] = $Matches[1] }
+    }
     Write-Host "Target: QA project $QaRef via $DbHost (user $DbUser). Step: $Step" -ForegroundColor Cyan
-    foreach ($f in $files) { Write-Host ("  " + $f.Substring($repo.Length + 1)) }
+    foreach ($f in $files) {
+        $rel = $f.Substring($repo.Length + 1).Replace('\', '/')
+        $h = Get-LfSha256 $f
+        if (-not $pinned.ContainsKey($rel)) { throw "Refusing: $rel is not listed in CC26-QA-SQL-SHA256.txt." }
+        if ($pinned[$rel] -ne $h) { throw "Refusing: $rel does not match its approved SHA-256 (expected $($pinned[$rel]), found $h)." }
+        Write-Host ("  " + $rel + "  sha256 " + $h)
+    }
     $typed = Read-Host 'Type the QA project ref to confirm'
     if ($typed -ne $QaRef) { throw 'Confirmation did not match. Nothing was run.' }
     if ($phrase) {
@@ -102,6 +138,7 @@ try {
     $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
     $out = Join-Path $PSScriptRoot ('cc26-qa-' + $Step.ToLowerInvariant() + '-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.txt')
     $psqlArgs = @('-X', '-h', $DbHost, '-p', $Port, '-U', $DbUser, '-d', $Database, '-v', 'ON_ERROR_STOP=1')
+    if ($Step -eq 'Export') { $psqlArgs += @('-A', '-P', 'footer=off') }
     foreach ($s in $settings) { $psqlArgs += @('-c', $s) }
     foreach ($f in $files) { $psqlArgs += @('-f', $f) }
     try {
@@ -109,8 +146,24 @@ try {
         $env:PGSSLMODE = 'require'
         $env:PGAPPNAME = 'nextwise-cc26-qa-' + $Step.ToLowerInvariant()
         $ErrorActionPreference = 'Continue'
-        & $psql.Source @psqlArgs 2>&1 | Tee-Object -FilePath $out
-        $code = $LASTEXITCODE
+        if ($Step -eq 'Backup') {
+            $pgDump = Get-Command pg_dump -ErrorAction SilentlyContinue
+            if ($null -eq $pgDump) { throw 'pg_dump was not found on PATH (it ships with psql).' }
+            $dump = Join-Path $PSScriptRoot ('cc26-qa-schema-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.sql')
+            & $pgDump.Source -h $DbHost -p $Port -U $DbUser -d $Database --schema-only -n public -n nextwise_security -f $dump 2>&1 | Tee-Object -FilePath $out
+            $code = $LASTEXITCODE
+            if ($code -eq 0) {
+                $dumpText = [System.IO.File]::ReadAllText($dump)
+                $checks = @('CREATE FUNCTION public.current_counsellor_id()', 'CREATE TABLE public.discovery_sessions', 'CREATE POLICY')
+                foreach ($c in $checks) { if (-not $dumpText.Contains($c)) { $code = 3; Add-Content -LiteralPath $out "Backup check failed: '$c' not found in the dump." } }
+                $dumpHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $dump).Hash.ToLowerInvariant()
+                Add-Content -LiteralPath $out "Schema dump: $dump  sha256 $dumpHash  bytes $((Get-Item -LiteralPath $dump).Length)"
+                Write-Host "Schema dump: $dump  sha256 $dumpHash"
+            }
+        } else {
+            & $psql.Source @psqlArgs 2>&1 | Tee-Object -FilePath $out
+            $code = $LASTEXITCODE
+        }
         $ErrorActionPreference = 'Stop'
     } finally {
         Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue

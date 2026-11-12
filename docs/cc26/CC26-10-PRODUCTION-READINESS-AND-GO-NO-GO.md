@@ -5,13 +5,14 @@
 | # | Item | Status |
 |---|---|---|
 | 1 | P0/P1 security defects fixed in code and proven on a disposable database (S1–S10) | **DONE locally** |
-| 2 | The same fixes applied and tested on QA (A1–A3) | **OPEN**: needs your approval |
+| 2 | The same fixes applied and tested on QA (A1–A3) | **OPEN**: needs your approval. QA confirmed vulnerable (original NW07), 2026-11-12; see CC26-13 |
+| 2b | Draft authorship bypass (S11) closed by 0025 F4 | **DONE locally**; QA with A2 |
 | 3 | Production exposure to S1 known (does production have NW07?) | **OPEN**: your read-only dashboard check (A7) |
 | 4 | Existing Discovery Session assignments approved by admins after 0023 (A4) | OPEN |
 | 5 | Human (non-AI) security review of 0023 r2–0026 and NW07 | OPEN |
 | 6 | Typecheck, lint, Vitest 3,082/3,082, build, audit 0, secret scan, diff check | **PASS** (here); `Finish-CC26.ps1` repeats them on the PC |
 | 7 | Browser journeys on the identical build (Chromium) | **123 PASS, 1 BLOCKED** (D8, NW07) |
-| 8 | Journeys on the QA Preview | OPEN: no Preview yet (A5) |
+| 8 | Journeys on the QA Preview | Signed-out checks PASS (CC26-13 §7). Signed-in: **BLOCKED** (A8; best after A2) |
 | 9 | Firefox, Safari, Edge, iOS and Android | **BLOCKED**: not available here |
 | 10 | Application detail answers a genuine 404 | **DONE** |
 | 11 | V5.4 homepage preserved; touch targets | **DONE**: unchanged; 0 failures (H6b was a false positive) |

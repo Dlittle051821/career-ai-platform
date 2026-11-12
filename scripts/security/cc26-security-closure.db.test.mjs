@@ -49,6 +49,17 @@ const evidenceDir = process.env.CC26_EVIDENCE_DIR;
 // NW07 as it was before CC-26 (the state recorded on QA): the patched file with
 // PART 1 replaced by the original text kept in this test as a fixture.
 const NW07_ORIGINAL_PART1 = read("scripts/security/fixtures/NW07_part1_original.sql");
+// A function definition exactly as the NW07 file creates it (PART 2+ are unchanged by CC-26).
+function nw07Function(name) {
+  const start = NW07_PATCHED.indexOf(`create or replace function public.${name}(`);
+  assert.ok(start > 0, name);
+  return NW07_PATCHED.slice(start, NW07_PATCHED.indexOf("\n$$;", start) + 4);
+}
+// counsellor_has_case_access as found on QA by read-only inspection (2026-11-12).
+const QA_UNSAFE_CASE_ACCESS = `create or replace function public.counsellor_has_case_access(p_student_user_id uuid) returns boolean language sql stable security definer set search_path to 'public' as $function$
+  select exists (select 1 from public.admin_student_meta m where m.student_user_id = p_student_user_id and m.assigned_counsellor_id = public.current_counsellor_id())
+    or exists (select 1 from public.discovery_sessions ds where ds.student_user_id = p_student_user_id and ds.assigned_counsellor_id = public.current_counsellor_id());
+$function$`;
 function nw07Original() {
   const start = NW07_PATCHED.indexOf("do $nw07$\n");
   const end = NW07_PATCHED.indexOf("end\n$nw07$;") + "end\n$nw07$;".length;
@@ -239,8 +250,8 @@ for (const state of ["base", "qa"]) {
       assert.equal(r.error, null, r.error?.message);
       assert.deepEqual(r.fails, []);
       const skips = r.results.filter((x) => x.status === "SKIP").length;
-      assert.equal(skips, state === "base" ? 13 : 0);
-      assert.equal(r.results.filter((x) => x.status === "PASS").length, state === "base" ? 32 : 45);
+      assert.equal(skips, state === "base" ? 35 : 0);
+      assert.equal(r.results.filter((x) => x.status === "PASS").length, state === "base" ? 40 : 76);
     });
 
     await t.test("mutation tests: each re-opened defect is caught", async () => {
@@ -253,7 +264,19 @@ for (const state of ["base", "qa"]) {
         { id: "MU6", sql: `alter policy "Admins/counsellors can read discovery sessions" on public.discovery_sessions using (public.is_admin_role(array['super_admin','admin']) or (public.is_admin_role(array['counsellor']) and (assigned_counsellor_id is null or assigned_counsellor_id = public.current_counsellor_id())))`, expect: "I06" },
       ];
       if (state === "qa")
-        mutants.push({ id: "MU7", sql: "create or replace function public.counsellor_has_case_access(p_student_user_id uuid) returns boolean language sql security definer stable set search_path = '' as $$ select exists (select 1 from public.discovery_sessions ds where ds.student_user_id = p_student_user_id and ds.assigned_counsellor_id = public.current_counsellor_id()) $$", expect: "N05" });
+        mutants.push(
+          { id: "MU7", sql: "create or replace function public.counsellor_has_case_access(p_student_user_id uuid) returns boolean language sql security definer stable set search_path = '' as $$ select exists (select 1 from public.discovery_sessions ds where ds.student_user_id = p_student_user_id and ds.assigned_counsellor_id = public.current_counsellor_id()) $$", expect: "N05" },
+          // The exact definition found on QA (original NW07): caseload OR any assignment, approved or not.
+          { id: "MU8", sql: QA_UNSAFE_CASE_ACCESS, expect: ["N05", "N14", "N15", "N16", "N32"] },
+          // Authorship again grants read access to drafts (pre-F4 policy).
+          { id: "MU9", sql: `alter policy "Admins/author/case counsellor can read recommendation drafts" on public.recommendation_drafts using (public.is_admin_role(array['super_admin','admin']) or (public.is_admin_role(array['counsellor']) and (created_by = auth.uid() or public.counsellor_has_case_access(student_user_id))))`, expect: ["N26", "N30"] },
+          // Authorship again grants write access (pre-F4 NW07 RPC body).
+          { id: "MU10", sql: nw07Function("staff_update_recommendation_draft_content"), expect: ["N27", "N34"] },
+          // The session helper stops requiring admin approval.
+          { id: "MU11", sql: "create or replace function public.counsellor_has_active_session_for_student(p_student_user_id uuid) returns boolean language sql stable security definer set search_path = pg_catalog, pg_temp as $$ select auth.uid() is not null and exists (select 1 from public.discovery_sessions s join public.counsellors c on c.id = s.assigned_counsellor_id where s.student_user_id = p_student_user_id and c.user_id = auth.uid() and c.is_active and s.status in ('requested', 'scheduled')) $$", expect: ["N05", "N14", "N24"] },
+          // The session helper stops requiring an active (requested/scheduled) session.
+          { id: "MU12", sql: "create or replace function public.counsellor_has_active_session_for_student(p_student_user_id uuid) returns boolean language sql stable security definer set search_path = pg_catalog, pg_temp as $$ select auth.uid() is not null and exists (select 1 from public.discovery_sessions s join public.counsellors c on c.id = s.assigned_counsellor_id where s.student_user_id = p_student_user_id and c.user_id = auth.uid() and c.is_active and s.assignment_approved_counsellor_id = s.assigned_counsellor_id and s.assignment_approved_at is not null) $$", expect: ["N10", "N29"] },
+        );
       for (const m of mutants) {
         await db.query("begin");
         await db.query(m.sql);
@@ -267,7 +290,8 @@ for (const state of ["base", "qa"]) {
         db.off("notice", on);
         await db.query("rollback");
         const failed = notices.filter((x) => x.startsWith("CC26|FAIL|")).map((x) => x.split("|")[2]);
-        assert.ok(failed.includes(m.expect), `${m.id} not caught: expected ${m.expect} to fail, failures were [${failed}]`);
+        for (const id of [m.expect].flat())
+          assert.ok(failed.includes(id), `${m.id} not caught: expected ${id} to fail, failures were [${failed}]`);
       }
       assert.equal(await fingerprint(db), applied, "mutation tests left a trace");
     });
@@ -305,10 +329,11 @@ test("NW07: patched file is safe without 0023, rolls back correctly and converge
   });
   await t.test("0023 on top of the patched NW07, then its rollback, restores the caseload-only state exactly", async () => {
     await apply(z, "m23");
-    // Only 0023 is applied here, so only the 13 NW07 checks are in scope.
+    // Only 0023 is applied here, so only the NW07 checks are in scope, and the
+    // four that need 0025 (F1 deactivation, F4 authorship) must still fail.
     const r = await cc26(z, "nw07-patched-then-0023-cc26");
-    assert.deepEqual(r.fails.filter((id) => id.startsWith("N")), []);
-    assert.equal(r.results.filter((x) => x.id.startsWith("N") && x.status === "PASS").length, 13);
+    assert.deepEqual(r.fails.filter((id) => id.startsWith("N")), ["N26", "N27", "N30", "N34"]);
+    assert.equal(r.results.filter((x) => x.id.startsWith("N") && x.status === "PASS").length, 31);
     await rollback(z, "m23");
     assert.equal(await fingerprint(z), zPre);
   });
@@ -362,14 +387,14 @@ test("forward path: CC-26 set and NW-F01 + NW01 in either order", async (t) => {
     assert.equal(await fingerprint(a), await fingerprint(b));
   });
   for (const [label, db] of [["a", a], ["b", b]]) {
-    await t.test(`order ${label}: CC-25 (89) and CC-26 (45) suites pass`, async () => {
+    await t.test(`order ${label}: CC-25 (89) and CC-26 (76) suites pass`, async () => {
       const r25 = await cc25(db, `fwd-${label}-cc25`);
       assert.equal(r25.error, null, r25.error?.message);
       assert.equal(r25.results.filter((x) => x.status === "PASS").length, 89);
       const r26 = await cc26(db, `fwd-${label}-cc26`);
       assert.equal(r26.error, null, r26.error?.message);
       assert.deepEqual(r26.fails, []);
-      assert.equal(r26.results.filter((x) => x.status === "PASS").length, 45);
+      assert.equal(r26.results.filter((x) => x.status === "PASS").length, 76);
       const p11 = r26.results.find((x) => x.id === "P11");
       assert.match(p11.detail, /total_minor_units=199900 \(tax-inclusive: correct\)/, "with NW01 the GST-registered total must be exactly ₹1,999");
     });

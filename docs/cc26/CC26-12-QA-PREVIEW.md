@@ -53,6 +53,18 @@ Never change production variables, domains or aliases, and never promote the dep
    - homepage: Tab once and the first skip link appears; turn on reduced motion and the page stays calm.
 5. Check the Vercel runtime logs while browsing.
 
+## 3b. Signed-out verification done (2026-11-12, built-in browser)
+
+On the Preview the following was checked signed out:
+- the client bundles name only `ynwzijulzksmrcwdhudv`, with no production ref, no `service_role` and no `rzp_live_`;
+- `/admin`, `/counsellor`, `/applications` and `/applications/<random uuid>` redirect to `/login?next=…`, and an unknown page returns 404;
+- `/pricing` has no buy control;
+- the homepage main DOM, text and 76 internal links hash identically to www.nextwise.world.
+
+Not checked:
+- READY status and commit SHA (no Vercel access);
+- every signed-in journey (A8).
+
 ## 4. Rollback
 
 - **Preview:** delete the deployment or the branch-scoped variables. Production is untouched.

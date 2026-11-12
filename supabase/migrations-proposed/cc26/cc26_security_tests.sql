@@ -1,6 +1,8 @@
 -- ============================================================================
 -- CC-26 — executable security tests for 0023 revision 2 (NW07 section),
--- 0024, 0025 and 0026.
+-- 0024, 0025 (including F4) and 0026. Revision 2 (2026-11-12) adds the
+-- recommendation-draft, AI-record, approval, revocation, reassignment,
+-- cancellation and student-isolation checks (N14-N34, S01-S07, R07-R08).
 --
 -- Pure SQL (no psql meta-commands). ONE transaction, never committed: the
 -- fictional fixture (ids 0c260000-…, addresses @example.test) leaves no row.
@@ -300,6 +302,261 @@ reset role;
 select pg_temp.cc26_logout();
 
 -- ===========================================================================
+-- [NW07-D] Recommendation drafts, AI-generation records and the approval
+-- lifecycle (brief scenarios 1-12). Fictional rows only, inserted by the owner
+-- inside this never-committed transaction.
+--   draft …a0001 for s1 written by admin a1     draft …a0002 for s2 written by a1
+--   draft …a0004 for s4 written by c4 (c4 is deactivated by the main fixture)
+--   draft …a0009 for s1 written by c1 while approved (c1 is later reassigned away)
+--   AI-generation run …c0002 for s2            session d09 for s9: c3 approved, then cancelled
+-- ===========================================================================
+-- Rows visible to the CURRENT role (RLS applies: SECURITY INVOKER); 0 when the table is absent.
+create function pg_temp.cc26_count_if_exists(p_table text) returns bigint language plpgsql as $$
+declare v bigint;
+begin
+  if to_regclass(p_table) is null then return 0; end if;
+  execute format('select count(*) from %s', p_table) into v;
+  return v;
+end $$;
+create function pg_temp.cc26_nw09() returns boolean language sql as $$ select to_regclass('public.ai_generation_runs') is not null and pg_temp.cc26_nw07() $$;
+create function pg_temp.cc26_drafts() returns boolean language sql as $$ select to_regclass('public.recommendation_drafts') is not null and pg_temp.cc26_nw07() $$;
+grant execute on all functions in schema pg_temp to anon, authenticated, service_role;
+
+do $nw07d$
+begin
+  if not pg_temp.cc26_drafts() then
+    perform pg_temp.cc26_skip(id, name, 'NW07 recommendation drafts not applied on this database')
+    from (values ('N14','unapproved self-claim cannot read the student''s recommendation drafts'),
+                 ('N15','unapproved self-claim cannot read the student''s draft versions'),
+                 ('N17','unapproved self-claim cannot read the student''s identity through the RPC'),
+                 ('N18','unapproved self-claim cannot write section provenance'),
+                 ('N19','unapproved self-claim cannot write the session workspace'),
+                 ('N20','admin approval is recorded on the session'),
+                 ('N20b','the approval stores the approved counsellor and a timestamp'),
+                 ('N21','approved counsellor reads the student''s drafts and Student Digital Profile'),
+                 ('N22','approved counsellor still cannot read the profiles row or another student''s drafts'),
+                 ('N24','revoking approval removes draft, AI and Student Digital Profile access'),
+                 ('N25','approved counsellor reads drafts for the student, including their own (regression)'),
+                 ('N26','reassignment removes the former counsellor''s access, including drafts they wrote'),
+                 ('N27','former author cannot change the draft after reassignment'),
+                 ('N28','the new approved counsellor gains access'),
+                 ('N29','cancelled session grants nothing'),
+                 ('N30','deactivated counsellor cannot read drafts they wrote'),
+                 ('N31','admin reads every fictional draft (regression)'),
+                 ('N34','deactivated counsellor cannot change drafts they wrote')) v(id, name);
+  end if;
+  if not pg_temp.cc26_nw09() then
+    perform pg_temp.cc26_skip(id, name, 'NW09 AI-generation records not applied on this database')
+    from (values ('N16','unapproved self-claim cannot read the student''s AI-generation records'),
+                 ('N23','approved counsellor reads the student''s AI-generation records'),
+                 ('N32','unapproved self-claim cannot reserve an AI-generation run'),
+                 ('N33','admin reads the fictional AI-generation record (regression)')) v(id, name);
+  end if;
+end
+$nw07d$;
+
+insert into auth.users (id, email) values ('0c260000-0000-4000-8000-000000000609', 'cc26.sqltest.000000000609@example.test');
+insert into public.profiles (id, full_name, email) values ('0c260000-0000-4000-8000-000000000609', 'Fictional CC26 609', 'cc26.sqltest.000000000609@example.test')
+on conflict (id) do update set full_name = excluded.full_name, email = excluded.email;
+insert into public.student_profiles (user_id, city) values ('0c260000-0000-4000-8000-000000000609', 'Fictional City')
+on conflict (user_id) do update set city = excluded.city;
+insert into public.discovery_sessions (id, student_user_id, status) values ('0c260000-0000-4000-8000-000000000d09', '0c260000-0000-4000-8000-000000000609', 'requested');
+
+do $fixture$
+begin
+  if pg_temp.cc26_drafts() then
+    insert into public.recommendation_drafts (id, student_user_id, title, created_by, author_counsellor_id, status) values
+      ('0c260000-0000-4000-8000-0000000a0001', '0c260000-0000-4000-8000-000000000601', 'Fictional draft for S1', '0c260000-0000-4000-8000-0000000000a1', null, 'draft'),
+      ('0c260000-0000-4000-8000-0000000a0002', '0c260000-0000-4000-8000-000000000602', 'Fictional draft for S2', '0c260000-0000-4000-8000-0000000000a1', null, 'draft'),
+      ('0c260000-0000-4000-8000-0000000a0004', '0c260000-0000-4000-8000-000000000604', 'Fictional draft for S4 by C4', '0c260000-0000-4000-8000-0000000000c4', '0c260000-0000-4000-8000-0000000001c4', 'draft'),
+      ('0c260000-0000-4000-8000-0000000a0009', '0c260000-0000-4000-8000-000000000601', 'Fictional draft for S1 by C1', '0c260000-0000-4000-8000-0000000000c1', '0c260000-0000-4000-8000-0000000001c1', 'draft');
+    insert into public.recommendation_draft_versions (id, draft_id, version_number, content, authored_by) values
+      ('0c260000-0000-4000-8000-0000000b0001', '0c260000-0000-4000-8000-0000000a0001', 1, '{"summary": "Fictional"}', '0c260000-0000-4000-8000-0000000000a1'),
+      ('0c260000-0000-4000-8000-0000000b0002', '0c260000-0000-4000-8000-0000000a0002', 1, '{"summary": "Fictional"}', '0c260000-0000-4000-8000-0000000000a1'),
+      ('0c260000-0000-4000-8000-0000000b0004', '0c260000-0000-4000-8000-0000000a0004', 1, '{"summary": "Fictional"}', '0c260000-0000-4000-8000-0000000000c4'),
+      ('0c260000-0000-4000-8000-0000000b0009', '0c260000-0000-4000-8000-0000000a0009', 1, '{"summary": "Fictional"}', '0c260000-0000-4000-8000-0000000000c1');
+    update public.recommendation_drafts d set current_version_id = v.id
+      from public.recommendation_draft_versions v where v.draft_id = d.id and d.id::text like '0c260000-%';
+  end if;
+  if pg_temp.cc26_nw09() then
+    insert into public.ai_generation_runs (id, student_user_id, requested_by, requested_by_role, idempotency_key, provider, model,
+                                           prompt_version, report_schema_version, data_class, consent_confirmed)
+    values ('0c260000-0000-4000-8000-0000000c0002', '0c260000-0000-4000-8000-000000000602', '0c260000-0000-4000-8000-0000000000a1', 'admin', 'cc26-fictional-run-0002', 'mock', 'mock-fictional',
+            'fictional-v1', 'fictional-v1', 'fictional', true);
+  end if;
+end
+$fixture$;
+
+-- d09: admin assigns c3 (approved), then the session is cancelled.
+select pg_temp.cc26_login('0c260000-0000-4000-8000-0000000000a1');
+set local role authenticated;
+select pg_temp.cc26_must($q$update public.discovery_sessions set assigned_counsellor_id = '0c260000-0000-4000-8000-0000000001c3' where id = '0c260000-0000-4000-8000-000000000d09'$q$);
+select pg_temp.cc26_must($q$update public.discovery_sessions set status = 'cancelled' where id = '0c260000-0000-4000-8000-000000000d09'$q$);
+reset role;
+select pg_temp.cc26_logout();
+
+-- 1-5. c2 holds an UNAPPROVED self-claim of d2 (main fixture).
+select pg_temp.cc26_login('0c260000-0000-4000-8000-0000000000c2');
+set local role authenticated;
+select pg_temp.cc26_check('N14', '[NW07] unapproved self-claim cannot read the student''s recommendation drafts',
+  $q$select count(*) = 0 from public.recommendation_drafts where student_user_id = '0c260000-0000-4000-8000-000000000602'$q$) where pg_temp.cc26_drafts();
+select pg_temp.cc26_check('N15', '[NW07] unapproved self-claim cannot read the student''s draft versions',
+  $q$select count(*) = 0 from public.recommendation_draft_versions where draft_id = '0c260000-0000-4000-8000-0000000a0002'$q$) where pg_temp.cc26_drafts();
+select pg_temp.cc26_check('N16', '[NW07] unapproved self-claim cannot read the student''s AI-generation records',
+  $q$select count(*) = 0 from public.ai_generation_runs where student_user_id = '0c260000-0000-4000-8000-000000000602'$q$) where pg_temp.cc26_nw09();
+select pg_temp.cc26_check('N17', '[NW07] unapproved self-claim cannot read the student''s identity through the RPC',
+  $q$select count(*) = 0 from public.staff_discovery_session_student_identities(array['0c260000-0000-4000-8000-000000000d02']::uuid[])$q$) where pg_temp.cc26_drafts();
+select pg_temp.cc26_denied('N18', '[NW07] unapproved self-claim cannot write section provenance',
+  $q$insert into public.student_profile_section_provenance (student_user_id, section_key, provenance, last_updated_by)
+     values ('0c260000-0000-4000-8000-000000000602', 'education', 'COUNSELLOR_ENTERED', '0c260000-0000-4000-8000-0000000000c2')$q$) where pg_temp.cc26_drafts();
+select pg_temp.cc26_denied('N19', '[NW07] unapproved self-claim cannot write the session workspace',
+  $q$insert into public.discovery_session_workspace (session_id, counsellor_notes, updated_by) values ('0c260000-0000-4000-8000-000000000d02', 'should be refused', '0c260000-0000-4000-8000-0000000000c2')$q$) where pg_temp.cc26_drafts();
+select pg_temp.cc26_error('N32', '[NW07] unapproved self-claim cannot reserve an AI-generation run',
+  $q$select * from public.staff_reserve_ai_generation_run('0c260000-0000-4000-8000-000000000602', 'cc26-fictional-run-0003', 'mock', 'mock-fictional', 'fictional-v1', 'fictional-v1',
+       'fictional', true, 0, 10, 10, 10, 10, null, null)$q$) where pg_temp.cc26_nw09();
+reset role;
+select pg_temp.cc26_logout();
+
+-- 6. An admin approves c2's claim of d2.
+select pg_temp.cc26_login('0c260000-0000-4000-8000-0000000000a1');
+set local role authenticated;
+select pg_temp.cc26_check('N20', '[NW07] admin approval is recorded on the session',
+  $q$select (public.admin_set_discovery_session_assignment_approval('0c260000-0000-4000-8000-000000000d02', '0c260000-0000-4000-8000-0000000001c2', true) ->> 'approved')::boolean$q$)
+  where pg_temp.cc26_drafts();
+select pg_temp.cc26_check('N20b', '[NW07] the approval stores the approved counsellor and a timestamp',
+  $q$select assignment_approved_counsellor_id = '0c260000-0000-4000-8000-0000000001c2' and assignment_approved_at is not null
+     from public.discovery_sessions where id = '0c260000-0000-4000-8000-000000000d02'$q$) where pg_temp.cc26_drafts();
+reset role;
+select pg_temp.cc26_logout();
+
+-- 7. The approved counsellor gets exactly the permitted access.
+select pg_temp.cc26_login('0c260000-0000-4000-8000-0000000000c2');
+set local role authenticated;
+select pg_temp.cc26_check('N21', '[NW07] approved counsellor reads the student''s drafts and Student Digital Profile',
+  $q$select (select count(*) from public.recommendation_drafts where student_user_id = '0c260000-0000-4000-8000-000000000602') = 1
+       and (select count(*) from public.recommendation_draft_versions where draft_id = '0c260000-0000-4000-8000-0000000a0002') = 1
+       and (select count(*) from public.student_profiles where user_id = '0c260000-0000-4000-8000-000000000602') = 1$q$) where pg_temp.cc26_drafts();
+select pg_temp.cc26_check('N23', '[NW07] approved counsellor reads the student''s AI-generation records',
+  $q$select count(*) = 1 from public.ai_generation_runs where student_user_id = '0c260000-0000-4000-8000-000000000602'$q$) where pg_temp.cc26_nw09();
+select pg_temp.cc26_check('N22', '[NW07] approved counsellor still cannot read the profiles row or another student''s drafts',
+  $q$select (select count(*) from public.profiles where id = '0c260000-0000-4000-8000-000000000602') = 0
+       and (select count(*) from public.recommendation_drafts where student_user_id <> '0c260000-0000-4000-8000-000000000602' and id::text like '0c260000-%') = 0$q$) where pg_temp.cc26_drafts();
+reset role;
+select pg_temp.cc26_logout();
+
+-- 8. Revoking approval removes the session-based access.
+select pg_temp.cc26_login('0c260000-0000-4000-8000-0000000000a1');
+set local role authenticated;
+select pg_temp.cc26_must($q$select 1 where not (public.admin_set_discovery_session_assignment_approval('0c260000-0000-4000-8000-000000000d02', '0c260000-0000-4000-8000-0000000001c2', false) ->> 'approved')::boolean$q$)
+  where pg_temp.cc26_drafts();
+reset role;
+select pg_temp.cc26_logout();
+select pg_temp.cc26_login('0c260000-0000-4000-8000-0000000000c2');
+set local role authenticated;
+select pg_temp.cc26_check('N24', '[NW07] revoking approval removes draft, AI and Student Digital Profile access',
+  $q$select not public.counsellor_has_case_access('0c260000-0000-4000-8000-000000000602')
+       and (select count(*) from public.recommendation_drafts where student_user_id = '0c260000-0000-4000-8000-000000000602') = 0
+       and (select count(*) from public.student_profiles where user_id = '0c260000-0000-4000-8000-000000000602') = 0
+       and pg_temp.cc26_count_if_exists('public.ai_generation_runs') = 0$q$) where pg_temp.cc26_drafts();
+reset role;
+select pg_temp.cc26_logout();
+
+-- 9. Reassignment: c1 (approved on d1, author of draft a0009) is replaced by c5.
+select pg_temp.cc26_login('0c260000-0000-4000-8000-0000000000c1');
+set local role authenticated;
+select pg_temp.cc26_check('N25', '[NW07] approved counsellor reads drafts for the student, including their own (regression)',
+  $q$select count(*) = 2 from public.recommendation_drafts where student_user_id = '0c260000-0000-4000-8000-000000000601'$q$) where pg_temp.cc26_drafts();
+reset role;
+select pg_temp.cc26_logout();
+select pg_temp.cc26_login('0c260000-0000-4000-8000-0000000000a1');
+set local role authenticated;
+select pg_temp.cc26_must($q$update public.discovery_sessions set assigned_counsellor_id = '0c260000-0000-4000-8000-0000000001c5' where id = '0c260000-0000-4000-8000-000000000d01'$q$);
+reset role;
+select pg_temp.cc26_logout();
+select pg_temp.cc26_login('0c260000-0000-4000-8000-0000000000c1');
+set local role authenticated;
+select pg_temp.cc26_check('N26', '[NW07] reassignment removes the former counsellor''s access, including drafts they wrote',
+  $q$select not public.counsellor_has_case_access('0c260000-0000-4000-8000-000000000601')
+       and (select count(*) from public.recommendation_drafts where student_user_id = '0c260000-0000-4000-8000-000000000601') = 0
+       and (select count(*) from public.recommendation_draft_versions where draft_id = '0c260000-0000-4000-8000-0000000a0009') = 0
+       and (select count(*) from public.student_profiles where user_id = '0c260000-0000-4000-8000-000000000601') = 0$q$) where pg_temp.cc26_drafts();
+select pg_temp.cc26_error('N27', '[NW07] former author cannot change the draft after reassignment',
+  $q$select public.staff_update_recommendation_draft_content('0c260000-0000-4000-8000-0000000a0009', '{"summary": "changed by former author"}'::jsonb)$q$) where pg_temp.cc26_drafts();
+reset role;
+select pg_temp.cc26_logout();
+select pg_temp.cc26_login('0c260000-0000-4000-8000-0000000000c5');
+set local role authenticated;
+select pg_temp.cc26_check('N28', '[NW07] the new approved counsellor gains access',
+  $q$select public.counsellor_has_case_access('0c260000-0000-4000-8000-000000000601')
+       and (select count(*) from public.recommendation_drafts where student_user_id = '0c260000-0000-4000-8000-000000000601') = 2$q$) where pg_temp.cc26_drafts();
+reset role;
+select pg_temp.cc26_logout();
+
+-- 10. Cancelled session (approved before cancellation) grants nothing.
+select pg_temp.cc26_login('0c260000-0000-4000-8000-0000000000c3');
+set local role authenticated;
+select pg_temp.cc26_check('N29', '[NW07] cancelled session grants nothing',
+  $q$select not public.counsellor_has_case_access('0c260000-0000-4000-8000-000000000609')
+       and (select count(*) from public.student_profiles where user_id = '0c260000-0000-4000-8000-000000000609') = 0
+       and (select count(*) from public.staff_discovery_session_student_identities(array['0c260000-0000-4000-8000-000000000d09']::uuid[])) = 0$q$) where pg_temp.cc26_drafts();
+reset role;
+select pg_temp.cc26_logout();
+
+-- 11. Deactivated author.
+select pg_temp.cc26_login('0c260000-0000-4000-8000-0000000000c4');
+set local role authenticated;
+select pg_temp.cc26_check('N30', '[NW07] deactivated counsellor cannot read drafts they wrote',
+  $q$select (select count(*) from public.recommendation_drafts where id = '0c260000-0000-4000-8000-0000000a0004') = 0
+       and (select count(*) from public.recommendation_draft_versions where draft_id = '0c260000-0000-4000-8000-0000000a0004') = 0$q$) where pg_temp.cc26_drafts();
+select pg_temp.cc26_error('N34', '[NW07] deactivated counsellor cannot change drafts they wrote',
+  $q$select public.staff_update_recommendation_draft_content('0c260000-0000-4000-8000-0000000a0004', '{"summary": "changed while inactive"}'::jsonb)$q$) where pg_temp.cc26_drafts();
+reset role;
+select pg_temp.cc26_logout();
+
+-- 15. Admin regression.
+select pg_temp.cc26_login('0c260000-0000-4000-8000-0000000000a1');
+set local role authenticated;
+select pg_temp.cc26_check('N31', '[NW07] admin reads every fictional draft (regression)',
+  $q$select count(*) = 4 from public.recommendation_drafts where id::text like '0c260000-%'$q$) where pg_temp.cc26_drafts();
+select pg_temp.cc26_check('N33', '[NW07] admin reads the fictional AI-generation record (regression)',
+  $q$select count(*) = 1 from public.ai_generation_runs where id = '0c260000-0000-4000-8000-0000000c0002'$q$) where pg_temp.cc26_nw09();
+reset role;
+select pg_temp.cc26_logout();
+
+-- ===========================================================================
+-- [S] Student isolation and student regression (brief scenarios 12, 15)
+-- ===========================================================================
+select pg_temp.cc26_login('0c260000-0000-4000-8000-000000000601');
+set local role authenticated;
+select pg_temp.cc26_check('S01', 'a student cannot read another student''s profile, Student Digital Profile or Discovery Session',
+  $q$select (select count(*) from public.profiles where id = '0c260000-0000-4000-8000-000000000602') = 0
+       and (select count(*) from public.student_profiles where user_id = '0c260000-0000-4000-8000-000000000602') = 0
+       and (select count(*) from public.discovery_sessions where student_user_id = '0c260000-0000-4000-8000-000000000602') = 0$q$);
+select pg_temp.cc26_check('S02', 'a student cannot read recommendation drafts or AI-generation records directly (own or others'')',
+  $q$select pg_temp.cc26_count_if_exists('public.recommendation_drafts') = 0
+       and pg_temp.cc26_count_if_exists('public.recommendation_draft_versions') = 0
+       and pg_temp.cc26_count_if_exists('public.ai_generation_runs') = 0$q$);
+select pg_temp.cc26_denied('S03', 'a student cannot change another student''s Student Digital Profile',
+  $q$update public.student_profiles set city = 'Changed' where user_id = '0c260000-0000-4000-8000-000000000602'$q$);
+select pg_temp.cc26_denied('S04', 'a student cannot move their Discovery Session to another student',
+  $q$update public.discovery_sessions set student_user_id = '0c260000-0000-4000-8000-000000000602' where id = '0c260000-0000-4000-8000-000000000d01'$q$);
+select pg_temp.cc26_check('S05', 'a student still reads their own profile, Student Digital Profile and Discovery Session (regression)',
+  $q$select (select count(*) from public.profiles where id = '0c260000-0000-4000-8000-000000000601') = 1
+       and (select count(*) from public.student_profiles where user_id = '0c260000-0000-4000-8000-000000000601') = 1
+       and (select count(*) from public.discovery_sessions where student_user_id = '0c260000-0000-4000-8000-000000000601') = 1$q$);
+select pg_temp.cc26_allowed('S06', 'a student still updates their own Student Digital Profile (regression)',
+  $q$update public.student_profiles set city = 'Fictional Town' where user_id = '0c260000-0000-4000-8000-000000000601'$q$);
+reset role;
+select pg_temp.cc26_logout();
+
+select pg_temp.cc26_login('0c260000-0000-4000-8000-0000000000a1');
+set local role authenticated;
+select pg_temp.cc26_error('S07', 'even an admin cannot move a Discovery Session to another student (immutable student)',
+  $q$update public.discovery_sessions set student_user_id = '0c260000-0000-4000-8000-000000000602' where id = '0c260000-0000-4000-8000-000000000d06'$q$);
+reset role;
+select pg_temp.cc26_logout();
+
+-- ===========================================================================
 -- [0025] Inactive counsellors and table privileges
 -- ===========================================================================
 select pg_temp.cc26_login('0c260000-0000-4000-8000-0000000000c4');
@@ -376,6 +633,13 @@ select pg_temp.cc26_error('R05', '[0024] an anonymous caller cannot forge a syst
 reset role;
 select pg_temp.cc26_check('R06', 'no audit row was written by the anonymous attempt',
   $q$select (select count(*) from public.admin_audit_log) = (select n from cc26_audit_before)$q$);
+set local role anon;
+select pg_temp.cc26_error('R07', '[0024] an anonymous caller cannot redirect a signed document',
+  $q$select public.set_signature_document_path('docusign', 'fictional-envelope', 'forged/path.pdf')$q$);
+select pg_temp.cc26_error('R08', 'an anonymous caller cannot create a recommendation draft',
+  $q$select public.staff_create_recommendation_draft('0c260000-0000-4000-8000-000000000601', 'Forged', null, '{}'::jsonb)$q$)
+  where to_regprocedure('public.staff_create_recommendation_draft(uuid,text,text,jsonb)') is not null;
+reset role;
 
 -- ===========================================================================
 -- [0026] Database checkout gate (payments OFF)

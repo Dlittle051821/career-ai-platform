@@ -7,6 +7,9 @@
 -- Returns catalog facts and COUNTS only: no names, e-mails, phone numbers or
 -- other personal data, and no identifiers of people.
 -- Run it before approval 2 (apply) and keep the output with the evidence.
+-- Revision 2 (2026-11-12) adds sections 7-10: the NW07 function classification,
+-- every policy and RPC that depends on it, the 0025 F4 drift check and the
+-- exposure scope of the confirmed NW07 defect (counts only).
 --
 -- DECISIVE QUESTIONS IT ANSWERS
 --   Q1 Is the proposed NW07 already applied?  (If yes, the NW07 self-claim
@@ -98,5 +101,104 @@ from pg_default_acl order by 2, 3, 4;
 
 -- 6. auth.uid() reads request.jwt.claim.sub first (the tests' login helper relies on it).
 select 'auth_uid' as section, pg_get_functiondef('auth.uid()'::regprocedure) like '%request.jwt.claim.sub%' as reads_claim_sub;
+
+-- ============================================================================
+-- Revision 2 (2026-11-12, after the confirmed NW07 finding). Sections 7-10.
+-- Still read-only, still counts and catalog facts only.
+-- ============================================================================
+
+-- 7. NW07 detail: classify counsellor_has_case_access and list what depends on it.
+--    Expected on QA today: 'NW07 original (unsafe)'. After 0023 r2: 'CC-26 fixed'.
+select 'nw07_case_access' as section,
+       case md5(replace(p.prosrc, chr(13), ''))
+         when 'af8e1b283e823e2002b909fe8b610561' then 'NW07 original (unsafe: any assignment, approved or not)'
+         when '2a2f5e7f4f183185aced2356e5a58857' then 'CC-26 fixed (caseload OR approved active session)'
+         else case when p.prosrc like '%discovery_sessions%' then 'UNKNOWN body that reads discovery_sessions directly (treat as unsafe; export it)'
+                   else 'UNKNOWN body (export it before approval)' end
+       end as classification,
+       md5(replace(p.prosrc, chr(13), '')) as body_md5_lf,
+       p.prosrc like '%assignment_approved%' or p.prosrc like '%counsellor_has_active_session_for_student%' as requires_approval,
+       coalesce(array_to_string(p.proconfig, ','), '') as config,
+       has_function_privilege('anon', p.oid, 'execute') as anon_can_execute
+from pg_proc p where p.oid = to_regprocedure('public.counsellor_has_case_access(uuid)');
+
+select 'nw07_dependent_policies' as section, tablename, policyname, cmd,
+       (coalesce(qual, '') || coalesce(with_check, '')) like '%counsellor_has_case_access%' as via_case_access,
+       (coalesce(qual, '') || coalesce(with_check, '')) like '%discovery_sessions%' as reads_discovery_sessions_directly,
+       (coalesce(qual, '') || coalesce(with_check, '')) like '%created_by = auth.uid()%' as grants_by_authorship
+from pg_policies
+where schemaname = 'public' and tablename <> 'discovery_sessions'
+  and ((coalesce(qual, '') || coalesce(with_check, '')) like '%counsellor_has_case_access%'
+       or (coalesce(qual, '') || coalesce(with_check, '')) like '%discovery_sessions%')
+order by tablename, policyname;
+
+select 'nw07_dependent_functions' as section, p.oid::regprocedure::text as function, p.prosecdef as security_definer,
+       md5(replace(p.prosrc, chr(13), '')) as body_md5_lf,
+       p.prosrc like '%created_by = auth.uid() or public.counsellor_has_case_access%' as grants_by_authorship,
+       coalesce(array_to_string(p.proconfig, ','), '') as config,
+       has_function_privilege('anon', p.oid, 'execute') as anon_can_execute
+from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public' and p.prosrc like '%counsellor_has_case_access%'
+order by 2;
+
+-- 8. 0025 F4 drift: the five NW07 draft RPCs must be either the NW07 original
+--    or the CC-26 version (or already author-free, e.g. after NW-F01 03).
+select 'f4_rpc_state' as section, v.fn,
+       case md5(replace(p.prosrc, chr(13), '')) when v.nw07 then 'NW07 original' when v.cc26 then 'CC-26 version'
+         else case when p.prosrc like '%created_by = auth.uid() or public.counsellor_has_case_access%' then 'DRIFT (0025 will refuse)'
+                   when p.oid is null then 'absent' else 'author-free (left unchanged)' end end as state
+from (values
+  ('staff_update_recommendation_draft_content(uuid,jsonb)', '5eef6dced30ca13c6b1354870f2e441b', '8d76caf129e0b33c6b70956ccf3be211'),
+  ('staff_submit_recommendation_draft_for_review(uuid)', '3f365eacdd071abecbdf7a680e5d1775', '1a69bbfe9644efd7d8996275cc45fbf9'),
+  ('staff_release_recommendation_draft(uuid)', '5ddb8bc143a32a1109043b7e7cc2ef9c', 'dc4d3efb964868219c208369adb05ce6'),
+  ('staff_withdraw_recommendation_draft(uuid)', 'adb19f89b3d97167eaa8a7fa989db725', '3d65d505806b342f0e2659f618145dbd'),
+  ('staff_archive_recommendation_draft(uuid)', 'ebcc9aab425723c73db5784bc33b9ea2', '9d0f5dcbc0ecd98cedbc669552feec2f')
+) v(fn, nw07, cc26)
+left join pg_proc p on p.oid = to_regprocedure('public.' || v.fn);
+
+-- 9. Exposure SCOPE of the NW07 defect (COUNTS ONLY). "Session-only" = a
+--    counsellor assigned to a student's Discovery Session who is NOT that
+--    student's caseload counsellor. Under the original NW07 rule every such
+--    assignment (approved or not, any status) opened the student's records to
+--    that counsellor. These counts show what COULD have been reached; they are
+--    not evidence that anything WAS read (PostgreSQL does not log reads).
+select 'nw07_exposure_scope' as section, *
+from (values
+  ('session-only assignments (all statuses)', (case when to_regclass('public.discovery_sessions') is null then null else (xpath('/row/n/text()', query_to_xml($x$select count(*) n from public.discovery_sessions ds join public.counsellors c on c.id = ds.assigned_counsellor_id
+        where not exists (select 1 from public.admin_student_meta m where m.student_user_id = ds.student_user_id and m.assigned_counsellor_id = ds.assigned_counsellor_id)$x$, false, true, '')))[1]::text::bigint end)),
+  ('… of which requested/scheduled', (case when to_regclass('public.discovery_sessions') is null then null else (xpath('/row/n/text()', query_to_xml($x$select count(*) n from public.discovery_sessions ds join public.counsellors c on c.id = ds.assigned_counsellor_id
+        where not exists (select 1 from public.admin_student_meta m where m.student_user_id = ds.student_user_id and m.assigned_counsellor_id = ds.assigned_counsellor_id) and ds.status in ('requested','scheduled')$x$, false, true, '')))[1]::text::bigint end)),
+  ('… of which completed/cancelled/no-show (finished)', (case when to_regclass('public.discovery_sessions') is null then null else (xpath('/row/n/text()', query_to_xml($x$select count(*) n from public.discovery_sessions ds join public.counsellors c on c.id = ds.assigned_counsellor_id
+        where not exists (select 1 from public.admin_student_meta m where m.student_user_id = ds.student_user_id and m.assigned_counsellor_id = ds.assigned_counsellor_id) and ds.status not in ('requested','scheduled')$x$, false, true, '')))[1]::text::bigint end)),
+  ('… held by inactive counsellors', (case when to_regclass('public.discovery_sessions') is null then null else (xpath('/row/n/text()', query_to_xml($x$select count(*) n from public.discovery_sessions ds join public.counsellors c on c.id = ds.assigned_counsellor_id
+        where not exists (select 1 from public.admin_student_meta m where m.student_user_id = ds.student_user_id and m.assigned_counsellor_id = ds.assigned_counsellor_id) and not c.is_active$x$, false, true, '')))[1]::text::bigint end)),
+  ('… approved by an admin (only if 0023 is applied; else null)', (case when exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'discovery_sessions' and column_name = 'assignment_approved_at') then (xpath('/row/n/text()', query_to_xml($x$select count(*) n from public.discovery_sessions ds join public.counsellors c on c.id = ds.assigned_counsellor_id
+        where not exists (select 1 from public.admin_student_meta m where m.student_user_id = ds.student_user_id and m.assigned_counsellor_id = ds.assigned_counsellor_id) and ds.assignment_approved_at is not null$x$, false, true, '')))[1]::text::bigint end)),
+  ('distinct counsellors with a session-only assignment', (case when to_regclass('public.discovery_sessions') is null then null else (xpath('/row/n/text()', query_to_xml($x$select count(distinct ds.assigned_counsellor_id) n from public.discovery_sessions ds join public.counsellors c on c.id = ds.assigned_counsellor_id
+        where not exists (select 1 from public.admin_student_meta m where m.student_user_id = ds.student_user_id and m.assigned_counsellor_id = ds.assigned_counsellor_id)$x$, false, true, '')))[1]::text::bigint end)),
+  ('distinct students reachable only through a session assignment', (case when to_regclass('public.discovery_sessions') is null then null else (xpath('/row/n/text()', query_to_xml($x$select count(distinct ds.student_user_id) n from public.discovery_sessions ds join public.counsellors c on c.id = ds.assigned_counsellor_id
+        where not exists (select 1 from public.admin_student_meta m where m.student_user_id = ds.student_user_id and m.assigned_counsellor_id = ds.assigned_counsellor_id)$x$, false, true, '')))[1]::text::bigint end)),
+  ('recommendation drafts of those students', (case when to_regclass('public.recommendation_drafts') is null then null else (xpath('/row/n/text()', query_to_xml($x$select count(*) n from public.recommendation_drafts d where d.student_user_id in (select distinct ds.student_user_id from public.discovery_sessions ds join public.counsellors c on c.id = ds.assigned_counsellor_id
+        where not exists (select 1 from public.admin_student_meta m where m.student_user_id = ds.student_user_id and m.assigned_counsellor_id = ds.assigned_counsellor_id))$x$, false, true, '')))[1]::text::bigint end)),
+  ('recommendation draft versions of those students', (case when to_regclass('public.recommendation_draft_versions') is null then null else (xpath('/row/n/text()', query_to_xml($x$select count(*) n from public.recommendation_draft_versions v join public.recommendation_drafts d on d.id = v.draft_id where d.student_user_id in (select distinct ds.student_user_id from public.discovery_sessions ds join public.counsellors c on c.id = ds.assigned_counsellor_id
+        where not exists (select 1 from public.admin_student_meta m where m.student_user_id = ds.student_user_id and m.assigned_counsellor_id = ds.assigned_counsellor_id))$x$, false, true, '')))[1]::text::bigint end)),
+  ('AI-generation records of those students', (case when to_regclass('public.ai_generation_runs') is null then null else (xpath('/row/n/text()', query_to_xml($x$select count(*) n from public.ai_generation_runs r where r.student_user_id in (select distinct ds.student_user_id from public.discovery_sessions ds join public.counsellors c on c.id = ds.assigned_counsellor_id
+        where not exists (select 1 from public.admin_student_meta m where m.student_user_id = ds.student_user_id and m.assigned_counsellor_id = ds.assigned_counsellor_id))$x$, false, true, '')))[1]::text::bigint end)),
+  ('… of which data_class = real_student', (case when to_regclass('public.ai_generation_runs') is null then null else (xpath('/row/n/text()', query_to_xml($x$select count(*) n from public.ai_generation_runs r where r.data_class = 'real_student' and r.student_user_id in (select distinct ds.student_user_id from public.discovery_sessions ds join public.counsellors c on c.id = ds.assigned_counsellor_id
+        where not exists (select 1 from public.admin_student_meta m where m.student_user_id = ds.student_user_id and m.assigned_counsellor_id = ds.assigned_counsellor_id))$x$, false, true, '')))[1]::text::bigint end)),
+  ('… of which hold a stored report', (case when to_regclass('public.ai_generation_runs') is null then null else (xpath('/row/n/text()', query_to_xml($x$select count(*) n from public.ai_generation_runs r where r.report is not null and r.student_user_id in (select distinct ds.student_user_id from public.discovery_sessions ds join public.counsellors c on c.id = ds.assigned_counsellor_id
+        where not exists (select 1 from public.admin_student_meta m where m.student_user_id = ds.student_user_id and m.assigned_counsellor_id = ds.assigned_counsellor_id))$x$, false, true, '')))[1]::text::bigint end)),
+  ('drafts whose author is not the student''s caseload counsellor (author-only access; closed by 0025 F4)', (case when to_regclass('public.recommendation_drafts') is null then null else (xpath('/row/n/text()', query_to_xml($x$select count(*) n from public.recommendation_drafts d join public.counsellors c on c.user_id = d.created_by where not exists (select 1 from public.admin_student_meta m where m.student_user_id = d.student_user_id and m.assigned_counsellor_id = c.id)$x$, false, true, '')))[1]::text::bigint end)),
+  ('drafts authored by inactive counsellors', (case when to_regclass('public.recommendation_drafts') is null then null else (xpath('/row/n/text()', query_to_xml($x$select count(*) n from public.recommendation_drafts d join public.counsellors c on c.user_id = d.created_by where not c.is_active$x$, false, true, '')))[1]::text::bigint end)),
+  ('AI-generation records with data_class real_student (whole table)', (case when to_regclass('public.ai_generation_runs') is null then null else (xpath('/row/n/text()', query_to_xml($x$select count(*) n from public.ai_generation_runs where data_class = 'real_student'$x$, false, true, '')))[1]::text::bigint end))
+) as e(indicator, count);
+
+-- 10. Lock and size facts for the apply window (0023 adds a CHECK constraint
+--     that scans discovery_sessions under an ACCESS EXCLUSIVE lock).
+select 'apply_window' as section,
+       (select count(*) from public.discovery_sessions) as discovery_sessions_rows,
+       pg_size_pretty(pg_total_relation_size('public.discovery_sessions')) as discovery_sessions_size,
+       (select count(*) from pg_stat_activity where datname = current_database() and pid <> pg_backend_pid() and state <> 'idle') as other_active_sessions,
+       (select count(*) from pg_locks l join pg_class c on c.oid = l.relation where c.relname in ('discovery_sessions', 'admin_student_meta', 'recommendation_drafts') and l.granted and l.pid <> pg_backend_pid()) as locks_held_on_targets;
 
 rollback;

@@ -28,6 +28,7 @@ The read-only preflight (`cc26_qa_preflight_readonly.sql`, marker **Q1**) tells 
 | S7 | P2 | `anon` and `authenticated` hold TRUNCATE (which bypasses RLS), TRIGGER and REFERENCES on all 96 public tables. PostgREST cannot issue these, so this is defence in depth. | G01, G02, G04 | `cc26/0025` revokes them, now and in the owner's default privileges | Fixed locally |
 | S8 | **P1** (payments) | **Direct API creation of unpaid invoices.** Checkout is paused only in the Next.js server action. Any signed-in student could call `purchase_pricing_plan` directly and get a real invoice (consuming the next GST invoice number), a purchase snapshot and an offer redemption. Students can also insert `payment_attempts` directly (the CC-15 forgery precondition). No money can move. | P01–P03 at baseline; CC-25 suite P2 note | `cc26/0026`, a database checkout gate (CC26-03) | Fixed locally; payments stay off |
 | S9 | P2 | CC-25 functions pinned `search_path = ''`. An empty search_path still searches the session's temporary schema **first** for table and type names. It also clashed with NW-F01 03's search_path sweep, so the end state depended on apply order. Applying 0025 after NW-F01 even reset `current_counsellor_id()` to `search_path = public` (an F7 regression). | Forward-path test, order a vs b | Every CC-25/CC-26 definer pins `pg_catalog, pg_temp` (`counsellor_has_case_access` and `current_counsellor_id`: `pg_catalog, public, pg_temp`). Both orders now converge, and rollbacks keep F7. | Fixed locally |
+| S11 | **P1** (QA, NW07) | **Authorship outlives case access on recommendation drafts.** NW07's two draft SELECT policies and five draft RPCs accept `created_by = auth.uid()`. After approval revocation, reassignment, a finished session or deactivation, the former author still reads every version and can edit, submit, withdraw, release or archive the draft. On QA this includes drafts written under the open self-claim rule. NW-F01 03 fixes the RPCs, not the policies. Found 2026-11-12 (CC26-13). | N26, N27, N30, N34 fail with 0025 of `387c53d` | `cc26/0025` F4: case access only; RPC bodies replaced only from the exact NW07 hash; drift refuses | Fixed locally (follow-up commit) |
 | S10 | P3 | The 0024 rollback restored the right privileges in a different ACL order, so the catalog was not byte-identical | Rollback-chain test | Grant order corrected | Fixed |
 
 ### Still open (not CC-26 code, needed before payments or AI go live)
@@ -51,12 +52,12 @@ The root cause (Supabase default EXECUTE for `anon` on new functions) is left in
 
 | Check | Result |
 |---|---|
-| `scripts/security/cc26-security-closure.db.test.mjs` | **32/32** (`evidence/db/cc26-security-closure.db.test.log`) |
+| `scripts/security/cc26-security-closure.db.test.mjs` | **32/32** (re-run 2026-11-12 after F4 and the extended suite) |
 | … migrations refuse without approval; forced failure is atomic | pass (both states) |
 | … apply 0023 r2 → 0024 → 0025 → 0026, each re-run idempotent | pass (both states) |
-| … CC-25 suite 89 checks; CC-26 suite | 89/89; **45/45** (qa); 32 pass + 13 SKIP (base, no NW07) |
+| … CC-25 suite 89 checks; CC-26 suite (revision 2) | 89/89; **76/76** (qa); 40 pass + 35 SKIP (base, no NW07) |
 | … CC-26 baseline before the migrations | 16 FAIL on both states: the defects reproduced |
-| … mutation tests (6 on base, 7 on qa) | every re-opened defect caught |
+| … mutation tests (6 on base, 12 on qa, incl. the exact QA function body MU8) | every re-opened defect caught |
 | … rollback 0026 → 0023 | catalog and default ACL **byte-identical** to before |
 | … NW07: patched file without 0023 is caseload-only; every apply order converges; rollback restores the state it replaced | pass |
 | … forward path with NW-F01 (01–03, 05, 06) + NW01, both orders | identical catalog; suites pass; no unpinned definer |

@@ -34,6 +34,17 @@ The first `Finish-CC26.ps1` run on the PC failed 8 Vitest tests: 7 in `recommend
   - under CRLF the assertions still fail against the original unsafe NW07 (8 failures) and against an empty `search_path` in 0023 (1 failure);
   - TypeScript, ESLint (0 errors / 18 warnings), npm audit (0) and `next build` pass again.
 
+## Follow-up after `387c53d` (2026-11-12, NW07 remediation)
+
+| Check | Result |
+|---|---|
+| TypeScript / ESLint | exit 0 / 0 errors, 18 warnings (unchanged) |
+| Vitest | **180 files; 3,107 passed, 1 skipped** (+1 file, +25 static guards in `cc26-recommendation-author-access.test.ts`) |
+| DB harness CC-26 / CC-25 | **32/32** (suite revision 2: 76 on qa, 40 + 35 SKIP on base; 12 mutants on qa) / **11/11** |
+| npm audit / build / secret scan / diff check | 0 / exit 0 / 0 hits / clean |
+| QA runner rehearsal (Linux pwsh 7.4, local copy of the QA model, SSL, port 5432) | Preflight, Export, Backup, hash-tamper refusal, Apply (+gate), Tests 89/89 and 76/76, drift stop after 0023/0024, Rollback back to the exact pre-state fingerprint |
+| Preview, signed out | QA ref only; no production ref, `service_role` or `rzp_live_` in client chunks; protected routes redirect to `/login`; unknown page 404; homepage main DOM identical to www.nextwise.world |
+
 ## Not run (needs access or approval)
 
 - Any SQL against QA (approvals A1–A3) or production (never).

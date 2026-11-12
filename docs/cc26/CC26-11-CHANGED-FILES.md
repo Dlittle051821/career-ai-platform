@@ -47,3 +47,20 @@ There are no dependency changes. No CC-18 protected file (45) or V5.4 protected 
 ## Docs
 
 `docs/cc26/CC26-00` to `CC26-12`, `docs/cc26/qa/Run-CC26-Qa.ps1`, `docs/cc26/templates/PORTRAIT-RIGHTS-RECORD.template.md`.
+
+## Follow-up commit on top of `387c53d` (2026-11-12, NW07 remediation)
+
+| Path | Change |
+|---|---|
+| `supabase/migrations-proposed/cc26/0025_cc26_inactive_counsellor_and_grant_hardening.sql` | F4: recommendation drafts need current case access (S11) |
+| `supabase/migrations-proposed/cc26/0025_cc26_ROLLBACK.sql` | F4 rollback (exact NW07 text, only over the CC-26 bodies) |
+| `supabase/migrations-proposed/cc26/cc26_security_tests.sql` | Revision 2: 76 checks on an NW07 database (+31) |
+| `supabase/migrations-proposed/cc26/cc26_qa_preflight_readonly.sql` | Revision 2: sections 7–10 (NW07 classification, dependants, F4 drift, exposure scope, apply window) |
+| `supabase/migrations-proposed/cc26/cc26_qa_export_readonly.sql` | **Added.** Read-only definitions export |
+| `docs/cc26/qa/Run-CC26-Qa.ps1` | Export and Backup steps; SHA-256 pinning |
+| `docs/cc26/qa/CC26-QA-SQL-SHA256.txt` | **Added.** 12 pinned hashes |
+| `scripts/security/cc26-security-closure.db.test.mjs` | New counts; mutants MU8–MU12 |
+| `src/lib/recommendations/cc26-recommendation-author-access.test.ts` | **Added.** 25 static guards |
+| `docs/cc26/CC26-00`, `-01`, `-02`, `-09`, `-10`, `-11`, `-12`; `CC26-13` **added** | Evidence package updated |
+
+No app code, dependency, protected CC-18 file or V5.4 homepage file changed.
