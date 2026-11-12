@@ -180,23 +180,47 @@ describe("assignment approval wording", () => {
 });
 
 describe("CC-25 static guards", () => {
-  const migration = readFileSync(path.join(ROOT, "supabase/migrations-proposed/cc25/0023_cc25_counsellor_identity_least_privilege.sql"), "utf8");
+  // CC-26: normalise line endings (CRLF on Windows) — the assertions match "\n"-terminated SQL text.
+  const migration = readFileSync(path.join(ROOT, "supabase/migrations-proposed/cc25/0023_cc25_counsellor_identity_least_privilege.sql"), "utf8").replace(/\r\n/g, "\n");
 
-  it("the migration adds no profiles policy and grants nothing to anon", () => {
-    expect(migration).not.toMatch(/create\s+policy[^;]*on\s+public\.profiles/i);
+  // CC-26 revision 2: section 7b (only where NW07 is applied) re-creates
+  // NW07's profiles policy as the exact 0004 caseload-only rule. The guard is
+  // therefore "no profiles policy that grants anything beyond the caseload",
+  // checked on every profiles policy the file can create, plus the original
+  // statement-level grant checks (now also covering grants issued via EXECUTE).
+  it("the migration never widens profiles (any profiles policy is the 0004 caseload-only rule) and grants nothing to anon", () => {
+    const profilePolicies = migration.match(/create\s+policy[^;]*?on\s+public\.profiles[\s\S]*?\n\s*\)\s*(?:\$sql\$|;)/gi) ?? [];
+    expect(profilePolicies.length).toBe(1);
+    for (const policy of profilePolicies) {
+      expect(policy).toMatch(/"Admins\/assigned counsellor can read student profiles \(m7\)"/);
+      expect(policy).toMatch(/m\.student_user_id = profiles\.id and m\.assigned_counsellor_id = public\.current_counsellor_id\(\)/);
+      expect(policy).not.toMatch(/discovery_sessions|counsellor_has_case_access|counsellor_has_active_session_for_student|counsellor_has_approved_session/);
+    }
+    const sectionStart = migration.indexOf("-- 7b. NW07 compatibility");
+    expect(sectionStart).toBeGreaterThan(-1);
+    expect(migration.search(/create\s+policy[^;]*?on\s+public\.profiles/i)).toBeGreaterThan(sectionStart);
     // Statement-level: no GRANT statement names anon or PUBLIC as a grantee.
     const grants = migration.match(/^\s*grant\b[^;]*;/gim) ?? [];
     expect(grants.length).toBeGreaterThan(0);
     for (const g of grants) expect(g).not.toMatch(/\bto\b[^;]*\b(anon|public)\b/i);
+    const executedGrants = migration.match(/execute\s+'grant\b[^']*'/gi) ?? [];
+    expect(executedGrants.length).toBeGreaterThan(0);
+    for (const g of executedGrants) expect(g).not.toMatch(/\bto\b[^']*\b(anon|public)\b/i);
     expect(migration).toMatch(/drop policy if exists "Assigned DS counsellor can read student profile \(cc24\)" on public\.profiles;/);
   });
 
-  it("every CC-25 SECURITY DEFINER function pins an empty search_path", () => {
+  // CC-26 revision 2: an empty search_path still searches the session's
+  // temporary schema first for table and type names; every definer now pins
+  // a search_path with pg_temp LAST (PostgreSQL's documented safe form).
+  it("every CC-25 SECURITY DEFINER function pins search_path with pg_temp last (no empty search_path)", () => {
+    expect(migration).not.toMatch(/set search_path = ''/);
     const definers = migration.match(/create or replace function[\s\S]*?\$fn\$;/gi) ?? [];
     expect(definers.length).toBe(6);
     for (const fn of definers) {
-      if (/security definer/i.test(fn)) expect(fn).toMatch(/set search_path = ''/);
+      if (/security definer/i.test(fn)) expect(fn).toMatch(/set search_path = pg_catalog, pg_temp\n/);
     }
+    const caseAccess = migration.slice(migration.indexOf("create or replace function public.counsellor_has_case_access"));
+    expect(caseAccess).toMatch(/^create or replace function public\.counsellor_has_case_access\(p_student_user_id uuid\)[\s\S]*?security definer\s+set search_path = pg_catalog, public, pg_temp\n/);
   });
 
   it("the migration and the RLS tests refuse to run without an explicit non-production approval", () => {

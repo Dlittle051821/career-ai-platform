@@ -5,7 +5,8 @@ import { ChevronLeft } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
 import { getCurrentUser } from "@/lib/supabase/profile";
-import { getMyApplicationById, getMyApplicationHistory } from "@/lib/supabase/education/applications";
+import { getMyApplicationHistory } from "@/lib/supabase/education/applications";
+import { getMyApplicationByIdCached } from "@/lib/supabase/education/application-lookup-cached";
 import { listMyApplicationDocuments } from "@/lib/supabase/education/application-documents";
 import { getMyApplicationSubmission } from "@/lib/supabase/education/application-submissions";
 import { listMyApplicationTasks } from "@/lib/supabase/education/application-tasks";
@@ -52,7 +53,8 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
   const user = await getCurrentUser();
   if (!user) redirect(`/login?next=/applications/${id}`);
 
-  const application = await getMyApplicationById(id);
+  // Already verified by ./layout.tsx (genuine 404); the cached lookup is not repeated.
+  const application = await getMyApplicationByIdCached(id);
   if (!application) notFound();
 
   const history = await getMyApplicationHistory(id);

@@ -16,7 +16,7 @@
     "import:education-data": "tsx scripts/import-education-data.ts",
     "seed:education-data": "tsx scripts/seed-education-data.ts",
     "test": "vitest run",
-    "test:db-security": "node --test scripts/security/cc25-counsellor-identity.db.test.mjs"
+    "test:db-security": "node --test scripts/security/cc25-counsellor-identity.db.test.mjs scripts/security/cc26-security-closure.db.test.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.32.0",

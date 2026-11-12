@@ -2,6 +2,19 @@
 -- CC-25 — Least-privilege counsellor access to Discovery Session students
 --
 -- STATUS: PROPOSED. Not applied to QA or production. Needs explicit approval.
+-- REVISION 2 (CC-26, 2026-11-11). Revision 1 (CC-25, sha256 7103d03d…cd5f)
+-- aborted on any database where the proposed NW07 migration is already
+-- applied (its profiles postcondition failed), and did not narrow NW07's
+-- "any Discovery Session assignment" case-access rule. Revision 2 adds
+-- section 7b: when NW07 objects exist, counsellor_has_case_access and the 15
+-- NW07 counsellor read/insert policies are narrowed to caseload OR an
+-- admin-approved active session (F6 below). Without NW07 it is a no-op, so
+-- the 0001-0022 behaviour of revision 1 is unchanged.
+-- Also in revision 2: every CC-25 function pins search_path = pg_catalog,
+-- pg_temp (was ''). An empty search_path still searches the session's
+-- temporary schema FIRST for table and type names; listing pg_temp last is
+-- PostgreSQL's documented safe form and is what NW-F01 03's search_path sweep
+-- requires, so applying NW-F01 before or after this file gives the same result.
 -- Replaces the REJECTED CC-24 proposal
 -- supabase/migrations-proposed/cc24/0023_counsellor_discovery_session_profile_read.sql
 -- (that file must never be applied).
@@ -24,9 +37,18 @@
 --       an ACTIVE (requested or scheduled) approved assignment.
 --   F5  Inactive counsellors kept session-based access. Session-based checks
 --       now require counsellors.is_active.
+--   F6  (CC-26, only where NW07 is applied) NW07 widened profiles, the 11
+--       student_* profile tables, admin_student_meta and admin_student_notes
+--       to ANY Discovery Session assignment, so an unapproved self-claim
+--       exposed the whole student profile and allowed adding case notes.
+--       profiles returns to caseload-only (0004); the other 14 policies and
+--       counsellor_has_case_access now require a caseload assignment or an
+--       admin-approved active session.
 --
 -- WHAT IT DOES NOT CHANGE
---   - public.profiles RLS (no new or changed policy).
+--   - public.profiles RLS on a 0001-0022 database. Where NW07 is applied, its
+--     widened profiles policy is returned to the exact 0004 caseload-only
+--     rule (F6); session counsellors use the identity RPC instead.
 --   - Caseload (admin_student_meta) access paths: unchanged.
 --   - Admin rights; student booking (insert) rights; the counsellor triage
 --     queue (counsellors still see and may claim unassigned requests — a claim
@@ -83,6 +105,20 @@ begin
   ) then
     raise exception 'CC25-0023 refused: migration 0014 is not in the expected state (drift).';
   end if;
+  -- NW07 present: its 15 counsellor policies must all exist (original or narrowed).
+  if to_regprocedure('public.counsellor_has_case_access(uuid)') is not null
+     and (select count(*) from pg_policies
+          where schemaname = 'public'
+            and (   (tablename = 'profiles' and policyname = 'Admins/assigned counsellor can read student profiles (m7)')
+                 or (tablename = 'admin_student_meta' and policyname = 'Admins/assigned counsellor can read student meta')
+                 or (tablename = 'admin_student_notes' and policyname in ('Admins/assigned counsellor can read student notes',
+                                                                          'Admins/assigned counsellor can add student notes'))
+                 or (tablename in ('student_profiles', 'student_education', 'student_subject_strengths', 'student_interests',
+                                   'student_skills', 'student_work_preferences', 'student_career_priorities', 'student_career_goals',
+                                   'student_study_preferences', 'student_funding_preferences', 'student_experience')
+                     and cmd = 'SELECT' and policyname like 'Admins/assigned counsellor can read student%'))) <> 15 then
+    raise exception 'CC25-0023 refused: NW07 is present but its counsellor policies are not in the expected state (drift).';
+  end if;
 end
 $pre$;
 
@@ -118,7 +154,7 @@ alter table public.discovery_sessions add constraint discovery_sessions_assignme
 create or replace function public.discovery_sessions_guard_cc25()
 returns trigger
 language plpgsql
-set search_path = ''
+set search_path = pg_catalog, pg_temp
 as $fn$
 declare
   v_uid uuid := auth.uid();
@@ -226,7 +262,7 @@ create trigger discovery_sessions_guard_cc25
 create or replace function public.admin_student_meta_guard_cc25()
 returns trigger
 language plpgsql
-set search_path = ''
+set search_path = pg_catalog, pg_temp
 as $fn$
 begin
   if new.student_user_id is distinct from old.student_user_id then
@@ -252,7 +288,7 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = ''
+set search_path = pg_catalog, pg_temp
 as $fn$
   select auth.uid() is not null and exists (
     select 1
@@ -274,7 +310,7 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = ''
+set search_path = pg_catalog, pg_temp
 as $fn$
   select auth.uid() is not null and exists (
     select 1
@@ -300,7 +336,7 @@ returns table (session_id uuid, student_user_id uuid, full_name text, email text
 language plpgsql
 stable
 security definer
-set search_path = ''
+set search_path = pg_catalog, pg_temp
 as $fn$
 declare
   v_uid uuid := auth.uid();
@@ -368,7 +404,7 @@ returns jsonb
 language plpgsql
 volatile
 security invoker
-set search_path = ''
+set search_path = pg_catalog, pg_temp
 as $fn$
 declare
   v_row public.discovery_sessions;
@@ -579,6 +615,134 @@ grant execute on function public.staff_discovery_session_student_identities(uuid
 grant execute on function public.admin_set_discovery_session_assignment_approval(uuid, uuid, boolean) to authenticated;
 
 -- ---------------------------------------------------------------------------
+-- 7b. NW07 compatibility (CC-26). Runs only when the proposed NW07 migration
+--     is already applied (QA); a no-op on a 0001-0022 database.
+-- ---------------------------------------------------------------------------
+do $nw07$
+declare
+  v_table text;
+  v_prior text;
+begin
+  if to_regprocedure('public.counsellor_has_case_access(uuid)') is null then
+    raise notice 'CC25-0023 section 7b: NW07 not present; nothing to narrow.';
+    return;
+  end if;
+  -- Record which NW07 state this run replaces, for the rollback:
+  --   original = the 0706df7d NW07 rule (any Discovery Session assignment);
+  --   fallback = the patched NW07 applied without 0023 (caseload only).
+  -- A re-run keeps the marker of the first run.
+  select case
+           when p.prosrc like '%counsellor_has_active_session_for_student%'
+             then coalesce(substring(coalesce(obj_description(p.oid, 'pg_proc'), '') from '\[cc26-prior:([a-z]+)\]'), 'fallback')
+           when p.prosrc like '%discovery_sessions%' then 'original'
+           else 'fallback'
+         end
+    into v_prior
+    from pg_proc p where p.oid = 'public.counsellor_has_case_access(uuid)'::regprocedure;
+  -- CC-26 shared block (byte-identical in cc25/0023 revision 2 section 7 and in
+  -- the patched NW07 PART 1). Counsellor case access = caseload assignment OR an
+  -- admin-APPROVED assignment of an ACTIVE Discovery Session held by an ACTIVE
+  -- counsellor. An unapproved self-claim, a finished session or an inactive
+  -- counsellor grants nothing.
+  execute $sql$
+    create or replace function public.counsellor_has_case_access(p_student_user_id uuid)
+    returns boolean
+    language sql
+    stable
+    security definer
+    set search_path = pg_catalog, public, pg_temp
+    as $fn$
+      select auth.uid() is not null and (
+        exists (
+          select 1 from public.admin_student_meta m
+          where m.student_user_id = p_student_user_id
+            and m.assigned_counsellor_id = public.current_counsellor_id()
+        )
+        or public.counsellor_has_active_session_for_student(p_student_user_id)
+      );
+    $fn$
+  $sql$;
+  execute $sql$
+    comment on function public.counsellor_has_case_access(uuid) is
+      'CC-26 — true if the calling counsellor has case access to this student: a caseload assignment (admin_student_meta) OR an admin-approved assignment of an active (requested/scheduled) Discovery Session (counsellor_has_active_session_for_student). An unapproved self-claim grants nothing. Callers still combine this with is_admin_role(''counsellor'').'
+  $sql$;
+  execute 'revoke all on function public.counsellor_has_case_access(uuid) from public, anon, service_role';
+  execute 'grant execute on function public.counsellor_has_case_access(uuid) to authenticated';
+
+  execute $sql$drop policy if exists "Admins/assigned counsellor can read student profiles (m7)" on public.profiles$sql$;
+  -- profiles: back to the exact 0004 caseload-only rule. A Discovery Session
+  -- counsellor gets the student's name and e-mail only through
+  -- staff_discovery_session_student_identities (no table-level widening).
+  execute $sql$
+create policy "Admins/assigned counsellor can read student profiles (m7)"
+  on public.profiles for select to authenticated
+  using (
+    public.is_admin_role(array['super_admin', 'admin', 'analyst'])
+    or (
+      public.is_admin_role(array['counsellor'])
+      and exists (
+        select 1 from public.admin_student_meta m
+        where m.student_user_id = profiles.id and m.assigned_counsellor_id = public.current_counsellor_id()
+      )
+    )
+  )
+  $sql$;
+
+  foreach v_table in array array[
+    'student_profiles', 'student_education', 'student_subject_strengths', 'student_interests',
+    'student_skills', 'student_work_preferences', 'student_career_priorities', 'student_career_goals',
+    'student_study_preferences', 'student_funding_preferences', 'student_experience'
+  ] loop
+    execute format('drop policy if exists "Admins/assigned counsellor can read %1$s (m7)" on public.%1$I', v_table);
+    execute format(
+      $f$create policy "Admins/assigned counsellor can read %1$s (m7)"
+        on public.%1$I for select to authenticated
+        using (
+          public.is_admin_role(array['super_admin', 'admin', 'analyst'])
+          or (public.is_admin_role(array['counsellor']) and public.counsellor_has_case_access(%1$I.user_id))
+        )$f$,
+      v_table
+    );
+  end loop;
+
+  execute $sql$drop policy if exists "Admins/assigned counsellor can read student meta" on public.admin_student_meta$sql$;
+  execute $sql$
+    create policy "Admins/assigned counsellor can read student meta"
+      on public.admin_student_meta for select to authenticated
+      using (
+        public.is_admin_role(array['super_admin', 'admin', 'analyst'])
+        or (public.is_admin_role(array['counsellor']) and public.counsellor_has_case_access(admin_student_meta.student_user_id))
+      )
+  $sql$;
+
+  execute $sql$drop policy if exists "Admins/assigned counsellor can read student notes" on public.admin_student_notes$sql$;
+  execute $sql$
+    create policy "Admins/assigned counsellor can read student notes"
+      on public.admin_student_notes for select to authenticated
+      using (
+        public.is_admin_role(array['super_admin', 'admin'])
+        or (public.is_admin_role(array['counsellor']) and public.counsellor_has_case_access(admin_student_notes.student_user_id))
+      )
+  $sql$;
+
+  execute $sql$drop policy if exists "Admins/assigned counsellor can add student notes" on public.admin_student_notes$sql$;
+  execute $sql$
+    create policy "Admins/assigned counsellor can add student notes"
+      on public.admin_student_notes for insert to authenticated
+      with check (
+        author_user_id = auth.uid()
+        and (
+          public.is_admin_role(array['super_admin', 'admin'])
+          or (public.is_admin_role(array['counsellor']) and public.counsellor_has_case_access(admin_student_notes.student_user_id))
+        )
+      )
+  $sql$;
+  execute format('comment on function public.counsellor_has_case_access(uuid) is %L',
+    obj_description('public.counsellor_has_case_access(uuid)'::regprocedure, 'pg_proc') || ' [cc26-prior:' || v_prior || ']');
+end
+$nw07$;
+
+-- ---------------------------------------------------------------------------
 -- 8. Postconditions (abort the whole transaction if any fails)
 -- ---------------------------------------------------------------------------
 do $post$
@@ -597,8 +761,8 @@ begin
       raise exception 'CC25-0023 postcondition: anon can execute %', v_fn;
     end if;
     if exists (select 1 from pg_proc where oid = v_fn::regprocedure
-               and coalesce(array_to_string(proconfig, ','), '') <> 'search_path=""') then
-      raise exception 'CC25-0023 postcondition: % does not pin an empty search_path', v_fn;
+               and coalesce(array_to_string(proconfig, ','), '') <> 'search_path=pg_catalog, pg_temp') then
+      raise exception 'CC25-0023 postcondition: % does not pin search_path to pg_catalog, pg_temp', v_fn;
     end if;
   end loop;
   if exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'profiles'
@@ -613,6 +777,21 @@ begin
   if (select count(*) from pg_trigger where not tgisinternal
       and tgname in ('discovery_sessions_guard_cc25', 'admin_student_meta_guard_cc25')) <> 2 then
     raise exception 'CC25-0023 postcondition: guard triggers missing';
+  end if;
+  -- CC-26: no policy outside discovery_sessions itself may use the raw table
+  -- (every session-based right must go through the approved-session helpers).
+  if exists (select 1 from pg_policies where schemaname = 'public' and tablename <> 'discovery_sessions'
+             and (coalesce(qual, '') || coalesce(with_check, '')) like '%discovery_sessions%') then
+    raise exception 'CC25-0023 postcondition: a policy still grants access through an unapproved discovery_sessions basis';
+  end if;
+  if to_regprocedure('public.counsellor_has_case_access(uuid)') is not null then
+    if exists (select 1 from pg_proc where oid = 'public.counsellor_has_case_access(uuid)'::regprocedure
+               and (prosrc like '%discovery_sessions%' or prosrc not like '%counsellor_has_active_session_for_student%')) then
+      raise exception 'CC25-0023 postcondition: counsellor_has_case_access still uses an unapproved basis';
+    end if;
+    if has_function_privilege('anon', 'public.counsellor_has_case_access(uuid)', 'execute') then
+      raise exception 'CC25-0023 postcondition: anon can execute counsellor_has_case_access';
+    end if;
   end if;
 end
 $post$;

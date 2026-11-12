@@ -185,8 +185,8 @@ select pg_temp.cc25_logout();
 -- ---------------------------------------------------------------------------
 select pg_temp.cc25_check('G01', '[CC25] identity RPC exists and returns exactly session_id, student_user_id, full_name, email',
   $q$select pg_get_function_result('public.staff_discovery_session_student_identities(uuid[])'::regprocedure) = 'TABLE(session_id uuid, student_user_id uuid, full_name text, email text)'$q$);
-select pg_temp.cc25_check('G02', '[CC25] identity RPC is SECURITY DEFINER with an empty search_path',
-  $q$select prosecdef and array_to_string(proconfig, ',') = 'search_path=""' from pg_proc where oid = 'public.staff_discovery_session_student_identities(uuid[])'::regprocedure$q$);
+select pg_temp.cc25_check('G02', '[CC25] identity RPC is SECURITY DEFINER with search_path pinned to pg_catalog, pg_temp',
+  $q$select prosecdef and array_to_string(proconfig, ',') = 'search_path=pg_catalog, pg_temp' from pg_proc where oid = 'public.staff_discovery_session_student_identities(uuid[])'::regprocedure$q$);
 select pg_temp.cc25_check('G03', '[CC25] anon and PUBLIC cannot execute any CC-25 function',
   $q$select not has_function_privilege('anon', 'public.staff_discovery_session_student_identities(uuid[])', 'execute')
        and not has_function_privilege('anon', 'public.admin_set_discovery_session_assignment_approval(uuid,uuid,boolean)', 'execute')

@@ -9,8 +9,13 @@ begin
   end if;
 end
 $pre$;
-grant execute on function public.record_system_audit_log(text,text,text,text,jsonb,jsonb) to anon, authenticated;
-grant execute on function public.set_signature_document_path(text,text,text) to anon, authenticated;
-grant execute on function public.set_stamp_document_path(text,text,text) to anon, authenticated;
+-- CC-26: re-create the Supabase default ACL in its original order
+-- (anon, authenticated, service_role) so the catalog is restored exactly.
+revoke all on function public.record_system_audit_log(text,text,text,text,jsonb,jsonb) from anon, authenticated, service_role;
+revoke all on function public.set_signature_document_path(text,text,text) from anon, authenticated, service_role;
+revoke all on function public.set_stamp_document_path(text,text,text) from anon, authenticated, service_role;
+grant execute on function public.record_system_audit_log(text,text,text,text,jsonb,jsonb) to anon, authenticated, service_role;
+grant execute on function public.set_signature_document_path(text,text,text) to anon, authenticated, service_role;
+grant execute on function public.set_stamp_document_path(text,text,text) to anon, authenticated, service_role;
 notify pgrst, 'reload schema';
 commit;

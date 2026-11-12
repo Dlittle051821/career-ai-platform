@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ClipboardList } from "lucide-react";
@@ -15,6 +16,7 @@ import {
 } from "@/lib/applications/application-lifecycle";
 import { FADE_UP_CLASSES } from "@/lib/ui/motion";
 import { cn } from "@/lib/utils";
+import ApplicationsLoading from "./list-skeleton";
 
 export const metadata: Metadata = {
   title: "My Applications",
@@ -31,7 +33,18 @@ export const metadata: Metadata = {
  * still primarily a read surface; the actionable detail (advance/withdraw/
  * note) lives on /applications/[id], reached from each card.
  */
-export default async function ApplicationsPage() {
+export default function ApplicationsPage() {
+  // CC-26: the skeleton is this page's own Suspense fallback (it used to be
+  // ./loading.tsx, which also wrapped /applications/[id] and turned an
+  // unknown application into an HTTP 200).
+  return (
+    <Suspense fallback={<ApplicationsLoading />}>
+      <ApplicationsPageContent />
+    </Suspense>
+  );
+}
+
+async function ApplicationsPageContent() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/applications");
 

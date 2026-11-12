@@ -34,8 +34,18 @@ function logDbError(context: string, error: unknown) {
  * missing function, constraint text) is replaced by a neutral message and
  * only logged server-side.
  */
-function studentSafePurchaseError(error: { code?: string; message?: string }): string {
+/**
+ * CC-26: the database-side checkout gate (supabase/migrations-proposed/cc26/
+ * 0026_cc26_database_checkout_gate.sql) refuses a self-checkout invoice with
+ * SQLSTATE 42501 and this message while student checkout is closed in the
+ * database. That is the "paused" state, not a transient error, so the student
+ * sees the paused message instead of "please try again".
+ */
+export const DATABASE_CHECKOUT_GATE_MESSAGE_PREFIX = "Online checkout is not open yet.";
+
+export function studentSafePurchaseError(error: { code?: string; message?: string }): string {
   const generic = "We couldn't start checkout for this plan. Please try again.";
+  if (error.code === "42501" && error.message?.startsWith(DATABASE_CHECKOUT_GATE_MESSAGE_PREFIX)) return PAID_CHECKOUT_PAUSED_MESSAGE;
   if (error.code === "P0001" && error.message && error.message.length <= 300) return error.message;
   return generic;
 }

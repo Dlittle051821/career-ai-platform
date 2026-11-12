@@ -17,7 +17,9 @@ import { describe, expect, it } from "vitest";
  */
 
 const MIGRATION_PATH = path.resolve(process.cwd(), "supabase/migrations-proposed/NW07_counsellor_studio_foundation.sql");
-const sql = readFileSync(MIGRATION_PATH, "utf8");
+// CC-26: normalise line endings — the worktree is checked out with CRLF on Windows and the
+// assertions below match multi-line SQL text written with "\n".
+const sql = readFileSync(MIGRATION_PATH, "utf8").replace(/\r\n/g, "\n");
 
 function sliceFunctionBody(functionSignature: string): string {
   const start = sql.indexOf(functionSignature);
@@ -27,20 +29,59 @@ function sliceFunctionBody(functionSignature: string): string {
   return sql.slice(start, end);
 }
 
-describe("PART 1 — counsellor case-access widening", () => {
-  it("widens profiles SELECT to include the discovery_sessions basis alongside admin_student_meta", () => {
-    const start = sql.indexOf('create policy "Admins/assigned counsellor can read student profiles (m7)"');
-    const end = sql.indexOf(");", start);
-    const body = sql.slice(start, end);
-    expect(body).toMatch(/admin_student_meta m/);
-    expect(body).toMatch(/discovery_sessions ds/);
-    expect(body).toMatch(/ds\.assigned_counsellor_id = public\.current_counsellor_id\(\)/);
+/**
+ * CC-26 — PART 1 was rewritten. The original PART 1 granted case access to a
+ * counsellor through ANY Discovery Session assignment, including an
+ * unapproved self-claim (reproduced as a P0 on a QA-like database in CC-26).
+ * The tests below replace the five "widens … discovery_sessions" assertions,
+ * which asserted that insecure rule, with assertions of the approval-gated
+ * rule and of the caseload-only fallback used when cc25/0023 is absent.
+ * The executable proof is scripts/security/cc26-security-closure.db.test.mjs.
+ */
+const part1Start = sql.indexOf("do $nw07$\n");
+const part1End = sql.indexOf("end\n$nw07$;", part1Start);
+const part1 = sql.slice(part1Start, part1End);
+const executable = sql
+  .split("\n")
+  .filter((line) => !line.trimStart().startsWith("--"))
+  .join("\n");
+
+function caseAccessDefinitions(): string[] {
+  return part1.match(/create or replace function public\.counsellor_has_case_access\(p_student_user_id uuid\)[\s\S]*?\$fn\$\s*\n\s*\$sql\$/g) ?? [];
+}
+function policy(name: string): string {
+  const start = part1.indexOf(`create policy "${name}"`);
+  expect(start).toBeGreaterThan(-1);
+  return part1.slice(start, part1.indexOf("$sql$", start));
+}
+
+describe("PART 1 — counsellor case access (CC-26: approval-gated, never an unapproved session)", () => {
+  it("no executable statement in the file grants access through a raw discovery_sessions assignment", () => {
+    expect(part1Start).toBeGreaterThan(-1);
+    expect(part1End).toBeGreaterThan(part1Start);
+    expect(executable).not.toMatch(/discovery_sessions ds/);
+    expect(executable).not.toMatch(/ds\.assigned_counsellor_id/);
   });
 
-  it("widens the 11-table student_* loop to include the discovery_sessions basis", () => {
-    const start = sql.indexOf("foreach t in array array[");
-    const end = sql.indexOf("end $$;", start);
-    const body = sql.slice(start, end);
+  it("without cc25/0023 PART 1 takes the caseload-only branch and changes no policy", () => {
+    const fallbackStart = part1.indexOf("if to_regprocedure('public.counsellor_has_active_session_for_student(uuid)') is null then");
+    const fallbackEnd = part1.indexOf("return;", fallbackStart);
+    expect(fallbackStart).toBeGreaterThan(-1);
+    const fallback = part1.slice(fallbackStart, fallbackEnd);
+    expect(fallback).toMatch(/create or replace function public\.counsellor_has_case_access/);
+    expect(fallback).not.toMatch(/create policy|drop policy|counsellor_has_active_session_for_student\(p_/);
+  });
+
+  it("profiles SELECT stays the 0004 caseload-only rule (identity only through the CC-25 RPC)", () => {
+    const body = policy("Admins/assigned counsellor can read student profiles (m7)");
+    expect(body).toMatch(/m\.student_user_id = profiles\.id and m\.assigned_counsellor_id = public\.current_counsellor_id\(\)/);
+    expect(body).not.toMatch(/discovery_sessions|counsellor_has_case_access|counsellor_has_active_session_for_student/);
+  });
+
+  it("the 11-table student_* loop requires counsellor_has_case_access for every table", () => {
+    const start = part1.indexOf("foreach v_table in array array[");
+    const end = part1.indexOf("end loop;", start);
+    const body = part1.slice(start, end);
     for (const table of [
       "student_profiles",
       "student_education",
@@ -56,38 +97,35 @@ describe("PART 1 — counsellor case-access widening", () => {
     ]) {
       expect(body).toMatch(new RegExp(`'${table}'`));
     }
-    expect(body).toMatch(/discovery_sessions ds/);
-    expect(body).toMatch(/ds\.student_user_id = %1\$s\.user_id/);
+    expect(body).toMatch(/public\.counsellor_has_case_access\(%1\$I\.user_id\)/);
+    expect(body).not.toMatch(/discovery_sessions/);
   });
 
-  it("widens admin_student_meta SELECT but leaves its INSERT/UPDATE policies untouched by this file", () => {
-    const start = sql.indexOf('create policy "Admins/assigned counsellor can read student meta"');
-    const end = sql.indexOf(";", start);
-    const body = sql.slice(start, end);
-    expect(body).toMatch(/discovery_sessions ds/);
-    // This file must not contain a new admin_student_meta UPDATE/INSERT
-    // policy — the deliberate asymmetry documented in PART 1's header.
+  it("admin_student_meta SELECT requires case access; its INSERT/UPDATE policies are untouched by this file", () => {
+    expect(policy("Admins/assigned counsellor can read student meta")).toMatch(/public\.counsellor_has_case_access\(admin_student_meta\.student_user_id\)/);
     expect(sql).not.toMatch(/create policy[^;]*on public\.admin_student_meta for (update|insert)/);
   });
 
-  it("widens admin_student_notes SELECT and INSERT with the same dual basis", () => {
-    const selectStart = sql.indexOf('create policy "Admins/assigned counsellor can read student notes"');
-    const selectEnd = sql.indexOf(");", selectStart);
-    expect(sql.slice(selectStart, selectEnd)).toMatch(/discovery_sessions ds/);
-
-    const insertStart = sql.indexOf('create policy "Admins/assigned counsellor can add student notes"');
-    const insertEnd = sql.indexOf(");", insertStart);
-    const insertBody = sql.slice(insertStart, insertEnd);
-    expect(insertBody).toMatch(/discovery_sessions ds/);
+  it("admin_student_notes SELECT and INSERT require case access; INSERT still stamps the author", () => {
+    expect(policy("Admins/assigned counsellor can read student notes")).toMatch(/public\.counsellor_has_case_access\(admin_student_notes\.student_user_id\)/);
+    const insertBody = policy("Admins/assigned counsellor can add student notes");
+    expect(insertBody).toMatch(/public\.counsellor_has_case_access\(admin_student_notes\.student_user_id\)/);
     expect(insertBody).toMatch(/author_user_id = auth\.uid\(\)/);
   });
 
-  it("counsellor_has_case_access is STABLE/SECURITY DEFINER and checks both bases", () => {
-    const body = sliceFunctionBody("create or replace function public.counsellor_has_case_access(p_student_user_id uuid)");
-    expect(body).toMatch(/security definer/);
-    expect(body).toMatch(/stable/);
-    expect(body).toMatch(/admin_student_meta m/);
-    expect(body).toMatch(/discovery_sessions ds/);
+  it("counsellor_has_case_access: STABLE SECURITY DEFINER, pinned search_path, caseload OR admin-approved active session", () => {
+    const defs = caseAccessDefinitions();
+    expect(defs.length).toBe(2); // caseload-only fallback, then the approval-gated rule
+    for (const body of defs) {
+      expect(body).toMatch(/security definer/);
+      expect(body).toMatch(/stable/);
+      expect(body).toMatch(/set search_path = pg_catalog, public, pg_temp/);
+      expect(body).toMatch(/auth\.uid\(\) is not null/);
+      expect(body).toMatch(/admin_student_meta m/);
+      expect(body).not.toMatch(/discovery_sessions/);
+    }
+    expect(defs[0]).not.toMatch(/counsellor_has_active_session_for_student/);
+    expect(defs[1]).toMatch(/public\.counsellor_has_active_session_for_student\(p_student_user_id\)/);
   });
 });
 
@@ -276,7 +314,13 @@ describe('anon revoke convention — every new function revokes from public, gra
   ];
 
   it.each(functions)("%s has a matching revoke-from-public and grant-to-authenticated", (fn) => {
-    expect(sql).toMatch(new RegExp(`revoke execute on function public\\.${fn.replace(/[().]/g, "\\$&")} from public`));
-    expect(sql).toMatch(new RegExp(`grant execute on function public\\.${fn.replace(/[().]/g, "\\$&")} to authenticated`));
+    const escaped = fn.replace(/[().]/g, "\\$&");
+    if (fn === "counsellor_has_case_access(uuid)") {
+      // CC-26: stricter — PUBLIC, anon and service_role all revoked (Supabase grants anon directly).
+      expect(sql).toMatch(new RegExp(`revoke all on function public\\.${escaped} from public, anon, service_role`));
+    } else {
+      expect(sql).toMatch(new RegExp(`revoke execute on function public\\.${escaped} from public`));
+    }
+    expect(sql).toMatch(new RegExp(`grant execute on function public\\.${escaped} to authenticated`));
   });
 });

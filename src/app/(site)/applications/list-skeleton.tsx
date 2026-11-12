@@ -1,7 +1,14 @@
 import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
 
-/** UX08 — route-level loading state for /applications. See src/app/(site)/pricing/loading.tsx for the skeleton convention this mirrors. */
+/**
+ * UX08 — loading state for /applications (CC-26: the page's own Suspense
+ * fallback; formerly this segment's loading.tsx). A segment loading.tsx
+ * also wraps the /applications/[id] child segment in a Suspense boundary,
+ * so an unknown application was answered with HTTP 200 before notFound()
+ * ran. Markup unchanged; see src/app/(site)/pricing/loading.tsx for the
+ * skeleton convention this mirrors.
+ */
 export default function ApplicationsLoading() {
   return (
     <Section tone="muted" className="pt-10 sm:pt-14">

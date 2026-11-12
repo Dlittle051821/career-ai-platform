@@ -18,6 +18,18 @@
 --
 -- Two independent parts, documented separately in NW07_DATABASE_CHANGE_PLAN.md:
 --
+--   CC-26 SECURITY REVISION (2026-11-11): the original PART 1 granted case
+--   access through ANY Discovery Session assignment, so an unapproved
+--   counsellor self-claim exposed the student's profile and case notes. PART 1
+--   now runs the CC-26 shared block (identical to cc25/0023 revision 2
+--   section 7b): profiles stays caseload-only (0004); the other policies and
+--   counsellor_has_case_access require a caseload assignment or an
+--   admin-APPROVED, ACTIVE session held by an ACTIVE counsellor. Without
+--   cc25/0023 (its approval helper is missing) NW07 grants case access through
+--   the caseload assignment ONLY and leaves the 0004 policies untouched;
+--   applying 0023 revision 2 afterwards adds the approved-session basis. Every
+--   apply order converges to the same catalog (tested).
+--
 --   PART 1 — fixes a real, confirmed gap found in NW07.1's audit: the
 --   "dual-basis" counsellor-case-access rule Milestone 11-B2 established
 --   (0014_discovery_session_counsellor_scope.sql) was only ever applied to
@@ -41,7 +53,8 @@
 -- ============================================================================
 -- PART 1 — Counsellor case-access widening (profiles, the 11-table Student
 -- Digital Profile family, admin_student_meta SELECT, admin_student_notes
--- SELECT+INSERT): add the discovery_sessions.assigned_counsellor_id basis
+-- SELECT+INSERT). CC-26: the session basis below is APPROVAL-GATED (see the
+-- header); the original text that follows describes the superseded rule: add the discovery_sessions.assigned_counsellor_id basis
 -- alongside the existing admin_student_meta.assigned_counsellor_id basis,
 -- exactly mirroring 0014's own two already-shipped policies. Deliberately
 -- NOT touching any INSERT/UPDATE policy on the 11 student_* tables (student-
@@ -53,156 +66,136 @@
 -- permanent admin_student_meta assignment merely by having run one session).
 -- ============================================================================
 
-drop policy if exists "Admins/assigned counsellor can read student profiles (m7)" on public.profiles;
+do $nw07$
+declare
+  v_table text;
+begin
+  if to_regprocedure('public.counsellor_has_active_session_for_student(uuid)') is null then
+    -- CC-26 caseload-only case access (NW07 without cc25/0023). Byte-identical in
+    -- the patched NW07 PART 1 and the cc25/0023 rollback.
+    execute $sql$
+      create or replace function public.counsellor_has_case_access(p_student_user_id uuid)
+      returns boolean
+      language sql
+      stable
+      security definer
+      set search_path = pg_catalog, public, pg_temp
+      as $fn$
+        select auth.uid() is not null and exists (
+          select 1 from public.admin_student_meta m
+          where m.student_user_id = p_student_user_id
+            and m.assigned_counsellor_id = public.current_counsellor_id()
+        );
+      $fn$
+    $sql$;
+    execute $sql$
+      comment on function public.counsellor_has_case_access(uuid) is
+        'CC-26 — NW07 applied without cc25/0023: case access is the caseload assignment (admin_student_meta) only; a Discovery Session grants nothing. Applying cc25/0023 revision 2 adds the admin-approved active-session basis.'
+    $sql$;
+    execute 'revoke all on function public.counsellor_has_case_access(uuid) from public, anon, service_role';
+    execute 'grant execute on function public.counsellor_has_case_access(uuid) to authenticated';
+    return;
+  end if;
+  -- CC-26 shared block (byte-identical in cc25/0023 revision 2 section 7 and in
+  -- the patched NW07 PART 1). Counsellor case access = caseload assignment OR an
+  -- admin-APPROVED assignment of an ACTIVE Discovery Session held by an ACTIVE
+  -- counsellor. An unapproved self-claim, a finished session or an inactive
+  -- counsellor grants nothing.
+  execute $sql$
+    create or replace function public.counsellor_has_case_access(p_student_user_id uuid)
+    returns boolean
+    language sql
+    stable
+    security definer
+    set search_path = pg_catalog, public, pg_temp
+    as $fn$
+      select auth.uid() is not null and (
+        exists (
+          select 1 from public.admin_student_meta m
+          where m.student_user_id = p_student_user_id
+            and m.assigned_counsellor_id = public.current_counsellor_id()
+        )
+        or public.counsellor_has_active_session_for_student(p_student_user_id)
+      );
+    $fn$
+  $sql$;
+  execute $sql$
+    comment on function public.counsellor_has_case_access(uuid) is
+      'CC-26 — true if the calling counsellor has case access to this student: a caseload assignment (admin_student_meta) OR an admin-approved assignment of an active (requested/scheduled) Discovery Session (counsellor_has_active_session_for_student). An unapproved self-claim grants nothing. Callers still combine this with is_admin_role(''counsellor'').'
+  $sql$;
+  execute 'revoke all on function public.counsellor_has_case_access(uuid) from public, anon, service_role';
+  execute 'grant execute on function public.counsellor_has_case_access(uuid) to authenticated';
+
+  execute $sql$drop policy if exists "Admins/assigned counsellor can read student profiles (m7)" on public.profiles$sql$;
+  -- profiles: back to the exact 0004 caseload-only rule. A Discovery Session
+  -- counsellor gets the student's name and e-mail only through
+  -- staff_discovery_session_student_identities (no table-level widening).
+  execute $sql$
 create policy "Admins/assigned counsellor can read student profiles (m7)"
   on public.profiles for select to authenticated
   using (
     public.is_admin_role(array['super_admin', 'admin', 'analyst'])
     or (
       public.is_admin_role(array['counsellor'])
-      and (
-        exists (
-          select 1 from public.admin_student_meta m
-          where m.student_user_id = profiles.id and m.assigned_counsellor_id = public.current_counsellor_id()
-        )
-        or exists (
-          select 1 from public.discovery_sessions ds
-          where ds.student_user_id = profiles.id and ds.assigned_counsellor_id = public.current_counsellor_id()
-        )
+      and exists (
+        select 1 from public.admin_student_meta m
+        where m.student_user_id = profiles.id and m.assigned_counsellor_id = public.current_counsellor_id()
       )
     )
-  );
+  )
+  $sql$;
 
-do $$
-declare
-  t text;
-begin
-  foreach t in array array[
+  foreach v_table in array array[
     'student_profiles', 'student_education', 'student_subject_strengths', 'student_interests',
     'student_skills', 'student_work_preferences', 'student_career_priorities', 'student_career_goals',
     'student_study_preferences', 'student_funding_preferences', 'student_experience'
-  ]
-  loop
-    execute format(
-      'drop policy if exists "Admins/assigned counsellor can read %1$s (m7)" on public.%1$s',
-      t
-    );
+  ] loop
+    execute format('drop policy if exists "Admins/assigned counsellor can read %1$s (m7)" on public.%1$I', v_table);
     execute format(
       $f$create policy "Admins/assigned counsellor can read %1$s (m7)"
-        on public.%1$s for select to authenticated
+        on public.%1$I for select to authenticated
         using (
           public.is_admin_role(array['super_admin', 'admin', 'analyst'])
-          or (
-            public.is_admin_role(array['counsellor'])
-            and (
-              exists (
-                select 1 from public.admin_student_meta m
-                where m.student_user_id = %1$s.user_id and m.assigned_counsellor_id = public.current_counsellor_id()
-              )
-              or exists (
-                select 1 from public.discovery_sessions ds
-                where ds.student_user_id = %1$s.user_id and ds.assigned_counsellor_id = public.current_counsellor_id()
-              )
-            )
-          )
+          or (public.is_admin_role(array['counsellor']) and public.counsellor_has_case_access(%1$I.user_id))
         )$f$,
-      t
+      v_table
     );
   end loop;
-end $$;
 
-drop policy if exists "Admins/assigned counsellor can read student meta" on public.admin_student_meta;
-create policy "Admins/assigned counsellor can read student meta"
-  on public.admin_student_meta for select to authenticated
-  using (
-    public.is_admin_role(array['super_admin', 'admin', 'analyst'])
-    or (
-      public.is_admin_role(array['counsellor'])
-      and (
-        assigned_counsellor_id = public.current_counsellor_id()
-        or exists (
-          select 1 from public.discovery_sessions ds
-          where ds.student_user_id = admin_student_meta.student_user_id and ds.assigned_counsellor_id = public.current_counsellor_id()
-        )
+  execute $sql$drop policy if exists "Admins/assigned counsellor can read student meta" on public.admin_student_meta$sql$;
+  execute $sql$
+    create policy "Admins/assigned counsellor can read student meta"
+      on public.admin_student_meta for select to authenticated
+      using (
+        public.is_admin_role(array['super_admin', 'admin', 'analyst'])
+        or (public.is_admin_role(array['counsellor']) and public.counsellor_has_case_access(admin_student_meta.student_user_id))
       )
-    )
-  );
--- INSERT/UPDATE policies on admin_student_meta are UNCHANGED (still
--- super_admin/admin-only for insert; update still requires the STRONGER
--- admin_student_meta-assignment basis, not the discovery-session one) — see
--- this file's PART 1 header comment for why that asymmetry is deliberate.
+  $sql$;
 
-drop policy if exists "Admins/assigned counsellor can read student notes" on public.admin_student_notes;
-create policy "Admins/assigned counsellor can read student notes"
-  on public.admin_student_notes for select to authenticated
-  using (
-    public.is_admin_role(array['super_admin', 'admin'])
-    or (
-      public.is_admin_role(array['counsellor'])
-      and (
-        exists (
-          select 1 from public.admin_student_meta m
-          where m.student_user_id = admin_student_notes.student_user_id and m.assigned_counsellor_id = public.current_counsellor_id()
-        )
-        or exists (
-          select 1 from public.discovery_sessions ds
-          where ds.student_user_id = admin_student_notes.student_user_id and ds.assigned_counsellor_id = public.current_counsellor_id()
-        )
+  execute $sql$drop policy if exists "Admins/assigned counsellor can read student notes" on public.admin_student_notes$sql$;
+  execute $sql$
+    create policy "Admins/assigned counsellor can read student notes"
+      on public.admin_student_notes for select to authenticated
+      using (
+        public.is_admin_role(array['super_admin', 'admin'])
+        or (public.is_admin_role(array['counsellor']) and public.counsellor_has_case_access(admin_student_notes.student_user_id))
       )
-    )
-  );
+  $sql$;
 
-drop policy if exists "Admins/assigned counsellor can add student notes" on public.admin_student_notes;
-create policy "Admins/assigned counsellor can add student notes"
-  on public.admin_student_notes for insert to authenticated
-  with check (
-    author_user_id = auth.uid()
-    and (
-      public.is_admin_role(array['super_admin', 'admin'])
-      or (
-        public.is_admin_role(array['counsellor'])
+  execute $sql$drop policy if exists "Admins/assigned counsellor can add student notes" on public.admin_student_notes$sql$;
+  execute $sql$
+    create policy "Admins/assigned counsellor can add student notes"
+      on public.admin_student_notes for insert to authenticated
+      with check (
+        author_user_id = auth.uid()
         and (
-          exists (
-            select 1 from public.admin_student_meta m
-            where m.student_user_id = admin_student_notes.student_user_id and m.assigned_counsellor_id = public.current_counsellor_id()
-          )
-          or exists (
-            select 1 from public.discovery_sessions ds
-            where ds.student_user_id = admin_student_notes.student_user_id and ds.assigned_counsellor_id = public.current_counsellor_id()
-          )
+          public.is_admin_role(array['super_admin', 'admin'])
+          or (public.is_admin_role(array['counsellor']) and public.counsellor_has_case_access(admin_student_notes.student_user_id))
         )
       )
-    )
-  );
-
--- Helper for PART 2 and for the application layer: true if the CALLING
--- counsellor has case access to this student under the dual-basis rule
--- above. SECURITY DEFINER + STABLE, same shape as current_counsellor_id()/
--- is_admin_role() — a single, reusable building block rather than repeating
--- this EXISTS/OR five times across every new RPC below.
-create or replace function public.counsellor_has_case_access(p_student_user_id uuid)
-returns boolean
-language sql
-security definer
-stable
-set search_path = public
-as $$
-  select
-    exists (
-      select 1 from public.admin_student_meta m
-      where m.student_user_id = p_student_user_id and m.assigned_counsellor_id = public.current_counsellor_id()
-    )
-    or exists (
-      select 1 from public.discovery_sessions ds
-      where ds.student_user_id = p_student_user_id and ds.assigned_counsellor_id = public.current_counsellor_id()
-    );
-$$;
-
-comment on function public.counsellor_has_case_access(uuid) is
-  'NW07 — true if the calling counsellor (current_counsellor_id()) has case access to this student under the dual-basis rule: a direct admin_student_meta assignment OR having run/been assigned one of their discovery_sessions. Does NOT itself check is_admin_role(''counsellor'') — callers combine this with that check, same as every other RLS/RPC predicate in this codebase. Used by PART 2''s RPCs below and available to any future policy that needs the same rule rather than re-deriving it.';
-
-revoke execute on function public.counsellor_has_case_access(uuid) from public;
-grant execute on function public.counsellor_has_case_access(uuid) to authenticated;
+  $sql$;
+end
+$nw07$;
 
 
 -- ============================================================================
