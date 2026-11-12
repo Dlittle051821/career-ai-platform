@@ -141,20 +141,29 @@ from pg_proc p join pg_namespace n on n.oid = p.pronamespace
 where n.nspname = 'public' and p.prosrc like '%counsellor_has_case_access%'
 order by 2;
 
--- 8. 0025 F4 drift: the five NW07 draft RPCs must be either the NW07 original
---    or the CC-26 version (or already author-free, e.g. after NW-F01 03).
+-- 8. 0025 F4 drift: each of the five NW07 draft RPCs must have one of three
+--    known fingerprints (NW07 original, CC-26 version, NW-F01 03 version).
+--    Anything else makes 0025 refuse, whatever the body contains.
 select 'f4_rpc_state' as section, v.fn,
-       case md5(replace(p.prosrc, chr(13), '')) when v.nw07 then 'NW07 original' when v.cc26 then 'CC-26 version'
-         else case when p.prosrc like '%created_by = auth.uid() or public.counsellor_has_case_access%' then 'DRIFT (0025 will refuse)'
-                   when p.oid is null then 'absent' else 'author-free (left unchanged)' end end as state
+       case md5(replace(p.prosrc, chr(13), ''))
+         when v.nw07 then 'NW07 original (0025 replaces it)'
+         when v.cc26 then 'CC-26 version (left unchanged)'
+         when v.nwf01 then 'NW-F01 03 version (left unchanged)'
+         else case when p.oid is null then 'ABSENT (0025 will refuse)' else 'UNKNOWN fingerprint (0025 will refuse)' end end as state,
+       md5(replace(p.prosrc, chr(13), '')) as body_md5_lf
 from (values
-  ('staff_update_recommendation_draft_content(uuid,jsonb)', '5eef6dced30ca13c6b1354870f2e441b', '8d76caf129e0b33c6b70956ccf3be211'),
-  ('staff_submit_recommendation_draft_for_review(uuid)', '3f365eacdd071abecbdf7a680e5d1775', '1a69bbfe9644efd7d8996275cc45fbf9'),
-  ('staff_release_recommendation_draft(uuid)', '5ddb8bc143a32a1109043b7e7cc2ef9c', 'dc4d3efb964868219c208369adb05ce6'),
-  ('staff_withdraw_recommendation_draft(uuid)', 'adb19f89b3d97167eaa8a7fa989db725', '3d65d505806b342f0e2659f618145dbd'),
-  ('staff_archive_recommendation_draft(uuid)', 'ebcc9aab425723c73db5784bc33b9ea2', '9d0f5dcbc0ecd98cedbc669552feec2f')
-) v(fn, nw07, cc26)
+  ('staff_update_recommendation_draft_content(uuid,jsonb)', '5eef6dced30ca13c6b1354870f2e441b', '8d76caf129e0b33c6b70956ccf3be211', '98bccd1b7a5b72c049a69ce86afb12db'),
+  ('staff_submit_recommendation_draft_for_review(uuid)', '3f365eacdd071abecbdf7a680e5d1775', '1a69bbfe9644efd7d8996275cc45fbf9', '010668295aab4a7ee5d466e8a6b4e464'),
+  ('staff_release_recommendation_draft(uuid)', '5ddb8bc143a32a1109043b7e7cc2ef9c', 'dc4d3efb964868219c208369adb05ce6', '37eb052c70a08fb28a22231434c3597d'),
+  ('staff_withdraw_recommendation_draft(uuid)', 'adb19f89b3d97167eaa8a7fa989db725', '3d65d505806b342f0e2659f618145dbd', 'cec7f6744961e4124b9081b325147b94'),
+  ('staff_archive_recommendation_draft(uuid)', 'ebcc9aab425723c73db5784bc33b9ea2', '9d0f5dcbc0ecd98cedbc669552feec2f', '7435c90a98c41e03cff15f8b44e522d9')
+) v(fn, nw07, cc26, nwf01)
 left join pg_proc p on p.oid = to_regprocedure('public.' || v.fn);
+
+-- 8b. State the 0025 rollback depends on (absent before 0025; present after).
+select 'm0025_state' as section, to_regnamespace('nextwise_cc26_state') is not null as state_schema_present,
+       case when to_regclass('nextwise_cc26_state.m0025_revoked_table_privileges') is null then null
+            else (xpath('/row/n/text()', query_to_xml('select count(*) n from nextwise_cc26_state.m0025_revoked_table_privileges', false, true, '')))[1]::text::bigint end as recorded_table_privileges;
 
 -- 9. Exposure SCOPE of the NW07 defect (COUNTS ONLY). "Session-only" = a
 --    counsellor assigned to a student's Discovery Session who is NOT that

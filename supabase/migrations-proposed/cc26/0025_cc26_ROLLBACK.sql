@@ -3,12 +3,13 @@
 --
 -- Restores the exact pre-0025 state: current_counsellor_id() from 0004, the
 -- two discovery_sessions policies from 0013 and, on NW07 databases, the NW07
--- recommendation draft rules (all verbatim), and gives anon and
--- authenticated back TRUNCATE, TRIGGER and REFERENCES on every public table
--- and in the owner's default privileges.
+-- recommendation draft rules (all verbatim). It gives anon and authenticated
+-- back ONLY the TRUNCATE/TRIGGER/REFERENCES privileges 0025 recorded and
+-- removed (per table, with grant option; and the matching owner default
+-- privileges), never more, then drops the record (schema nextwise_cc26_state).
 --
 -- CONSEQUENCES: deactivated counsellors regain their caseload access and the
--- unassigned-session queue; client roles regain TRUNCATE/TRIGGER/REFERENCES;
+-- unassigned-session queue; client roles regain the recorded privileges;
 -- on NW07 databases, former authors regain access to their recommendation
 -- drafts (F4). Run it only to recover from a failed release.
 --
@@ -313,22 +314,62 @@ $f4_archive$;
 end
 $f4$;
 
--- Supabase default table privileges ----------------------------------------------
-do $grants$
+-- F3: client-role table privileges, EXACTLY as recorded by 0025 ------------------
+-- Only the privileges 0025 recorded and removed are granted back, per table and
+-- grantee, with the original grant option; nothing is granted on a table where
+-- the role did not hold it before 0025, nor on tables created afterwards.
+-- Without the record (it should always exist after 0025), nothing is granted.
+-- If NW-F01 was applied AFTER 0025, its own revocations of the same privileges
+-- are kept: the stricter state is left in place rather than undone.
+do $f3$
 declare
-  v_table regclass;
+  r record;
+  v_nwf01_later boolean;
 begin
-  for v_table in
-    select c.oid::regclass
-    from pg_class c join pg_namespace n on n.oid = c.relnamespace
-    where n.nspname = 'public' and c.relkind in ('r', 'p')
-  loop
-    execute format('grant truncate, trigger, references on table %s to anon, authenticated', v_table);
-  end loop;
+  if to_regclass('nextwise_cc26_state.m0025_revoked_table_privileges') is null then
+    raise notice 'CC26-0025 rollback: no record of revoked privileges; none are granted back.';
+    return;
+  end if;
+  if exists (select 1 from nextwise_cc26_state.m0025_revoked_table_privileges where grantor <> current_user::text) then
+    raise exception 'CC26-0025 rollback refused: some recorded privileges were granted by another role; run as that role.';
+  end if;
+  select not c.nw_f01_present and to_regnamespace('nextwise_security') is not null into v_nwf01_later
+  from nextwise_cc26_state.m0025_apply_context c where c.id = 1;
+  if coalesce(v_nwf01_later, false) then
+    raise notice 'CC26-0025 rollback: NW-F01 was applied after 0025; client-role TRUNCATE/TRIGGER/REFERENCES stay revoked.';
+  else
+    for r in
+      select s.* from nextwise_cc26_state.m0025_revoked_table_privileges s
+      where to_regclass(format('%I.%I', s.table_schema, s.table_name)) is not null
+      order by s.table_schema, s.table_name, s.grantee, s.privilege_type
+    loop
+      execute format('grant %s on table %I.%I to %I%s', r.privilege_type, r.table_schema, r.table_name, r.grantee,
+                     case when r.is_grantable then ' with grant option' else '' end);
+    end loop;
+    for r in
+      select s.* from nextwise_cc26_state.m0025_revoked_default_privileges s
+      where s.owner_role = current_user::text
+      order by s.grantee, s.privilege_type
+    loop
+      execute format('alter default privileges in schema %I grant %s on tables to %I%s', r.schema_name, r.privilege_type, r.grantee,
+                     case when r.is_grantable then ' with grant option' else '' end);
+    end loop;
+  end if;
 end
-$grants$;
+$f3$;
 
-alter default privileges in schema public grant truncate, trigger, references on tables to anon, authenticated;
+do $state$
+begin
+  if to_regnamespace('nextwise_cc26_state') is not null then
+    drop table if exists nextwise_cc26_state.m0025_revoked_table_privileges;
+    drop table if exists nextwise_cc26_state.m0025_revoked_default_privileges;
+    drop table if exists nextwise_cc26_state.m0025_apply_context;
+    if not exists (select 1 from pg_class where relnamespace = 'nextwise_cc26_state'::regnamespace) then
+      drop schema nextwise_cc26_state;
+    end if;
+  end if;
+end
+$state$;
 
 notify pgrst, 'reload schema';
 

@@ -19,6 +19,7 @@ const P = "supabase/migrations-proposed";
 const M0025 = read(`${P}/cc26/0025_cc26_inactive_counsellor_and_grant_hardening.sql`);
 const R0025 = read(`${P}/cc26/0025_cc26_ROLLBACK.sql`);
 const NW07 = read(`${P}/NW07_counsellor_studio_foundation.sql`);
+const NWF01 = read(`${P}/nw-f01-s3/NW09_2_ATOMIC_01-03.sql`);
 const AUTHOR_CLAUSE = "v_draft.created_by = auth.uid() or public.counsellor_has_case_access(v_draft.student_user_id)";
 const WRITE_RPCS = [
   "staff_update_recommendation_draft_content",
@@ -37,6 +38,13 @@ function between(text: string, start: string, end: string) {
 }
 const md5 = (s: string) => createHash("md5").update(s).digest("hex");
 const bodyOf = (fn: string) => fn.slice(fn.indexOf("$$\n") + 2, fn.lastIndexOf("$$"));
+// NW-F01 03 (CC-18 protected) body of a function, exactly as that file creates it.
+function nwf01Body(name: string) {
+  const i = NWF01.indexOf(`create or replace function public.${name}(`);
+  expect(i, name).toBeGreaterThan(-1);
+  const a = NWF01.indexOf("$$", i);
+  return NWF01.slice(a + 2, NWF01.indexOf("$$", a + 2));
+}
 
 describe("0025 F4: recommendation drafts need current case access", () => {
   const f4 = between(M0025, "-- F4. Recommendation drafts", "$f4$;\n");
@@ -61,15 +69,22 @@ describe("0025 F4: recommendation drafts need current case access", () => {
     // Guarded by the NW07 body hash and recorded with the CC-26 body hash.
     expect(f4).toContain(`'public.${name}(`);
     expect(f4).toContain(`= '${md5(bodyOf(original))}' then`);
-    expect(f4).toContain(`'${name}', jsonb_build_array('${md5(bodyOf(original))}', '${md5(bodyOf(replaced))}')`);
+    // The only accepted fingerprints: NW07 original, CC-26 version, NW-F01 03 version.
+    expect(f4).toContain(
+      `'${name}', jsonb_build_array('${md5(bodyOf(original))}', '${md5(bodyOf(replaced))}', '${md5(nwf01Body(name))}')`,
+    );
     // The rollback restores the NW07 body only over the exact CC-26 body.
     expect(R0025).toContain(`= '${md5(bodyOf(replaced))}' then`);
     expect(R0025).toContain(original);
   });
 
-  it("refuses drift, skips non-NW07 databases and leaves author-free bodies alone", () => {
+  it("refuses ANY unknown fingerprint, whatever the body contains, and skips non-NW07 databases", () => {
     expect(f4).toContain("CC26-0025 F4 skipped: NW07 is not applied.");
-    expect(f4).toContain("has an unexpected body that still grants access by authorship (drift)");
+    const loop = between(f4, "for v_fn in select jsonb_object_keys(v_known) loop", "end loop;");
+    expect(loop).toContain("if not (v_known -> v_fn) ? v_md5 then");
+    expect(loop).toContain("has an unknown body");
+    // Rejection must not depend on what the unknown body contains.
+    expect(loop).not.toMatch(/prosrc\s+(not\s+)?like/i);
     expect(f4).toContain("recommendation draft policies are not in the expected state (drift)");
     expect(f4).toContain("md5(replace(prosrc, chr(13), ''))");
   });
@@ -78,6 +93,7 @@ describe("0025 F4: recommendation drafts need current case access", () => {
     const post = between(M0025, "-- Postconditions", "$post$;");
     expect(post).toContain("a recommendation draft policy still grants access by authorship");
     expect(post).toContain("a write RPC still grants access by authorship");
+    expect(post).toContain("a recommendation draft RPC is not the CC-26 or NW-F01 version");
   });
 
   it("does not touch function ACLs, comments or data (outside the replaced function bodies)", () => {
@@ -88,6 +104,27 @@ describe("0025 F4: recommendation drafts need current case access", () => {
       .join("\n");
     expect(statements).toContain("alter policy");
     expect(statements).not.toMatch(/\b(grant|revoke|comment on|insert into|update public|delete from|truncate)\b/i);
+  });
+});
+
+describe("0025 F3: the rollback restores exactly what 0025 removed", () => {
+  const f3 = between(M0025, "-- F3. Table privileges RLS cannot govern", "$grants$;");
+
+  it("records every client privilege it revokes, before revoking, outside the Data API", () => {
+    expect(f3.indexOf("insert into nextwise_cc26_state.m0025_revoked_table_privileges")).toBeLessThan(f3.indexOf("do $grants$"));
+    expect(f3).toContain("aclexplode(coalesce(c.relacl, acldefault('r', c.relowner)))");
+    expect(f3).toContain("insert into nextwise_cc26_state.m0025_revoked_default_privileges");
+    expect(f3).toContain("revoke all on schema nextwise_cc26_state from public, anon, authenticated, service_role;");
+    expect(f3).toContain("revoke all on all tables in schema nextwise_cc26_state from public, anon, authenticated, service_role;");
+  });
+
+  it("never grants blindly: only recorded rows, with their grant option", () => {
+    expect(R0025).not.toMatch(/grant truncate, trigger, references on table %s to anon, authenticated/i);
+    expect(R0025).not.toMatch(/alter default privileges in schema public grant truncate, trigger, references on tables to anon, authenticated/i);
+    expect(R0025).toContain("from nextwise_cc26_state.m0025_revoked_table_privileges s");
+    expect(R0025).toContain("case when r.is_grantable then ' with grant option' else '' end");
+    expect(R0025).toContain("no record of revoked privileges; none are granted back.");
+    expect(R0025).toContain("NW-F01 was applied after 0025; client-role TRUNCATE/TRIGGER/REFERENCES stay revoked.");
   });
 });
 

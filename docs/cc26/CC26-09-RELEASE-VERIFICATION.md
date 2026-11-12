@@ -45,6 +45,15 @@ The first `Finish-CC26.ps1` run on the PC failed 8 Vitest tests: 7 in `recommend
 | QA runner rehearsal (Linux pwsh 7.4, local copy of the QA model, SSL, port 5432) | Preflight, Export, Backup, hash-tamper refusal, Apply (+gate), Tests 89/89 and 76/76, drift stop after 0023/0024, Rollback back to the exact pre-state fingerprint |
 | Preview, signed out | QA ref only; no production ref, `service_role` or `rzp_live_` in client chunks; protected routes redirect to `/login`; unknown page 404; homepage main DOM identical to www.nextwise.world |
 
+## Follow-up 2 (2026-11-12, independent SQL review fixes)
+
+| Check | Result |
+|---|---|
+| TypeScript / ESLint / npm audit / build | exit 0 / 0 errors, 18 warnings / 0 / exit 0 |
+| Vitest | **180 files; 3,109 passed, 1 skipped** (+2 static guards for the rollback record and strict fingerprints) |
+| DB harness CC-26 | **41/41**. New tests: exact rollback grants under three starting configurations plus NW-F01-after; unknown-fingerprint refusal. All 32 earlier tests unchanged. |
+| QA runner rehearsal | Milestone-style copy and worktree copy. Refusals: no worktree, dirty SQL, wrong branch, non-worktree. Preflight, Export, Backup, Apply (+gate), Tests 89/89 and 76/76; Rollback back to the exact starting fingerprint. |
+
 ## Not run (needs access or approval)
 
 - Any SQL against QA (approvals A1–A3) or production (never).

@@ -1,6 +1,6 @@
 # CC26-13: NW07 remediation, QA approval checkpoint and closure status
 
-**Date:** 2026-11-12. **Base:** `387c53d` on `cc26/launch-readiness`. This continues CC-26; it is not a new milestone.
+**Date:** 2026-11-12. **Branch:** `cc26/launch-readiness`. Follow-up 1 is `ea7c1cd` (on `387c53d`); **revision 2** (§2b, after the independent SQL review) follows it. This continues CC-26; it is not a new milestone.
 
 **Nothing in this document has been run against QA or production.** QA writes wait for your approval (§6). Production is never a target.
 
@@ -66,11 +66,25 @@ On QA this also covers drafts written while the self-claim rule was open. NW-F01
 
 **0023 r2 needed no change.** It already replaces the QA function body (whitespace-tolerant detection), so the 3 policies and 8 RPCs that call the function are fixed with it. It also narrows the 15 inline NW07 policies and restores `profiles` to the 0004 caseload-only rule. The old CC-24 migration is not used anywhere.
 
+## 2b. Revision 2: independent SQL review fixes (follow-up 2, on `ea7c1cd`)
+
+| # | Review finding | Fix | Verified |
+|---|---|---|---|
+| R1 | `0025_cc26_ROLLBACK.sql` granted TRUNCATE, TRIGGER and REFERENCES to `anon` and `authenticated` on **every** public table and in the default privileges. A table that never had them before 0025 got them afterwards. **Reproduced:** with `anon` lacking TRUNCATE on `careers`, the old rollback left `anon` holding it. | 0025 now **records** each client privilege it actually revokes, before revoking. It records the table, grantee, privilege, grant option and grantor, plus the matching owner default privileges, in schema `nextwise_cc26_state`. That schema has no client access and is not in the Data API. The rollback re-grants **only** the recorded rows (with grant option where recorded), then drops the record. Without a record it grants nothing. If a recorded grant came from another role, it refuses. If NW-F01 was applied after 0025, it keeps NW-F01's stricter grants. | Locally: a new harness test runs three starting configurations. In each, apply → re-run → rollback → rollback again equals the starting ACLs **exactly**. The configurations are: Supabase default; mixed (a table with none, a table without client access, TRUNCATE WITH GRANT OPTION, a partial table, a changed default ACL); and none. Also the NW-F01-after case. |
+| R2 | F4 refused an unknown RPC body only when it still contained the author clause, so an author-free unknown body was silently accepted. | **Any** fingerprint outside the three known ones refuses before anything changes: NW07 original (replaced), CC-26 version (re-run) and NW-F01 03 version (left alone). The check no longer looks at what the body contains. A new postcondition requires each body to be the CC-26 or NW-F01 version afterwards. The preflight marks anything else "UNKNOWN fingerprint (0025 will refuse)". | Locally: new test. An author-free edited body and an author-clause edited body are both refused, with the catalog unchanged. The verified originals are accepted. NW-F01 in both orders still converges. |
+| R3 | `Run-CC26-Qa.ps1` derived the repository as three folders above itself. That is right in the worktree (`docs\cc26\qa`) but wrong from the milestone copy (`Milestones\…\docs\qa` → `C:\ClaudeBuilds`). | The worktree is resolved explicitly: `-RepoRoot`; else the nearest parent git worktree containing `supabase\migrations-proposed\cc26`; else `C:\ClaudeBuilds\CC26-LAUNCH-READINESS`. Before connecting, it checks that this is a git worktree on `cc26/launch-readiness`, never `C:\carrier.ai`, with every SQL file present, **committed and unmodified**, and matching the hash in the worktree's `CC26-QA-SQL-SHA256.txt`. It prints the worktree and HEAD. Paths are built OS-independently. | Locally (pwsh 7.4): run from a milestone-style copy and from the worktree copy. The milestone copy with no worktree refuses; with `-RepoRoot` it works. Dirty SQL, wrong branch and a non-worktree folder are each refused. Preflight → Export → Backup → Apply (+gate) → Tests (89/89, 76/76) → Rollback returns the **exact** starting fingerprint (functions, policies, table ACLs, default ACLs, schemas). |
+
+No existing test was removed or relaxed:
+- The F4 static guard "refuses drift" was replaced by a stricter one: any unknown fingerprint, and the loop may not inspect body text.
+- Harness counts only grew: 32 → 41 tests.
+
 ## 3. QA preflight findings
 
 | Item | Status |
 |---|---|
 | Function body and the 3 dependent policies, as quoted by you | **QA verified** (your read-only SQL) |
+| Five draft RPCs present; fingerprints equal the NW07 originals (`5eef6dce…`, `3f365eac…`, `5ddb8bc1…`, `adb19f89…`, `ebcc9aab…`), so 0025 F4 will replace them | **QA verified** (your read-only inspection, 2026-11-12) |
+| CC-25 approval (0023) not installed; no migration applied; `discovery_sessions` has **0 rows** | **QA verified**. With zero sessions, no counsellor could have reached a student through the session branch on QA; A4 (re-approval) has nothing to do. |
 | Which migrations are on QA, the inline NW07 policies, grants, drift, the exposure counts | **Blocked:** needs approval A1 (`-Step Preflight` and `-Step Export`). The SQL is ready and was rehearsed. |
 | The same queries on the local QA model | **Locally verified.** Classification "NW07 original (unsafe)"; 24 dependent policies; 8 dependent RPCs; F4 state "NW07 original" ×5. Exposure counts tested against seeded fictional rows. |
 
@@ -82,16 +96,16 @@ SHA-256 over LF-normalised text. This equals the Git blob, and is what the runne
 
 | Order | File | SHA-256 |
 |---|---|---|
-| P1 | `cc26/cc26_qa_preflight_readonly.sql` | `d6ad11a15017edc95141a67958455b980344c006b79947bec87d0244da58e27a` |
+| P1 | `cc26/cc26_qa_preflight_readonly.sql` | `5abcdac4308f2c566aebd927063bfd62e28a3a9806a253f95f301590e5257daa` |
 | P1 | `cc26/cc26_qa_export_readonly.sql` | `3aa9beba09a197afcfc3585314d77ca15f6a064362080051864f3d43e1a0e76a` |
 | 1 | `cc25/0023_cc25_counsellor_identity_least_privilege.sql` (r2) | `a897b24ce685691327830c44d485f6f236a508c1dffeb4cc8fdd2bc14fa77723` |
 | 2 | `cc25/0024_cc25_revoke_anon_internal_rpcs.sql` | `b991759091be4ff0456cd90d4a70f077160e8cf8e4439f230153cc16f984b68f` |
-| 3 | `cc26/0025_cc26_inactive_counsellor_and_grant_hardening.sql` (with F4) | `b0ab3080b916e007eaf0a495500060b07f523c21bd9409d0c7eb770cf2635f83` |
+| 3 | `cc26/0025_cc26_inactive_counsellor_and_grant_hardening.sql` (F4; revision 2: strict fingerprints, privilege record) | `35ce8257f03a6224acb69acc9c0e13fd55b3798b77345fed19d70ccfffc7d7dd` |
 | 4 | `cc26/0026_cc26_database_checkout_gate.sql` | `0dc661447293c9106780eee88cffa1e8b3628730b312fb62c8d91b377b1e9fd6` |
 | T | `cc25/0023_cc25_rls_tests.sql` | `cb9af86e6610138e00a8f6c1e83f853a942cbd5e2d75caff56ae879ed3037c29` |
 | T | `cc26/cc26_security_tests.sql` (r2) | `eb6bc3a4d5568d073b8c19979a38b68a3182f12601dad67cd949d0f56c67c54a` |
 | R | `cc26/0026_cc26_ROLLBACK.sql` | `3ea96a2f2542ac292af2ad144f9e5406f16d04f9b28a22b92beb1ea7cf97537a` |
-| R | `cc26/0025_cc26_ROLLBACK.sql` | `31ebce1ea0bd6e6b72f759f639a9229662c2575af3bb5c4930c37896a754ca87` |
+| R | `cc26/0025_cc26_ROLLBACK.sql` (revision 2: restores only recorded privileges) | `646e6b224d7aa31607a999a6d8176249549f7850aba06abea2d3e68827e8bbd5` |
 | R | `cc25/0024_cc25_ROLLBACK.sql` | `1e07fecc8ba24ddc83941abe0bcf3d782c27896f68d84e76be0af950774b25ce` |
 | R | `cc25/0023_cc25_ROLLBACK.sql` | `de3f424be316c454af9c5407f1cf32f1bd7c85f65d205d18ffb4ca97fe982dd7` |
 
@@ -109,7 +123,7 @@ The preflight's first row records the database, user, server address and version
 
 ### Impact
 
-- **Data:** no existing row is changed or deleted. 0023 adds three nullable columns and a CHECK constraint to `discovery_sessions`; the constraint scans the table under a short ACCESS EXCLUSIVE lock (`lock_timeout 5s`). 0026 adds one table and one control row.
+- **Data:** no existing row is changed or deleted. 0023 adds three nullable columns and a CHECK constraint to `discovery_sessions` (0 rows on QA, so the scan is instant; `lock_timeout 5s`). 0025 adds schema `nextwise_cc26_state` (three small record tables, no client access). 0026 adds one table and one control row.
 - **Access, intended:** every existing Discovery Session assignment becomes **unapproved**, so counsellors lose session-based student access until an admin approves (A4). Caseload access is unchanged. Deactivated counsellors lose caseload and queue. Former draft authors without case access lose those drafts. Students can no longer create invoices or payment attempts through the API.
 - **Legitimate workflows:** admin, active caseload counsellor, approved-session counsellor and student paths all pass (N07, N12, N13, N21, N23, N25, N28, N31, N33, S05, S06, I08–I11, P08).
 
@@ -120,7 +134,7 @@ The preflight's first row records the database, user, server address and version
 - `profiles` is caseload-only.
 - No draft policy or RPC grants access by authorship.
 - `current_counsellor_id()` checks `is_active`.
-- Client roles hold no TRUNCATE, TRIGGER or REFERENCES.
+- Client roles hold no TRUNCATE, TRIGGER or REFERENCES; `nextwise_cc26_state` exists and no client role can use it; each of the five draft RPCs is the CC-26 version.
 - The checkout gate exists and is closed.
 - Tests: `89 checks, 89 passed` and `CC26|SUMMARY|pass=76|fail=0|skip=0|info=1`.
 
@@ -147,29 +161,59 @@ The preflight's first row records the database, user, server address and version
 
 | # | Request | Writes |
 |---|---|---|
-| **A1** | `Run-CC26-Qa.ps1 -Step Preflight`, `-Step Export`, `-Step Backup`, then send me the three output files | nothing |
+| **A1** | Done read-only by you (2026-11-12). Recommended immediately before A2, from the runner: `-Step Preflight`, `-Step Export`, `-Step Backup` | nothing |
 | **A2** | `-Step Apply` (0023 r2, 0024, 0025), then `-Step Tests` and `-Step Preflight` again | QA schema |
 | **A3** | `-Step Apply -IncludeCheckoutGate` (0026) | QA schema |
 | **A4** | Admins re-approve the legitimate Discovery Session assignments | QA data (audited) |
 | **A5** | `git push` of the follow-up commit (plain push), so the Preview rebuilds | remote |
 | **A8** | Fictional QA accounts (admin, two counsellors, two students) for the signed-in Preview checks, or permission to create them on QA | QA data |
 
-## 7. Status of the brief's tasks
+## 6b. Final QA approval procedure (exact)
+
+Prerequisite:
+- revision 2 is committed and pushed by `Finish-CC26-Followup2.ps1 -Commit -Push`;
+- the worktree is clean on `cc26/launch-readiness`.
+
+Run the **milestone copy** of the runner. It finds `C:\ClaudeBuilds\CC26-LAUNCH-READINESS` itself and keeps its output files out of the worktree:
+
+```powershell
+cd C:\ClaudeBuilds\Milestones\CC26-LAUNCH-READINESS\docs\qa
+$h = 'aws-0-<region>.pooler.supabase.com'; $u = 'postgres.ynwzijulzksmrcwdhudv'
+# 1. Read-only, immediately before writing (A1 refresh)
+.\Run-CC26-Qa.ps1 -Step Preflight -DbHost $h -DbUser $u
+.\Run-CC26-Qa.ps1 -Step Backup    -DbHost $h -DbUser $u
+# STOP: check the preflight shows the expected state:
+#   nw07_case_access = 'NW07 original'; f4_rpc_state = 'NW07 original' x5;
+#   Q2 markers all false; m0025_state.state_schema_present = false
+# 2. A2 + A3 (writes), in this order, each file one atomic transaction:
+#    0023 r2 -> 0024 -> 0025 (F3 record, F4) -> 0026 (checkout gate)
+.\Run-CC26-Qa.ps1 -Step Apply -IncludeCheckoutGate -DbHost $h -DbUser $u   # typed phrase: APPLY CC-26 TO QA
+# 3. Verify
+.\Run-CC26-Qa.ps1 -Step Tests     -DbHost $h -DbUser $u   # must end: 89 checks, 89 passed / CC26|SUMMARY|pass=76|fail=0|skip=0|info=1
+.\Run-CC26-Qa.ps1 -Step Preflight -DbHost $h -DbUser $u   # 'CC-26 fixed'; f4 'CC-26 version' x5; Q2 all true; m0025_state present
+```
+
+Notes:
+- To approve A2 without A3, run `-Step Apply` without `-IncludeCheckoutGate`. Tests then fail only P00–P03 until 0026 is applied.
+- **Stop rules.** Any refusal or failed check stops psql (`ON_ERROR_STOP`), and the file that failed is rolled back in full. **Do not retry.** Send me the output file.
+- **Partial apply.** If 0023 committed before a later refusal, the self-claim path is already closed.
+- **Rollback** (`-Step Rollback`, separate approval) only to recover a broken release. It re-opens the defects.
+
+
 
 | Task | Result | Label |
 |---|---|---|
 | A: audit | Root cause, impact matrix, read-only preflight and export ready | Locally verified; QA run **Blocked** (A1) |
 | B: authorization rules | Approved + active session + active counsellor + matching IDs + timestamp; author bypass closed (F4) | Locally verified |
-| C: migration sequence | Ordering, atomicity, idempotency, locks, rollback identity, drift refusal, NW-F01 in both orders | Locally verified (harness 32/32) |
+| C: migration sequence | Ordering, atomicity, idempotency, locks, rollback identity (now across grant configurations), strict fingerprint refusal, NW-F01 in both orders | Locally verified (harness **41/41**) |
 | D: QA procedure | Phases 1–4 scripted and rehearsed end to end through the runner (Preflight, Export, Backup, hash refusal, Apply, Tests, drift stop, Rollback) on a local copy of the QA model | Locally verified; QA **Blocked** (A1–A3) |
 | E: security tests | 76/76 on the QA model; 15 scenarios covered; 12 mutants caught | Locally verified; QA **Blocked** (A2) |
 | F: Preview | Page loads; Supabase ref in client bundles = QA only, no production ref, no `service_role`, no `rzp_live_`; protected routes, including `/applications/<id>`, redirect to `/login`; 404 for unknown pages; pricing has no buy control; homepage main DOM, text and 76 links identical to www.nextwise.world | Signed-out only. **Not tested:** READY status and SHA (no Vercel access); signed-in journeys **Blocked** (A8, and best after A2) |
-| G: checks | tsc 0; ESLint 0 errors (18 warnings, unchanged); Vitest **180 files, 3,107 passed, 1 skipped**; audit 0; build 0; secret scan 0; diff check clean | Locally verified; `Finish-CC26-Followup.ps1` repeats them on the PC |
+| G: checks | tsc 0; ESLint 0 errors (18 warnings, unchanged); Vitest **180 files, 3,109 passed, 1 skipped**; audit 0; build 0; secret scan 0; diff check clean | Locally verified; `Finish-CC26-Followup2.ps1` repeats them on the PC |
 
 ## 8. GO/NO-GO
 
 - **CC-26 acceptance: NO-GO for now.** The defect is fixed and proven locally, but it is **open on QA** until A2 runs and Tests pass there. That is required for acceptance.
-- **Follow-up commit:** GO.
-- **A1:** GO now.
-- **A2 and A3:** GO once A1 shows no drift. Urgent, because the exposure is live on QA.
+- **Follow-up commits:** `ea7c1cd` committed. Revision 2: GO, via `Finish-CC26-Followup2.ps1 -Commit -Push` (commits only if every check passes; plain push, no force).
+- **A2 and A3:** GO after revision 2 is committed and pushed, and the pre-apply Preflight/Backup are clean. Urgent, because the NW07 rule is live on QA (although no session rows exist yet).
 - **Production deploy, production SQL, payments and paid AI:** NO-GO. A7 (does production have NW07?) is still open.

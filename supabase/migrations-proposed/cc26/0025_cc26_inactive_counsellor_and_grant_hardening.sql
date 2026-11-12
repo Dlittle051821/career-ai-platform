@@ -20,7 +20,9 @@
 --      the "assigned_counsellor_id is null" branch did not depend on
 --      current_counsellor_id(). That branch now requires an active counsellor.
 --   F3 (P2) Supabase's default privileges give anon and authenticated
---      TRUNCATE, TRIGGER and REFERENCES on every public table. TRUNCATE
+--      TRUNCATE, TRIGGER and REFERENCES on every public table (the exact
+--      privileges removed are recorded in schema nextwise_cc26_state for the
+--      rollback). TRUNCATE
 --      bypasses row-level security entirely. PostgREST never issues these
 --      statements, so nothing in the app uses them; they are revoked from
 --      the two client roles (service_role and the owner keep them), now and
@@ -40,6 +42,8 @@
 --   - The counsellors table, admin roles and any data.
 --   - Recommendation draft rows, versions, function ACLs and comments (F4
 --     changes authorization only).
+--   It adds one schema, nextwise_cc26_state (no client access, not in the Data
+--   API), holding the record the rollback needs; the rollback removes it.
 --   current_counsellor_id() is re-created with search_path = pg_catalog,
 --   public, pg_temp (0004 had search_path = public; NW-F01 03 pins it with
 --   pg_temp last too), so neither apply order loses that hardening.
@@ -124,7 +128,73 @@ create policy "Admins/counsellors can update discovery sessions"
 
 -- ---------------------------------------------------------------------------
 -- F3. Table privileges RLS cannot govern
+--
+-- The rollback must restore EXACTLY what this section removes and nothing
+-- more, whatever the starting grants were. So before revoking, every
+-- TRUNCATE/TRIGGER/REFERENCES privilege that anon or authenticated actually
+-- holds (per table, with its grant option and grantor) and every matching
+-- owner default privilege is recorded in schema nextwise_cc26_state. That
+-- schema is not exposed by the Data API and no client role can use it. The
+-- rollback re-grants only the recorded rows, then drops the record.
+-- Re-runs add nothing (the privileges are already gone; ON CONFLICT keeps the
+-- first record).
 -- ---------------------------------------------------------------------------
+create schema if not exists nextwise_cc26_state;
+revoke all on schema nextwise_cc26_state from public, anon, authenticated, service_role;
+comment on schema nextwise_cc26_state is
+  'CC-26 migration state (not exposed to the Data API): the exact client-role privileges 0025 removed, so its rollback restores those and nothing else.';
+
+create table if not exists nextwise_cc26_state.m0025_revoked_table_privileges (
+  table_schema text not null,
+  table_name text not null,
+  grantee text not null,
+  privilege_type text not null,
+  is_grantable boolean not null,
+  grantor text not null,
+  recorded_at timestamptz not null default now(),
+  primary key (table_schema, table_name, grantee, privilege_type)
+);
+create table if not exists nextwise_cc26_state.m0025_revoked_default_privileges (
+  owner_role text not null,
+  schema_name text not null,
+  grantee text not null,
+  privilege_type text not null,
+  is_grantable boolean not null,
+  recorded_at timestamptz not null default now(),
+  primary key (owner_role, schema_name, grantee, privilege_type)
+);
+create table if not exists nextwise_cc26_state.m0025_apply_context (
+  id integer primary key check (id = 1),
+  nw_f01_present boolean not null,
+  recorded_at timestamptz not null default now()
+);
+revoke all on all tables in schema nextwise_cc26_state from public, anon, authenticated, service_role;
+
+insert into nextwise_cc26_state.m0025_apply_context (id, nw_f01_present)
+values (1, to_regnamespace('nextwise_security') is not null)
+on conflict (id) do nothing;
+
+insert into nextwise_cc26_state.m0025_revoked_table_privileges (table_schema, table_name, grantee, privilege_type, is_grantable, grantor)
+select n.nspname, c.relname, a.grantee::regrole::text, a.privilege_type, a.is_grantable, a.grantor::regrole::text
+from pg_class c
+join pg_namespace n on n.oid = c.relnamespace
+cross join lateral aclexplode(coalesce(c.relacl, acldefault('r', c.relowner))) a
+where n.nspname = 'public' and c.relkind in ('r', 'p')
+  and a.grantee in ('anon'::regrole, 'authenticated'::regrole)
+  and a.privilege_type in ('TRUNCATE', 'TRIGGER', 'REFERENCES')
+on conflict do nothing;
+
+insert into nextwise_cc26_state.m0025_revoked_default_privileges (owner_role, schema_name, grantee, privilege_type, is_grantable)
+select d.defaclrole::regrole::text, 'public', a.grantee::regrole::text, a.privilege_type, a.is_grantable
+from pg_default_acl d
+cross join lateral aclexplode(d.defaclacl) a
+where d.defaclrole = current_user::regrole
+  and d.defaclnamespace = 'public'::regnamespace
+  and d.defaclobjtype = 'r'
+  and a.grantee in ('anon'::regrole, 'authenticated'::regrole)
+  and a.privilege_type in ('TRUNCATE', 'TRIGGER', 'REFERENCES')
+on conflict do nothing;
+
 do $grants$
 declare
   v_table regclass;
@@ -158,21 +228,25 @@ alter default privileges in schema public revoke truncate, trigger, references o
 --
 -- Two SELECT policies are altered in place (names kept). Five write RPCs are
 -- re-created from NW07 verbatim except the authorization line and a pinned
--- search_path, ONLY when their body is still exactly the NW07 original. A body
--- without the author clause (NW-F01 03 already replaced it) is left alone; any
--- other body is drift and the migration refuses. Function ACLs and comments
--- are not touched. Skipped entirely when NW07 is not applied.
+-- search_path, ONLY when their body is still exactly the NW07 original.
+-- Every body must match one of three known fingerprints (MD5 of the source,
+-- CR removed): the verified NW07 original (replaced), the CC-26 version (a
+-- re-run: left alone) or the NW-F01 03 hardened version (left alone). ANY other
+-- body, whatever it contains, is drift and the migration refuses before it
+-- changes anything. Function ACLs and comments are not touched. Skipped
+-- entirely when NW07 is not applied.
 -- ---------------------------------------------------------------------------
 do $f4$
 declare
   v_fn text;
   v_md5 text;
+  -- [NW07 original, CC-26 version, NW-F01 03 version]
   v_known constant jsonb := jsonb_build_object(
-    'staff_update_recommendation_draft_content', jsonb_build_array('5eef6dced30ca13c6b1354870f2e441b', '8d76caf129e0b33c6b70956ccf3be211'),
-    'staff_submit_recommendation_draft_for_review', jsonb_build_array('3f365eacdd071abecbdf7a680e5d1775', '1a69bbfe9644efd7d8996275cc45fbf9'),
-    'staff_release_recommendation_draft', jsonb_build_array('5ddb8bc143a32a1109043b7e7cc2ef9c', 'dc4d3efb964868219c208369adb05ce6'),
-    'staff_withdraw_recommendation_draft', jsonb_build_array('adb19f89b3d97167eaa8a7fa989db725', '3d65d505806b342f0e2659f618145dbd'),
-    'staff_archive_recommendation_draft', jsonb_build_array('ebcc9aab425723c73db5784bc33b9ea2', '9d0f5dcbc0ecd98cedbc669552feec2f'));
+    'staff_update_recommendation_draft_content', jsonb_build_array('5eef6dced30ca13c6b1354870f2e441b', '8d76caf129e0b33c6b70956ccf3be211', '98bccd1b7a5b72c049a69ce86afb12db'),
+    'staff_submit_recommendation_draft_for_review', jsonb_build_array('3f365eacdd071abecbdf7a680e5d1775', '1a69bbfe9644efd7d8996275cc45fbf9', '010668295aab4a7ee5d466e8a6b4e464'),
+    'staff_release_recommendation_draft', jsonb_build_array('5ddb8bc143a32a1109043b7e7cc2ef9c', 'dc4d3efb964868219c208369adb05ce6', '37eb052c70a08fb28a22231434c3597d'),
+    'staff_withdraw_recommendation_draft', jsonb_build_array('adb19f89b3d97167eaa8a7fa989db725', '3d65d505806b342f0e2659f618145dbd', 'cec7f6744961e4124b9081b325147b94'),
+    'staff_archive_recommendation_draft', jsonb_build_array('ebcc9aab425723c73db5784bc33b9ea2', '9d0f5dcbc0ecd98cedbc669552feec2f', '7435c90a98c41e03cff15f8b44e522d9'));
 begin
   if to_regclass('public.recommendation_drafts') is null then
     raise notice 'CC26-0025 F4 skipped: NW07 is not applied.';
@@ -192,10 +266,8 @@ begin
     if v_md5 is null then
       raise exception 'CC26-0025 refused: public.% is missing (drift).', v_fn;
     end if;
-    if v_md5 not in (v_known -> v_fn ->> 0, v_known -> v_fn ->> 1)
-       and (select prosrc from pg_proc where oid = to_regprocedure('public.' || v_fn || case when v_fn = 'staff_update_recommendation_draft_content' then '(uuid,jsonb)' else '(uuid)' end))
-           like '%created_by = auth.uid() or public.counsellor_has_case_access%' then
-      raise exception 'CC26-0025 refused: public.% has an unexpected body that still grants access by authorship (drift).', v_fn;
+    if not (v_known -> v_fn) ? v_md5 then
+      raise exception 'CC26-0025 refused: public.% has an unknown body (fingerprint %); only the verified NW07, CC-26 and NW-F01 versions are accepted (drift).', v_fn, v_md5;
     end if;
   end loop;
 
@@ -433,6 +505,25 @@ begin
              and policyname in ('Admins/counsellors can read discovery sessions', 'Admins/counsellors can update discovery sessions')
              and qual not like '%current_counsellor_id() IS NOT NULL%') then
     raise exception 'CC26-0025 postcondition: unassigned-session branch is not gated on an active counsellor';
+  end if;
+  if exists (select 1 from pg_namespace n where n.nspname = 'nextwise_cc26_state'
+             and (has_schema_privilege('anon', n.oid, 'USAGE') or has_schema_privilege('authenticated', n.oid, 'USAGE'))) then
+    raise exception 'CC26-0025 postcondition: client roles can use the migration-state schema';
+  end if;
+  if exists (select 1 from nextwise_cc26_state.m0025_revoked_table_privileges where grantor <> current_user::text) then
+    raise exception 'CC26-0025 postcondition: a revoked privilege was granted by another role; the rollback could not restore it exactly';
+  end if;
+  if to_regclass('public.recommendation_drafts') is not null and exists (
+       select 1 from (values
+         ('staff_update_recommendation_draft_content(uuid,jsonb)', '8d76caf129e0b33c6b70956ccf3be211', '98bccd1b7a5b72c049a69ce86afb12db'),
+         ('staff_submit_recommendation_draft_for_review(uuid)', '1a69bbfe9644efd7d8996275cc45fbf9', '010668295aab4a7ee5d466e8a6b4e464'),
+         ('staff_release_recommendation_draft(uuid)', 'dc4d3efb964868219c208369adb05ce6', '37eb052c70a08fb28a22231434c3597d'),
+         ('staff_withdraw_recommendation_draft(uuid)', '3d65d505806b342f0e2659f618145dbd', 'cec7f6744961e4124b9081b325147b94'),
+         ('staff_archive_recommendation_draft(uuid)', '9d0f5dcbc0ecd98cedbc669552feec2f', '7435c90a98c41e03cff15f8b44e522d9')
+       ) v(fn, cc26, nwf01)
+       left join pg_proc p on p.oid = to_regprocedure('public.' || v.fn)
+       where p.oid is null or md5(replace(p.prosrc, chr(13), '')) not in (v.cc26, v.nwf01)) then
+    raise exception 'CC26-0025 postcondition: a recommendation draft RPC is not the CC-26 or NW-F01 version';
   end if;
   if exists (select 1 from pg_policies where schemaname = 'public'
              and tablename in ('recommendation_drafts', 'recommendation_draft_versions')

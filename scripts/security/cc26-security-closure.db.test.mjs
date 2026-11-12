@@ -140,6 +140,12 @@ async function buildDatabase(name, extras) {
 }
 
 const fingerprint = async (c) => JSON.stringify((await c.query(CATALOG)).rows[0].fp);
+const stateSchema = async (c) => (await c.query("select to_regnamespace('nextwise_cc26_state')::text s")).rows[0].s;
+const clientTableGrants = `select count(*)::int n from pg_class c join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public' and c.relkind in ('r','p')
+    and (has_table_privilege('anon', c.oid, 'TRUNCATE') or has_table_privilege('authenticated', c.oid, 'TRUNCATE')
+      or has_table_privilege('anon', c.oid, 'TRIGGER') or has_table_privilege('authenticated', c.oid, 'TRIGGER')
+      or has_table_privilege('anon', c.oid, 'REFERENCES') or has_table_privilege('authenticated', c.oid, 'REFERENCES'))`;
 
 async function apply(c, key, approved = true) {
   await c.query("select set_config($1,$2,false)", [M[key].set, approved ? "LOCAL-DISPOSABLE-TEST" : ""]);
@@ -297,8 +303,10 @@ for (const state of ["base", "qa"]) {
     });
 
     await t.test("rollback 0026 -> 0025 -> 0024 -> 0023 restores the exact pre-migration catalog and default ACL", async () => {
+      assert.equal(await stateSchema(db), "nextwise_cc26_state", "0025 records what it revoked");
       for (const key of [...ORDER].reverse()) await rollback(db, key);
       assert.equal(await fingerprint(db), pre);
+      assert.equal(await stateSchema(db), null, "the 0025 rollback removes its record");
     });
 
     await t.test("reapply equals the first application", async () => {
@@ -405,5 +413,88 @@ test("forward path: CC-26 set and NW-F01 + NW01 in either order", async (t) => {
   await t.test("rolling back the CC-26 set after NW-F01 keeps F7 (no unpinned definer)", async () => {
     for (const key of [...ORDER].reverse()) await rollback(a, key);
     assert.equal((await a.query(unpinnedDefiners)).rows[0].n, 0);
+  });
+});
+
+// 0025 F3 rollback: exactly the pre-migration grants, whatever they were.
+test("0025 rollback restores exactly the starting grants, for different starting grant configurations", async (t) => {
+  const configs = {
+    "supabase-default": [],
+    "mixed": [
+      // anon never had TRUNCATE/TRIGGER/REFERENCES on careers; the rollback must not grant them
+      "revoke truncate, trigger, references on public.careers from anon",
+      // anon holds nothing at all on profiles
+      "revoke all on public.profiles from anon",
+      // authenticated holds TRUNCATE on invoices WITH GRANT OPTION
+      "revoke truncate on public.invoices from authenticated",
+      "grant truncate on public.invoices to authenticated with grant option",
+      // only some client privileges on another table
+      "revoke trigger, references on public.admin_audit_log from authenticated",
+      // the owner's default privileges no longer give authenticated TRIGGER
+      "alter default privileges in schema public revoke trigger on tables from authenticated",
+    ],
+    "none": [
+      "do $$ declare r regclass; begin for r in select c.oid::regclass from pg_class c where c.relnamespace = 'public'::regnamespace and c.relkind in ('r','p') loop execute format('revoke truncate, trigger, references on table %s from anon, authenticated', r); end loop; end $$",
+      "alter default privileges in schema public revoke truncate, trigger, references on tables from anon, authenticated",
+    ],
+  };
+  for (const [name, setup] of Object.entries(configs)) {
+    await t.test(name, async () => {
+      const db = await buildDatabase(`cc26_grants_${name.replace(/-/g, "_")}_${process.pid}`, QA_EXTRAS);
+      for (const sql of setup) await db.query(sql);
+      await apply(db, "m23");
+      await apply(db, "m24");
+      const pre = await fingerprint(db);
+      await apply(db, "m25");
+      assert.equal((await db.query(clientTableGrants)).rows[0].n, 0);
+      await apply(db, "m25"); // re-run keeps the first record
+      await rollback(db, "m25");
+      assert.equal(await fingerprint(db), pre, "relation ACLs and default ACLs equal the starting state");
+      assert.equal(await stateSchema(db), null);
+      await rollback(db, "m25"); // re-running the rollback without a record grants nothing
+      assert.equal(await fingerprint(db), pre);
+      if (name === "mixed") {
+        const r = (await db.query(`select has_table_privilege('anon','public.careers','TRUNCATE') a, has_table_privilege('anon','public.profiles','SELECT') b,
+          has_table_privilege('authenticated','public.invoices','TRUNCATE WITH GRANT OPTION') c, has_table_privilege('authenticated','public.admin_audit_log','TRIGGER') d`)).rows[0];
+        assert.deepEqual(r, { a: false, b: false, c: true, d: false });
+      }
+      if (name === "none") assert.equal((await db.query(clientTableGrants)).rows[0].n, 0, "nothing is granted that was not held");
+    });
+  }
+  await t.test("NW-F01 applied after 0025: the rollback keeps NW-F01's stricter grants", async () => {
+    const db = await buildDatabase(`cc26_grants_nwf01_${process.pid}`, QA_EXTRAS);
+    for (const key of ORDER) await apply(db, key);
+    await applyNwf01(db);
+    await rollback(db, "m26");
+    await rollback(db, "m25");
+    assert.equal((await db.query(clientTableGrants)).rows[0].n, 0);
+    assert.equal(await stateSchema(db), null);
+  });
+});
+
+// 0025 F4: any unknown fingerprint refuses, whatever the body contains.
+test("0025 refuses every unknown draft-RPC body and changes nothing", async (t) => {
+  const db = await buildDatabase(`cc26_unknown_${process.pid}`, QA_EXTRAS);
+  await apply(db, "m23");
+  await apply(db, "m24");
+  const cases = {
+    "author-free but unknown (harmless edit)": "staff_withdraw_recommendation_draft",
+    "author clause still present (edited)": "staff_update_recommendation_draft_content",
+  };
+  for (const [label, fn] of Object.entries(cases)) {
+    await t.test(label, async () => {
+      const def = (await db.query(`select pg_get_functiondef(to_regprocedure('public.${fn}' || case when '${fn}' like '%content' then '(uuid,jsonb)' else '(uuid)' end)) d`)).rows[0].d;
+      await db.query(def.replace("begin", "begin\n  -- edited outside the reviewed migrations\n"));
+      const pre = await fingerprint(db);
+      await assert.rejects(apply(db, "m25"), /unknown body/);
+      assert.equal(await fingerprint(db), pre, "0025 changed nothing");
+      assert.equal(await stateSchema(db), null);
+      await db.query(def); // restore the verified NW07 original
+    });
+  }
+  await t.test("the verified NW07 originals are accepted and replaced", async () => {
+    await apply(db, "m25");
+    const n = (await db.query(`select count(*)::int n from pg_proc where pronamespace = 'public'::regnamespace and prosrc like '%created_by = auth.uid() or public.counsellor_has_case_access%'`)).rows[0].n;
+    assert.equal(n, 0);
   });
 });

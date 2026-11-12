@@ -30,6 +30,7 @@ What it enforces:
 - It refuses any target naming production, any target without the QA ref, and any port other than 5432.
 - It refuses any SQL file whose SHA-256 (CRLF normalised) differs from `CC26-QA-SQL-SHA256.txt`.
 - `-Step Backup` writes a schema-only `pg_dump` (no rows) and prints its hash.
+- It resolves the CC-26 **worktree**, not its own folder, so it works from `docs\cc26\qa` and from the milestone copy (`Milestones\…\docs\qa`, recommended). Before connecting, it checks: the branch `cc26/launch-readiness`; that the worktree is not `C:\carrier.ai`; and that every SQL file is committed, unmodified and hash-pinned. `-RepoRoot` overrides the worktree.
 - You type the QA ref. Write steps also need a typed phrase (`APPLY CC-26 TO QA` / `ROLL BACK CC-26 ON QA`).
 - The password is read without echo and cleared afterwards. `psql` runs with `ON_ERROR_STOP=1`.
 - Output goes to `cc26-qa-<step>-<time>.txt`.

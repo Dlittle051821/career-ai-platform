@@ -64,3 +64,16 @@ There are no dependency changes. No CC-18 protected file (45) or V5.4 protected 
 | `docs/cc26/CC26-00`, `-01`, `-02`, `-09`, `-10`, `-11`, `-12`; `CC26-13` **added** | Evidence package updated |
 
 No app code, dependency, protected CC-18 file or V5.4 homepage file changed.
+
+## Follow-up 2 on top of `ea7c1cd` (2026-11-12, independent SQL review)
+
+| Path | Change |
+|---|---|
+| `supabase/migrations-proposed/cc26/0025_cc26_inactive_counsellor_and_grant_hardening.sql` | F3 records the exact revoked privileges (schema `nextwise_cc26_state`); F4 accepts only the three known fingerprints; new postconditions |
+| `supabase/migrations-proposed/cc26/0025_cc26_ROLLBACK.sql` | Re-grants only the recorded privileges; re-runnable; keeps NW-F01's stricter grants |
+| `supabase/migrations-proposed/cc26/cc26_qa_preflight_readonly.sql` | F4 state shows each fingerprint and marks unknown ones; 0025 record state |
+| `docs/cc26/qa/Run-CC26-Qa.ps1` | Resolves and validates the CC-26 worktree (also from the milestone copy); `-RepoRoot` |
+| `docs/cc26/qa/CC26-QA-SQL-SHA256.txt` | New hashes for 0025, its rollback and the preflight |
+| `scripts/security/cc26-security-closure.db.test.mjs` | +9 tests (grant configurations, unknown fingerprints) |
+| `src/lib/recommendations/cc26-recommendation-author-access.test.ts` | Stricter F4 guard; 2 new F3 rollback guards |
+| `docs/cc26/CC26-01`, `-02`, `-09`, `-11`, `-13` | Updated |
