@@ -28,7 +28,7 @@ export function Card({ as: Tag = "div", children, className, padded = true, styl
     <Tag
       id={id}
       className={cn(
-        "rounded-[var(--radius-card)] border border-border bg-surface",
+        "rounded-[var(--radius-card)] border border-primary/10 bg-surface",
         padded && "p-6 sm:p-7",
         className
       )}

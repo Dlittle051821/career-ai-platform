@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { publicPageMetadata } from "@/config/seo";
 import { NextwiseV54Home } from "@/components/sections/home/v54/NextwiseV54Home";
+import { QuickExplore } from "@/components/sections/home/QuickExplore";
 
 // V5.4 HOMEPAGE — the approved V5.4 landing page: the original N reveal and
 // N-led scroll story (one gesture → one complete chapter), the organic
@@ -18,6 +19,12 @@ export const metadata: Metadata = publicPageMetadata(
   "Explore careers, compare courses and universities, and plan study in India or Europe. Start with a free discovery session with NextWise.",
 );
 
+// CIUX-01: "Start here" quick routes after the approved story, before the footer.
 export default function HomePage() {
-  return <NextwiseV54Home />;
+  return (
+    <>
+      <NextwiseV54Home />
+      <QuickExplore />
+    </>
+  );
 }

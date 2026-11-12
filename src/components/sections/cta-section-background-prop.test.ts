@@ -31,17 +31,16 @@ describe("CTASection — additive `background` prop", () => {
     expect(source).toMatch(/background === "cinematic" \?/);
   });
 
-  it("forces the secondary button's on-primary text color with !important", () => {
-    // UX10-HW01 visual QA regression guard: `cn()` is plain string
-    // concatenation in this codebase (not tailwind-merge), so
-    // `variant="outline"`'s own `text-primary` class and this button's
-    // `text-on-primary` override are two conflicting color utilities whose
-    // winner is decided by Tailwind's generated stylesheet order, not JSX
-    // order — `text-on-primary` alone silently lost before this fix,
-    // rendering the label the same blue as the `tone="primary"` section
-    // background (confirmed via computed-style screenshot QA). Without
-    // `!`, a future edit could innocently "clean up" the `!` away and
-    // reintroduce the invisible-button regression.
-    expect(source).toMatch(/!text-on-primary/);
+  it("renders the secondary button with the dark-surface outline variant, so its label stays readable on the band", () => {
+    // UX10-HW01 guarded against the outline label rendering in the band's own
+    // colour (it used a "!text-on-primary" override). CIUX-01 supersedes the
+    // override with a dedicated variant: outline-inverse carries white text and
+    // a white hairline and no conflicting text-primary class, so there is no
+    // stylesheet-order race left to guard. The same intent is asserted here.
+    expect(source).toMatch(/variant="outline-inverse"/);
+    const button = readFileSync(path.resolve(import.meta.dirname, "../ui/Button.tsx"), "utf8");
+    const line = button.split("\n").find((l) => l.includes('"outline-inverse":')) ?? "";
+    expect(line).toContain("text-white");
+    expect(line).not.toMatch(/text-primary/);
   });
 });

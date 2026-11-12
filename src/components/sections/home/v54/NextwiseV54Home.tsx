@@ -24,7 +24,7 @@ import { NextwiseBrandLogo } from "@/components/brand/NextwiseBrandLogo";
 import { v54Grotesk, v54Sora } from "./fonts";
 import { HorizonScene, NextwiseV54Hero } from "./NextwiseV54Hero";
 import { V54AccountProvider, V54HeaderActions, V54MobileMenu } from "./V54Account";
-import { V54_NAV } from "@/lib/home/v54/config";
+import { NavMenus } from "@/components/navigation/NavMenus";
 import { V54Motion } from "./V54Motion";
 import "./v54.css";
 
@@ -66,13 +66,8 @@ export function NextwiseV54Home() {
         <Link href="/" className="v54-brand" aria-label="Nextwise home">
           <NextwiseBrandLogo variant="compact" tone="light" height={36} label="" priority />
         </Link>
-        <nav className="v54-nav" aria-label="Main">
-          {V54_NAV.map((n) => (
-            <Link key={n.href} href={n.href} className="v54-pill">
-              <span>{n.label}</span>
-            </Link>
-          ))}
-        </nav>
+        {/* CIUX-01: the site-wide grouped navigation, in the homepage's own pill style. */}
+        <NavMenus variant="home" />
         <V54HeaderActions />
         <V54MobileMenu rootId={ROOT_ID} />
       </header>

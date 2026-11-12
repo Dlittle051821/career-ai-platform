@@ -4,7 +4,9 @@ import { createContext, useContext, useEffect, useId, useRef, useState, type Rea
 import Link from "next/link";
 import { useAuthProfile } from "@/lib/supabase/use-auth-profile";
 import { getAccountMenuLinks } from "@/lib/navigation/account-menu";
-import { V54_ACCOUNT, V54_NAV } from "@/lib/home/v54/config";
+import { V54_ACCOUNT } from "@/lib/home/v54/config";
+import { DISCOVERY_SESSION_CTA } from "@/config/site";
+import { MobileNavGroups } from "@/components/navigation/MobileNavGroups";
 
 type Account = { signedIn: boolean; home: { href: string; label: string } };
 const AccountContext = createContext<Account>({ signedIn: false, home: { href: "/dashboard", label: "Dashboard" } });
@@ -113,13 +115,13 @@ export function V54MobileMenu({ rootId }: { rootId: string }) {
       >
         <span aria-hidden="true" />
       </button>
-      <div ref={panel} id={panelId} className="v54-menu" data-open={open ? "" : undefined} hidden={!open}>
-        <nav aria-label="Main">
-          {V54_NAV.map((n) => (
-            <Link key={n.href} href={n.href} onClick={() => setOpen(false)}>
-              {n.label}
-            </Link>
-          ))}
+      <div ref={panel} id={panelId} className="v54-menu" data-open={open ? "" : undefined} data-v54-free="" hidden={!open}>
+        {/* CIUX-01: the same grouped navigation as every other page. */}
+        <nav aria-label="Main" className="ciux-home-mobile-nav">
+          <Link href={DISCOVERY_SESSION_CTA.href} className="ciux-home-book" onClick={() => setOpen(false)}>
+            {DISCOVERY_SESSION_CTA.label}
+          </Link>
+          <MobileNavGroups onNavigate={() => setOpen(false)} />
         </nav>
         <div className="v54-menu-actions">
           {signedIn ? (

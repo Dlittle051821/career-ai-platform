@@ -48,32 +48,17 @@ export function CTASection({
       <div className="relative flex flex-col items-start gap-8 lg:flex-row lg:items-center lg:justify-between">
         <SectionHeading light title={title} description={description} className="lg:max-w-xl" />
         <div className="flex w-full flex-col gap-4 sm:w-auto sm:flex-row">
-          <LinkButton href={primaryHref} variant="secondary" size="lg" trailingIcon={<ArrowRight aria-hidden="true" className="h-4 w-4" />}>
+          <LinkButton href={primaryHref} variant="primary" size="lg" trailingIcon={<ArrowRight aria-hidden="true" className="h-4 w-4" />}>
             {primaryLabel}
           </LinkButton>
           <LinkButton
             href={secondaryHref}
-            variant="outline"
+            variant="outline-inverse"
             size="lg"
-            // UX10-HW01 visual QA caught a pre-existing, sitewide bug here:
-            // `variant="outline"` already sets `text-primary` (blue) in
-            // Button.tsx's VARIANT_CLASSES, and `cn()` in this codebase is
-            // plain string concatenation (documented repeatedly elsewhere
-            // this session), so JSX/string order does NOT decide which of
-            // two conflicting color utilities wins — only Tailwind's own
-            // generated stylesheet order does. On every page using this
-            // component's default secondary CTA (About, Study Options,
-            // Trust, Parents, Career Discovery, Pricing, Home, and now How
-            // It Works), `text-primary` was silently winning over
-            // `text-on-primary`, rendering this button's label the same
-            // blue as the `tone="primary"` section background behind it —
-            // i.e. effectively invisible. `!text-on-primary` (Tailwind's
-            // `!important`, the same override convention already used for
-            // `!bg-white/90` on HomeHero.tsx/CareersHero.tsx) forces the
-            // intended off-white text regardless of stylesheet order.
-            // Verified by direct screenshot inspection + computed-style
-            // check before and after this change.
-            className="border-white/30 !text-on-primary hover:bg-white/10"
+            // CIUX-01: outline-inverse is the button system's outline for dark
+            // surfaces (white label and hairline). It replaces the UX10-HW01
+            // "!text-on-primary" override that kept this label from rendering
+            // in the band's own colour.
           >
             {secondaryLabel}
           </LinkButton>

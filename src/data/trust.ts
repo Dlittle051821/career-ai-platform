@@ -74,7 +74,7 @@ export const ESCALATION_STEPS = [
   { step: "2. Service manager", description: "If unresolved, the service manager reviews and responds in writing." },
   {
     step: "3. Formal grievance contact",
-    description: "A dedicated grievance contact will be published once verified — see Contact for current placeholders.",
+    description: "Until a dedicated grievance officer is appointed, write to the founders directly — details on the Contact page.",
   },
 ];
 

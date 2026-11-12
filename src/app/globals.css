@@ -9,7 +9,12 @@
 @theme {
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, sans-serif;
-  --font-serif: var(--font-fraunces), "Iowan Old Style", "Source Serif 4", Georgia, serif;
+  /* CIUX-01: one heading face site-wide — Sora, the homepage's section
+     heading face (src/components/sections/home/v54/fonts.ts). --font-serif
+     is kept as an alias so every existing `font-serif` / h1–h4 rule now
+     renders Sora; Fraunces is no longer loaded. */
+  --font-display: var(--font-sora), "Sora", var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-display);
 
   /* ------------------------------------------------------------------
      Milestone 11 — Official NextWise visual identity, brand tokens.
@@ -46,36 +51,67 @@
   ------------------------------------------------------------------- */
 
   /* --- AUTHORITATIVE: Navy / Blue, per the approved NextWise brand spec --- */
-  --brand-primary: #2563eb;         /* AUTHORITATIVE — Blue, primary actions */
-  --brand-primary-strong: var(--brand-ink); /* AUTHORITATIVE — the one Navy value also serves as primary's "strong"/hover-dark variant */
-  --brand-ink: #0b1f3a;             /* AUTHORITATIVE — Navy: primary text/structure, premium/data-heavy sections, admin/analytics */
+  /* ------------------------------------------------------------------
+     CIUX-01 (2026-11-12) — ONE Nextwise palette, taken from the approved
+     V5.4 homepage (src/components/sections/home/v54/v54.css: --nw-brand-*,
+     --nw-action-*). It supersedes the UX10A blue #2563EB / navy #0B1F3A
+     values above for the whole site. Roles:
+       Navy  #03045F  structure, headings, secondary buttons, dark surfaces
+       Ocean #0077B6  links and highlights          Cyan #00B4D8  intelligence accent
+       Electric Coral #FF4D6D  the pink accent: primary CTA, active nav, selected
+       state (navy text on coral 5.51:1); coral as TEXT uses --brand-coral-strong.
+     Every pairing is re-checked in docs/ciux/CIUX-01-DESIGN-SYSTEM.md §2.
+  ------------------------------------------------------------------- */
+  --brand-navy: #03045F;            /* AUTHORITATIVE — homepage --nw-brand-navy */
+  --brand-ocean: #0077B6;           /* AUTHORITATIVE — homepage --nw-brand-ocean; 4.87:1 on white */
+  --brand-ocean-strong: #005A8C;    /* PROVISIONAL — ocean for small text/hover, 7.39:1 on white */
+  --brand-cyan: #00B4D8;            /* AUTHORITATIVE — homepage --nw-brand-cyan; chips/icons only */
+  --brand-aqua: #90E0EF;            /* AUTHORITATIVE — homepage --nw-brand-aqua */
+  --brand-ice: #CAF0F8;             /* AUTHORITATIVE — homepage --nw-brand-ice */
+  --brand-ice-pale: #E0F4FB;        /* PROVISIONAL — pale ice surface for chips and selected rows */
+  --brand-primary: #03045F;         /* AUTHORITATIVE — Navy (CIUX-01): text-primary / bg-primary everywhere */
+  --brand-primary-strong: #020240;  /* AUTHORITATIVE — homepage --p0, deepest navy (pressed/strong) */
+  --brand-primary-soft: #14205A;    /* AUTHORITATIVE — homepage --p5, navy hover */
+  --brand-ink: #0B1033;             /* AUTHORITATIVE — near-black navy body text (homepage nav text) */
+
+  /* Electric Coral — the pink accent. Use selectively: primary CTA, active
+     navigation, selected states, key highlights. Never large pink areas. */
+  --brand-action: #FF4D6D;          /* AUTHORITATIVE — homepage --nw-action-primary */
+  --brand-action-hover: #FF5F7B;    /* AUTHORITATIVE — homepage --nw-action-primary-hover */
+  --brand-action-active: #F23A5E;   /* PROVISIONAL — pressed; navy text 4.67:1 */
+  --brand-on-action: #03045F;       /* AUTHORITATIVE — homepage --nw-action-primary-text */
+  --brand-coral-strong: #C81E45;    /* PROVISIONAL — coral as text/icon on light (5.63:1 on white) */
+  --brand-coral-deep: #B3123A;      /* PROVISIONAL — coral text on pale coral (5.72:1) */
 
   /* --- PROVISIONAL: documented placeholders, no prior approved hex --- */
-  --brand-violet: #4c2e8c;          /* PROVISIONAL */
-  --brand-signal: #c6f24d;          /* PROVISIONAL — vivid lime. BACKGROUND/CHIP USE ONLY (pair with --brand-ink text on top); sparse; never long paragraphs; fails AA as text */
-  --brand-signal-strong: #557a00;   /* PROVISIONAL — darker lime-olive, safe for lime-as-TEXT/icon use (5.04:1 on white, 4.71:1 on paper) */
-  --brand-coral: #af351c;           /* PROVISIONAL — warnings/destructive/validation only, never decorative over large areas */
-  --brand-coral-pale: #fbe7e1;      /* PROVISIONAL — pale tint background for coral-toned alert/validation panels */
+  /* CIUX-01: the legacy purple and lime accents are retired. The names stay
+     (components and tests reference them) but now resolve to the unified
+     palette: violet -> ocean, signal (lime) -> pale coral with deep-coral text. */
+  --brand-violet: #005A8C;          /* PROVISIONAL — was purple #4c2e8c; now ocean-strong */
+  --brand-signal: #FFE4E9;          /* PROVISIONAL — was lime; now pale coral. BACKGROUND/CHIP USE ONLY with ink/deep-coral text */
+  --brand-signal-strong: #B3123A;   /* PROVISIONAL — deep coral for signal-as-text (6.85:1 on white) */
+  --brand-coral: var(--brand-action); /* alias of --brand-action — Electric Coral (CIUX-01). Was the error red; errors now use --brand-danger */
+  --brand-coral-pale: #FFE4E9;      /* PROVISIONAL — pale coral surface (homepage menu hover) */
   /* UX10A CORRECTION PASS: #faf7f1 (warm off-white) -> #f8fafc, the
      approved brand spec's Off White — see the correction note above.
      --color-surface (pure white, unchanged) stays the card/reading
      surface; this token is the page-level background underneath it. */
-  --brand-paper: #f8fafc;           /* AUTHORITATIVE — Off White, page background */
+  --brand-paper: #F8FAFC;           /* AUTHORITATIVE — Off White, page background */
   --brand-surface: #ffffff;         /* card/reading surface white */
-  --brand-muted: #5b6472;           /* PROVISIONAL — secondary/muted text */
-  --brand-border: #c3ccda;          /* PROVISIONAL — hairline dividers/card borders */
+  --brand-muted: #4A5068;           /* PROVISIONAL — homepage --v54-text; 7.96:1 on white */
+  --brand-border: #D5DDE8;          /* PROVISIONAL — hairline dividers/card borders (decorative) */
   /* True alias (was a stale hard-coded hex that had drifted out of sync
      with --brand-primary's own value) so the focus ring always tracks
      whatever "primary blue actions" currently resolves to. */
-  --brand-focus: var(--brand-primary); /* alias of --brand-primary — keyboard focus ring */
+  --brand-focus: var(--brand-navy); /* alias of --brand-navy — keyboard focus ring (homepage: 2px navy outline) */
   --brand-success: #1f7a3f;         /* PROVISIONAL */
   --brand-success-pale: #e4f3e9;    /* PROVISIONAL */
   --brand-warning: #8a5a00;         /* PROVISIONAL — amber-toned, softer caution than coral */
   --brand-warning-pale: #fdf0da;    /* PROVISIONAL */
-  --brand-danger: #af351c;          /* alias of --brand-coral — coral IS the spec's "important warnings/destructive/validation" color */
-  --brand-danger-pale: #fbe7e1;     /* alias of --brand-coral-pale */
-  --brand-info: #0b4fbf;            /* PROVISIONAL */
-  --brand-info-pale: #e5eeff;       /* PROVISIONAL */
+  --brand-danger: #B42318;          /* PROVISIONAL — error/destructive red, distinct from the coral accent (6.5:1 on white) */
+  --brand-danger-pale: #FDECEA;     /* PROVISIONAL */
+  --brand-info: #005A8C;            /* PROVISIONAL — ocean-strong */
+  --brand-info-pale: #E0F4FB;       /* PROVISIONAL — ice pale */
 
   /* ------------------------------------------------------------------
      UX01-02 — "intelligence" accent (cyan). The UX01-02 brief's palette
@@ -95,9 +131,9 @@
      tone alone fails AA as text. See docs/ux/UX01-02_FOUNDATION.md and
      docs/ux10a-premium-homepage-design-system.md.
   ------------------------------------------------------------------- */
-  --brand-intelligence: #22c7f2;         /* AUTHORITATIVE — Cyan, matches the brand spec exactly. BACKGROUND/CHIP/ICON USE ONLY, fails AA as small text */
-  --brand-intelligence-pale: #e3f7fc;    /* PROVISIONAL — pale tint background for cyan-toned accents */
-  --brand-intelligence-strong: #0e7490;  /* PROVISIONAL — deep cyan, safe for text/icon use (5.6:1 on white, 5.2:1 on paper) */
+  --brand-intelligence: #00B4D8;         /* AUTHORITATIVE — homepage cyan (CIUX-01). BACKGROUND/CHIP/ICON USE ONLY, fails AA as small text */
+  --brand-intelligence-pale: #E0F4FB;    /* PROVISIONAL — pale tint background for cyan-toned accents */
+  --brand-intelligence-strong: #0B6278;  /* PROVISIONAL — deep cyan, safe for text/icon use (6.92:1 on white) */
 
   /* ------------------------------------------------------------------
      Existing --color-* tokens, redefined as var(--brand-*) aliases
@@ -117,28 +153,50 @@
   /* Brand */
   --color-primary: var(--brand-primary);
   --color-primary-dark: var(--brand-primary-strong);
-  --color-primary-light: #2f6ff8;
+  --color-primary-light: #14205A;
   --color-primary-contrast: #ffffff;
 
-  --color-secondary: #0d7d6f;
-  --color-secondary-dark: #0a5f54;
-  --color-secondary-light: #e3f3f0;
+  /* CIUX-01: secondary was teal #0d7d6f (off-palette); now the homepage Ocean,
+     deepened one step for text: #0077B6 is 4.36:1 on surface-alt (fails AA
+     for small text); #00679E is 6.12:1 on white, 5.48:1 on surface-alt and
+     5.05:1 on ice. --brand-ocean keeps #0077B6 for fills and decoration. */
+  --color-secondary: #00679E;
+  --color-secondary-dark: #005A8C;
+  --color-secondary-light: #E0F4FB;
 
-  /* --color-accent intentionally NOT aliased to --brand-* — see note above. */
-  --color-accent: #d97f22;
-  --color-accent-dark: #b0651a;
-  --color-accent-light: #fbead6;
+  /* --color-accent intentionally NOT aliased to --brand-* — see note above.
+     CIUX-01: was orange #d97f22; now the coral family as literal values
+     (white text on #C81E45 = 5.63:1, so `bg-accent text-white` stays AA). */
+  --color-accent: #C81E45;
+  --color-accent-dark: #B3123A;
+  --color-accent-light: #FFE4E9;
+
+  /* CIUX-01 — the pink accent as its own semantic family (Button primary,
+     active navigation, selected states). Navy text on coral. */
+  --color-action: var(--brand-action);
+  --color-action-hover: var(--brand-action-hover);
+  --color-action-active: var(--brand-action-active);
+  --color-on-action: var(--brand-on-action);
+  --color-action-strong: var(--brand-coral-strong);
+  --color-action-soft: var(--brand-coral-pale);
+
+  /* CIUX-01 — navy surfaces (footer, dark bands) and the ocean link colour. */
+  --color-ink: var(--brand-navy);
+  --color-on-ink: #ffffff;
+  --color-on-ink-muted: #B9C3E6;
+  --color-link: var(--brand-ocean-strong);
+  --color-highlight: var(--brand-ocean);
 
   /* Neutrals */
   --color-background: var(--brand-paper);
   --color-surface: var(--brand-surface);
-  --color-surface-alt: #f3efe7;
+  --color-surface-alt: #EEF3F8;
   --color-border: var(--brand-border);
-  --color-border-strong: #a9b4c6;
+  --color-border-strong: #8E9BB3;
 
   /* Text */
   --color-text: var(--brand-ink);
-  --color-text-soft: #333c4d;
+  --color-text-soft: #3E4F72;
   --color-muted: var(--brand-muted);
   --color-on-primary: #f2f4f9;
   --color-on-primary-muted: #aab4cc;
@@ -160,11 +218,31 @@
   --color-intelligence-light: var(--brand-intelligence-pale);
   --color-intelligence-strong: var(--brand-intelligence-strong);
 
-  --radius-card: 1rem;
-  --radius-control: 0.625rem;
+  /* CIUX-01 shape, elevation and motion (docs/ciux/CIUX-01-DESIGN-SYSTEM.md). */
+  --radius-card: 1.25rem;
+  --radius-control: 0.75rem;
+  --radius-pill: 999px;
 
-  --shadow-soft: 0 1px 2px rgba(20, 24, 38, 0.04), 0 8px 24px -12px rgba(20, 24, 38, 0.12);
-  --shadow-lifted: 0 2px 4px rgba(20, 24, 38, 0.06), 0 16px 40px -16px rgba(20, 24, 38, 0.18);
+  --shadow-soft: 0 1px 2px rgba(3, 4, 95, 0.04), 0 8px 24px -14px rgba(3, 4, 95, 0.16);
+  --shadow-lifted: 0 2px 4px rgba(3, 4, 95, 0.06), 0 18px 40px -18px rgba(3, 4, 95, 0.26);
+  --shadow-action: 0 12px 22px -14px rgba(200, 30, 69, 0.8);
+
+  --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-base: 220ms;
+  --duration-slow: 360ms;
+
+  /* Type scale: display / headings (Sora) and body (Plus Jakarta Sans). */
+  --text-display: clamp(2.5rem, 1.6rem + 3.6vw, 4.5rem);
+  --text-display--line-height: 1.04;
+  --text-h1: clamp(2.125rem, 1.6rem + 2.1vw, 3.25rem);
+  --text-h1--line-height: 1.1;
+  --text-h2: clamp(1.75rem, 1.4rem + 1.4vw, 2.5rem);
+  --text-h2--line-height: 1.15;
+  --text-h3: clamp(1.25rem, 1.15rem + 0.5vw, 1.5rem);
+  --text-h3--line-height: 1.3;
+  --text-lead: clamp(1.0625rem, 1rem + 0.3vw, 1.25rem);
+  --text-lead--line-height: 1.6;
 
   /* ------------------------------------------------------------------
      UX10A — controlled pastel accent system for the premium homepage.
@@ -242,12 +320,13 @@
   --surface-soft-blue-strong: var(--brand-primary-strong);
   --surface-soft-cyan: #d2f0f9;
   --surface-soft-cyan-strong: #0b6278;
-  --surface-soft-pink: #fad8ea;
-  --surface-soft-pink-strong: #8a1044;
+  --surface-soft-pink: #FFE4E9;
+  --surface-soft-pink-strong: #B3123A;
   --surface-soft-mint: #d6eedd;
   --surface-soft-mint-strong: #1a6836;
-  --surface-soft-lavender: #e2dcfd;
-  --surface-soft-lavender-strong: #43287d;
+  /* CIUX-01: lavender retired (no purple) — now ice with navy text. */
+  --surface-soft-lavender: #E0F4FB;
+  --surface-soft-lavender-strong: #03045F;
   --surface-soft-amber: #fbe8c8;
   --surface-soft-amber-strong: #7a4f00;
 }
@@ -274,9 +353,9 @@
   h1, h2, h3, h4 {
     color: var(--color-primary);
     text-wrap: balance;
-    font-family: var(--font-serif);
+    font-family: var(--font-display);
     font-weight: 600;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
   }
 
   a {
@@ -293,7 +372,7 @@
   }
 
   ::selection {
-    background-color: var(--color-accent-light);
+    background-color: var(--color-action-soft);
     color: var(--color-primary-dark);
   }
 }
@@ -307,7 +386,8 @@
     background: var(--color-primary);
     color: var(--color-on-primary);
     padding: 0.75rem 1.25rem;
-    border-radius: 0.5rem;
+    border-radius: var(--radius-pill);
+    font-weight: 600;
     transition: top 0.15s ease-out;
   }
 
@@ -1088,4 +1168,111 @@
   .careers-hero-annotation {
     transition: none;
   }
+}
+
+/* ==================================================================
+   CIUX-01 — shared navigation, footer and motion (docs/ciux/CIUX-01-DESIGN-SYSTEM.md).
+   Plain CSS so the same rules serve the site header and the homepage's
+   own header (which is not Tailwind-styled). Everything honours
+   prefers-reduced-motion.
+   ================================================================== */
+
+/* Desktop menus: a short fade and lift on open (no delay, no blur). */
+.ciux-menu-panel:not([hidden]) .ciux-menu-card {
+  animation: ciux-menu-in var(--duration-base) var(--ease-out-soft) both;
+  transform-origin: top center;
+}
+@keyframes ciux-menu-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Mobile sheet slides in from the right. */
+.ciux-sheet[open] {
+  animation: ciux-sheet-in var(--duration-slow) var(--ease-out-soft) both;
+}
+@keyframes ciux-sheet-in {
+  from { transform: translateX(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+/* Footer and other navy surfaces: a white focus ring stays visible. */
+.ciux-footer :focus-visible,
+.bg-ink :focus-visible {
+  outline-color: #ffffff;
+}
+
+/* Homepage header: the shared menus reuse the homepage's own pill look. */
+.nw4.nw54 .ciux-home-nav > ul { display: contents; }
+.nw4.nw54 .ciux-home-trigger {
+  gap: 6px;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+.nw4.nw54 .ciux-home-trigger.ciux-open { color: var(--nw-action-primary-text); }
+.nw4.nw54 .ciux-home-trigger.ciux-open::before { opacity: 1; transform: scale(1); }
+/* The homepage stylesheet is unlayered and resets padding/margins inside
+   .nw4, which outranks Tailwind's layered utilities — so the open menu is
+   restated here in plain CSS with the same values as the site header. */
+.nw4.nw54 .ciux-home-nav .ciux-menu-panel { text-align: left; letter-spacing: normal; padding-top: 12px; }
+.nw4.nw54 .ciux-home-nav .ciux-menu-card {
+  padding: 8px; border-radius: 20px; background: #fff;
+  border: 1px solid rgba(3, 4, 95, 0.1); box-shadow: var(--shadow-lifted);
+}
+.nw4.nw54 .ciux-home-nav .ciux-menu-summary { padding: 12px 16px 4px; font-size: 12px; font-weight: 500; color: #4a5068; }
+.nw4.nw54 .ciux-home-nav .ciux-menu-list { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; list-style: none; }
+.nw4.nw54 .ciux-home-nav .ciux-menu-link {
+  display: block; padding: 12px 16px; border-radius: 14px; color: #03045f;
+  transition: background-color var(--duration-fast);
+}
+.nw4.nw54 .ciux-home-nav .ciux-menu-link:hover,
+.nw4.nw54 .ciux-home-nav .ciux-menu-link:focus-visible { background: #ffe4e9; }
+.nw4.nw54 .ciux-home-nav .ciux-menu-title { font-size: 15px; font-weight: 600; color: #03045f; }
+.nw4.nw54 .ciux-home-nav .ciux-menu-desc { display: block; margin-top: 2px; font-size: 13px; line-height: 1.35; color: #4a5068; }
+.nw4.nw54 .ciux-home-nav .ciux-menu-book {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-top: 4px; padding: 12px 16px; border-radius: 14px; background: #eef3f8;
+  font-size: 14px; font-weight: 600; color: #03045f;
+}
+.nw4.nw54 .ciux-home-nav .ciux-menu-book:hover { background: #ffe4e9; }
+
+/* Homepage mobile menu: room for the grouped list, scrolls inside itself. */
+.nw4.nw54 .v54-menu { max-height: calc(100dvh - 96px); overflow-y: auto; overscroll-behavior: contain; }
+.nw4.nw54 .v54-menu .ciux-home-mobile-nav { gap: 6px; }
+.nw4.nw54 .v54-menu .ciux-mobile-groups { list-style: none; }
+.nw4.nw54 .v54-menu .ciux-mg-trigger {
+  display: flex; width: 100%; min-height: 48px; align-items: center; justify-content: space-between;
+  padding: 0 16px; border-radius: 14px; font-size: 16px; font-weight: 600; color: #03045f; text-align: left;
+}
+.nw4.nw54 .v54-menu .ciux-mg-trigger[aria-expanded="true"],
+.nw4.nw54 .v54-menu .ciux-mg-trigger:hover { background: #eef3f8; }
+.nw4.nw54 .v54-menu .ciux-mg-summary { display: none; }
+.nw4.nw54 .v54-menu .ciux-mg-list { list-style: none; padding: 2px 0 6px 8px; }
+.nw4.nw54 .v54-menu .ciux-mg-link { min-height: 44px; padding: 0 16px; font-size: 15px; font-weight: 500; color: #0b1033; gap: 10px; }
+.nw4.nw54 .v54-menu .ciux-mg-link[aria-current="page"] { background: #ffe4e9; font-weight: 600; }
+.nw4.nw54 .v54-menu .ciux-home-book {
+  justify-content: center;
+  margin-bottom: 4px;
+  border-radius: 999px;
+  background: var(--nw-action-primary);
+  color: var(--nw-action-primary-text);
+  font-weight: 650;
+}
+.nw4.nw54 .v54-menu .ciux-home-book:hover { background: var(--nw-action-primary-hover); }
+
+/* Scroll reveal (components/motion/Reveal.tsx): visible by default, only
+   animated when JavaScript has marked it and motion is allowed. */
+.ciux-reveal[data-ciux-reveal="pending"] { opacity: 0; transform: translateY(14px); }
+.ciux-reveal[data-ciux-reveal="shown"] {
+  opacity: 1;
+  transform: none;
+  transition: opacity var(--duration-slow) var(--ease-out-soft), transform var(--duration-slow) var(--ease-out-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ciux-menu-panel:not([hidden]) .ciux-menu-card,
+  .ciux-sheet[open] { animation: none; }
+  .ciux-reveal[data-ciux-reveal] { opacity: 1; transform: none; transition: none; }
 }

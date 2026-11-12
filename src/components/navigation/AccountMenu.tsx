@@ -20,6 +20,8 @@ import { logout } from "@/lib/supabase/actions";
 import { firstNameOf } from "@/lib/supabase/use-auth-user";
 import { useAuthProfile } from "@/lib/supabase/use-auth-profile";
 import { getAccountMenuLinks, resolveAccountMenuLabel, type AccountMenuLinkKind } from "@/lib/navigation/account-menu";
+import { AUTH_LINKS } from "@/config/site";
+import { LinkButton } from "@/components/ui/Button";
 
 const LINK_ICONS: Record<AccountMenuLinkKind, LucideIcon> = {
   dashboard: LayoutDashboard,
@@ -86,29 +88,16 @@ export function AccountMenu() {
   }
 
   if (!user) {
-    // UX03-04: labels aligned to the spec's public-nav IA ("Sign In" /
-    // "Get Started" — same /login and /register routes, no auth change).
-    // "Get Started" is styled as the clear primary action, "Sign In" stays
-    // a quiet secondary link, matching the hero's own primary/secondary CTA
-    // hierarchy instead of presenting both with equal visual weight.
+    // CIUX-01: the homepage pair — "Log in" quiet, "Sign up" Electric Coral
+    // (same /login and /register routes, no auth change).
     return (
       <div className="flex shrink-0 items-center gap-1.5">
-        <Link
-          href="/login"
-          aria-label="Sign In"
-          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-sm font-medium text-text-soft hover:text-primary"
-        >
-          <LogIn aria-hidden="true" className="h-4 w-4" />
-          <span className="hidden 2xl:inline">Sign In</span>
-        </Link>
-        <Link
-          href="/register"
-          aria-label="Get Started"
-          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-control)] bg-primary px-3 py-1.5 text-sm font-medium text-on-primary shadow-soft hover:bg-primary-light"
-        >
-          <UserPlus aria-hidden="true" className="h-4 w-4" />
-          <span className="hidden sm:inline">Get Started</span>
-        </Link>
+        <LinkButton href={AUTH_LINKS.login.href} variant="ghost" size="sm" icon={<LogIn aria-hidden="true" className="h-4 w-4" />}>
+          {AUTH_LINKS.login.label}
+        </LinkButton>
+        <LinkButton href={AUTH_LINKS.signup.href} size="sm" icon={<UserPlus aria-hidden="true" className="h-4 w-4" />}>
+          {AUTH_LINKS.signup.label}
+        </LinkButton>
       </div>
     );
   }
@@ -126,7 +115,7 @@ export function AccountMenu() {
         aria-haspopup="menu"
         aria-controls="account-menu-panel"
         aria-label={`Account menu for ${firstName}, ${roleLabel}`}
-        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-sm font-medium text-text-soft hover:bg-surface-alt hover:text-primary"
+        className="inline-flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-pill)] border border-primary/15 bg-surface px-3 text-sm font-semibold text-primary transition-colors hover:border-primary/35"
       >
         <UserCircle aria-hidden="true" className="h-5 w-5" />
         <span className="hidden 2xl:inline">{roleLabel}</span>

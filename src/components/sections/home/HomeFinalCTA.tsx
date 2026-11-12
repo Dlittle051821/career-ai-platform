@@ -197,10 +197,10 @@ export function HomeFinalCTA() {
               </LinkButton>
               <LinkButton
                 href="/book-counselling"
-                variant="outline"
+                variant="outline-inverse"
                 size="lg"
                 icon={<Calendar aria-hidden="true" className="h-4 w-4" />}
-                className="justify-center border-white/30 text-on-primary hover:bg-white/10"
+                className="justify-center"
               >
                 Talk to an Expert
               </LinkButton>

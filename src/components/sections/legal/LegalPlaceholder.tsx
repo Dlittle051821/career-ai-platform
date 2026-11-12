@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { OFFICIAL_CONTACT } from "@/config/contact";
 import { FileWarning } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -49,7 +50,11 @@ export function LegalPlaceholder({ eyebrow, title, intro, categories, breadcrumb
         </div>
 
         <p className="mt-8 text-sm text-muted">
-          Last updated: {LEGAL_STATUS.lastUpdated}. Questions about this policy? Visit{" "}
+          Last updated: {LEGAL_STATUS.lastUpdated}. Questions about this policy? Email{" "}
+          <a href={OFFICIAL_CONTACT.founder.mailto} className="text-secondary-dark underline underline-offset-2">
+            {OFFICIAL_CONTACT.founder.email}
+          </a>
+          , visit{" "}
           <Link href="/contact" className="text-secondary-dark underline underline-offset-2">
             Contact
           </Link>{" "}

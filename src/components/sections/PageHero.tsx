@@ -42,9 +42,9 @@ export function PageHero({ eyebrow, title, description, breadcrumbs, children, v
         <div className={hasVisual ? "space-y-6" : undefined}>
           {breadcrumbs ? <Breadcrumbs items={breadcrumbs} /> : null}
           <div className={cn("max-w-3xl", hasVisual && FADE_UP_CLASSES)}>
-            {eyebrow ? <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-secondary">{eyebrow}</p> : null}
-            <h1 className="text-4xl sm:text-5xl font-semibold text-primary balance">{title}</h1>
-            {description ? <p className="mt-5 text-lg text-muted leading-relaxed">{description}</p> : null}
+            {eyebrow ? <p className="mb-3 text-sm font-semibold text-secondary-dark">{eyebrow}</p> : null}
+            <h1 className="text-[length:var(--text-h1)] leading-[var(--text-h1--line-height)] font-semibold text-primary balance">{title}</h1>
+            {description ? <p className="mt-5 text-[length:var(--text-lead)] leading-[var(--text-lead--line-height)] text-muted">{description}</p> : null}
           </div>
           {children}
         </div>

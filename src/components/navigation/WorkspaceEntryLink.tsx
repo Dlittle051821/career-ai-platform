@@ -69,8 +69,8 @@ export function WorkspaceEntryLink({
       href={href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-control)] border border-border-strong px-3 py-1.5 text-sm font-medium transition-colors duration-200",
-        active ? "border-primary text-primary" : "text-text-soft hover:border-primary hover:text-primary",
+        "inline-flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-pill)] border px-3.5 text-sm font-semibold transition-colors duration-200",
+        active ? "border-action bg-[var(--brand-coral-pale)] text-primary" : "border-primary/15 bg-surface text-primary hover:border-primary/35",
         className
       )}
     >

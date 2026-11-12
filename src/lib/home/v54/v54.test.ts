@@ -57,7 +57,9 @@ const faceShare = (mode: Mode, f: ReturnType<typeof cardFrame>) => {
 describe("NW-V5.4 — isolation and preservation", () => {
   it("is the production homepage: / renders it in every environment (no development-only gate) with the site's public metadata", () => {
     const page = read(PAGE);
-    expect(page).toContain("return <NextwiseV54Home />;");
+    // CIUX-01 — the page now renders the unchanged V5.4 story first, then the
+    // "Start where you are" quick routes (QuickExplore) before the footer.
+    expect(page).toMatch(/<NextwiseV54Home \/>\s*<QuickExplore \/>/);
     expect(page).not.toMatch(/isHomepagePreviewEnabled|notFound|homepage-preview/);
     expect(page).toMatch(/publicPageMetadata\(\s*"\/"/);
   });

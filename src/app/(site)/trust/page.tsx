@@ -11,7 +11,6 @@ import { PageHero } from "@/components/sections/PageHero";
 import { CTASection } from "@/components/sections/CTASection";
 import { FaqAccordion } from "@/components/sections/FaqAccordion";
 import { ComingSoon } from "@/components/ui/ComingSoon";
-import { DemoNotice } from "@/components/ui/DemoNotice";
 import {
   APPLICATION_STATUS_PREVIEW,
   COMPANY_VERIFICATION_ITEMS,
@@ -24,6 +23,7 @@ import {
 } from "@/data/trust";
 import { TRUST_FAQS } from "@/data/faqs";
 import { LEGAL_STATUS } from "@/config/site";
+import { OFFICIAL_CONTACT } from "@/config/contact";
 
 export const metadata: Metadata = publicPageMetadata(
   "/trust",
@@ -215,10 +215,17 @@ export default function TrustCenterPage() {
             </li>
           ))}
         </ol>
-        <DemoNotice className="mt-6">
-          Contact details for escalation remain placeholders until verified — see the Contact page for what&apos;s
-          currently available.
-        </DemoNotice>
+        <p className="mt-6 text-sm text-muted">
+          To raise a concern now, write to the founder at{" "}
+          <a href={OFFICIAL_CONTACT.founder.mailto} className="font-medium text-link underline underline-offset-2">
+            {OFFICIAL_CONTACT.founder.email}
+          </a>{" "}
+          or call{" "}
+          <a href={OFFICIAL_CONTACT.phone.tel} className="font-medium text-link underline underline-offset-2">
+            {OFFICIAL_CONTACT.phone.display}
+          </a>
+          .
+        </p>
       </Section>
 
       <Section tone="muted">

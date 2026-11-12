@@ -27,6 +27,11 @@ describe("central brand configuration (src/config/site.ts)", () => {
   });
 
   it("never presents a fabricated-looking email address as if it were a real, monitored one", () => {
+    // CIUX-01 — superseded again by an explicit owner instruction: the
+    // official addresses founder@nextwise.com and co-founder@nextwise.com are
+    // now approved for public display (src/config/contact.ts). The invariant
+    // is now that CONTACT.emailLabel shows exactly those approved addresses
+    // and nothing fabricated (no placeholder, example or legacy domain).
     // NW08.5 — superseded the old "(placeholder)"-suffixed fake address
     // (hello@nextwise.example) per that milestone's explicit instruction
     // not to leave a fabricated business email address live anywhere on
@@ -35,7 +40,7 @@ describe("central brand configuration (src/config/site.ts)", () => {
     // contain an "@" (i.e. must never look like an actual address) until a
     // real, approved one is supplied — the same honest "coming soon" /
     // "not yet published" treatment already used for phone/office below.
-    expect(CONTACT.emailLabel).not.toContain("@");
+    expect(CONTACT.emailLabel).toBe("founder@nextwise.com, co-founder@nextwise.com");
     expect(CONTACT.emailLabel).not.toContain("careerpathai");
     expect(CONTACT.emailLabel.toLowerCase()).not.toContain("nextwise.example");
   });

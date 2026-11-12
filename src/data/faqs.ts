@@ -30,7 +30,7 @@ export const HOME_FAQS: FaqItem[] = [
   {
     question: "Is Odia-language support available?",
     answer:
-      "You can select ଓଡ଼ିଆ in the language switcher today, but the full Odia experience is coming soon. Spoken Odia support during counselling calls can be requested in the meantime.",
+      "The website is in English today and the full Odia experience is coming soon. Spoken Odia support during counselling calls can be requested in the meantime.",
   },
 ];
 
@@ -127,7 +127,7 @@ export const TRUST_FAQS: FaqItem[] = [
   {
     question: "Who do I contact with a complaint?",
     answer:
-      "The intended escalation path is counsellor, then service manager, then a formal grievance contact. Contact details will be published here once finalised.",
+      "The escalation path is counsellor, then service manager, then a formal grievance contact. Until a grievance officer is appointed, write to the founders directly — the addresses and phone number are on the Contact page.",
   },
 ];
 

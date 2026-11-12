@@ -1,4 +1,4 @@
-import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
+import { Fraunces, Plus_Jakarta_Sans, Sora } from "next/font/google";
 
 /**
  * Shared font configuration for every root layout in the app.
@@ -20,8 +20,20 @@ export const jakarta = Plus_Jakarta_Sans({
   display: "swap",
 });
 
-// Headings: a soft-optical-size serif for an editorial, trustworthy feel —
-// distinct from generic SaaS sans-only type without tipping into ornate.
+// Headings (CIUX-01): Sora, the approved homepage's section-heading face
+// (src/components/sections/home/v54/fonts.ts loads the same family for the
+// homepage scene). Replaces Fraunces so every page shares one heading face.
+// SIL Open Font License 1.1, self-hosted at build time by next/font.
+export const sora = Sora({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-sora",
+  display: "swap",
+});
+
+// Fraunces stays loaded ONLY because the approved homepage's V4/V5.4 scene
+// CSS (src/components/sections/home/v4/v4-home.css) reads --font-fraunces;
+// removing it would change the homepage. No other page uses it any more.
 export const fraunces = Fraunces({
   subsets: ["latin"],
   variable: "--font-fraunces",
@@ -30,4 +42,4 @@ export const fraunces = Fraunces({
   axes: ["opsz", "SOFT"],
 });
 
-export const fontVariables = `${jakarta.variable} ${fraunces.variable}`;
+export const fontVariables = `${jakarta.variable} ${sora.variable} ${fraunces.variable}`;

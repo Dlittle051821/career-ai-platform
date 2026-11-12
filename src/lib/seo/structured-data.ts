@@ -1,3 +1,4 @@
+import { OFFICIAL_CONTACT } from "@/config/contact";
 import { SEO_ORIGIN } from "@/config/seo";
 import { BRAND_LOGO, BRAND_NAME, BRAND_SHORT_DESCRIPTION } from "@/config/site";
 
@@ -12,6 +13,17 @@ export function getOrganizationJsonLd() {
     description: BRAND_SHORT_DESCRIPTION,
     url: origin,
     logo: absoluteLogo,
+    // CIUX-01: the official public contact details (src/config/contact.ts).
+    contactPoint: [
+      {
+        "@type": "ContactPoint",
+        contactType: "customer support",
+        telephone: OFFICIAL_CONTACT.phone.e164,
+        email: OFFICIAL_CONTACT.founder.email,
+        areaServed: "IN",
+        availableLanguage: ["English"],
+      },
+    ],
   };
 }
 

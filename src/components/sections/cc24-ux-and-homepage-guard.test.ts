@@ -9,6 +9,16 @@ import baseline from "./cc24-v54-baseline-hashes.json";
  * V5.4 homepage, the master logo and their assets are exactly what was
  * deployed at a1017b9 (line endings normalized, so the guard behaves the
  * same on Windows CRLF checkouts and on Linux).
+ *
+ * CIUX-01 re-pinned exactly four of these files, on the owner's CIUX-01
+ * instruction to integrate the global navigation into the homepage and add
+ * a Quick Explore section: src/app/(site)/page.tsx (renders QuickExplore
+ * after the story), NextwiseV54Home.tsx (the header pills now render the
+ * shared NavMenus) and V54Account.tsx (the mobile menu renders the shared
+ * MobileNavGroups) and src/lib/home/v54/v54.test.ts (its page assertion
+ * now expects the story followed by QuickExplore). Every other homepage, logo and asset pin is unchanged
+ * from a1017b9, and a pixel comparison against the cc26 baseline showed the
+ * story scenes unchanged (docs/ciux/CIUX-01-TESTING.md).
  */
 
 const ROOT = path.resolve(import.meta.dirname, "../../..");

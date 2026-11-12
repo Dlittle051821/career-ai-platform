@@ -115,10 +115,20 @@ describe("NW04.3/NW04.4 — ProductSubNav is shared, not duplicated, and both pr
  * before/after comparison and rationale.
  */
 describe("NW08.5 — nav-IA consolidation: one flat six-item primary nav, no href lost", () => {
-  it("Header.tsx renders MAIN_NAV_ITEMS as a flat row, not a dropdown grouping", () => {
+  // CIUX-01 — the owner's CIUX-01 brief explicitly replaces NW08.5's flat
+  // six-item row with grouped desktop dropdowns and mobile disclosure groups
+  // (Explore / Free tools / How it works, plus Pricing), so every required
+  // destination is reachable from the header. Both surfaces now render one
+  // shared source, NAV_GROUPS in src/config/site.ts, through NavMenus
+  // (desktop) and MobileNavGroups (mobile). The NW08.5 invariants that still
+  // matter are kept: one shared source, no legacy NavDropdown/ExploreMenu,
+  // and no MAIN_NAV href lost (asserted in the NAV_GROUPS tests below and in
+  // src/config/ciux-navigation.test.ts). See docs/ciux/CIUX-01-NAVIGATION.md.
+  it("Header.tsx renders the shared NAV_GROUPS through NavMenus (CIUX-01 supersedes the NW08.5 flat row)", () => {
     const code = stripComments(read("components/navigation/Header.tsx"));
-    expect(code).toContain("MAIN_NAV_ITEMS.map");
+    expect(code).toContain("<NavMenus");
     expect(code).not.toMatch(/NavDropdown|ExploreMenu/);
+    expect(stripComments(read("components/navigation/NavMenus.tsx"))).toContain("NAV_GROUPS.map");
   });
 
   it("MAIN_NAV in site.ts is the exact six-item brief order: Home, Explore Careers, Career Intelligence, Study Abroad, Universities, Courses", () => {
@@ -136,10 +146,11 @@ describe("NW08.5 — nav-IA consolidation: one flat six-item primary nav, no hre
     expect(content).toMatch(/label:\s*"Study Abroad",\s*href:\s*"\/abroad"/);
   });
 
-  it("MobileNav renders the same MAIN_NAV_ITEMS array as Header.tsx — one shared source, not an independent list", () => {
+  it("MobileNav renders the same NAV_GROUPS as the desktop header — one shared source, not an independent list (CIUX-01)", () => {
     const content = read("components/navigation/MobileNav.tsx");
-    expect(content).toContain("MAIN_NAV_ITEMS.map");
+    expect(content).toContain("<MobileNavGroups");
     expect(content).not.toMatch(/PRODUCT_NAV|EXPLORE_NAV|PRIMARY_NAV/);
+    expect(stripComments(read("components/navigation/MobileNavGroups.tsx"))).toContain("NAV_GROUPS.map");
   });
 
   it("the role-aware workspace entry (My Studio / Counsellor Workspace / Admin Studio) is rendered on both desktop and mobile from the one WorkspaceEntryLink component", () => {

@@ -1,4 +1,5 @@
 import type { NavLink } from "@/types";
+import { CONTACT_PEOPLE, OFFICIAL_CONTACT } from "./contact";
 
 /**
  * Single source of truth for brand identity and site-wide constants.
@@ -162,57 +163,126 @@ function findNav(href: string): NavLink {
   return found;
 }
 
+/**
+ * CIUX-01 — the grouped site navigation shared by the desktop header, the
+ * mobile menu, the homepage header and the footer. Built only from routes
+ * that exist (findNav throws for an unknown href; the CIUX nav test also
+ * checks every href against src/app). Labels follow the NW08.5 naming
+ * rules: "Explore Careers" (/careers) vs "Career Intelligence" (/career);
+ * "Study Abroad" is the public entry point for /abroad.
+ *
+ * Not listed: a Resume Builder. No such route exists in this codebase, and
+ * the navigation must never advertise a feature that does not work (CIUX-01
+ * backlog: CIUX-06).
+ */
+export type NavGroup = {
+  id: "explore" | "tools" | "nextwise";
+  label: string;
+  /** One line under the group title in the open menu. */
+  summary: string;
+  links: NavLink[];
+};
+
+export const NAV_GROUPS: NavGroup[] = [
+  {
+    id: "explore",
+    label: "Explore",
+    summary: "Careers, universities, courses and study destinations.",
+    links: [
+      findNav("/careers"),
+      findNav("/career"),
+      findNav("/universities"),
+      findNav("/courses"),
+      findNav("/abroad"),
+      { label: "Study in Europe", href: "/study-europe", description: "Germany, Ireland, the Netherlands, France, Sweden and Denmark." },
+    ],
+  },
+  {
+    id: "tools",
+    label: "Free tools",
+    summary: "Free to use, no payment needed.",
+    links: [
+      { ...findNav("/career-discovery"), description: "A guided look at your interests and strengths." },
+      { ...findNav("/compare"), description: "Put two or more careers side by side." },
+      { label: "Compare Courses", href: "/courses/compare", description: "Compare courses on fees, duration and entry." },
+      { ...findNav("/study-options"), description: "India or abroad: an honest side-by-side." },
+    ],
+  },
+  {
+    id: "nextwise",
+    label: "How it works",
+    summary: "How Nextwise guides you, and who we are.",
+    links: [
+      { ...findNav("/how-it-works"), description: "From your goals to the right opportunity, step by step." },
+      { ...findNav("/parents"), description: "Cost, safety and how you stay involved." },
+      { label: "About Nextwise", href: "/about", description: "Why Nextwise exists and how we work." },
+      { ...findNav("/trust"), description: "How we handle data, money and advice." },
+      { label: "Contact & Support", href: "/contact", description: "Reach the founders directly." },
+    ],
+  },
+];
+
+/** CIUX-01 — a direct (non-dropdown) header link after the groups. */
+export const HEADER_DIRECT_LINKS: NavLink[] = [findNav("/pricing")];
+
+/** CIUX-01 — the persistent free-session action (public booking page). */
+export const DISCOVERY_SESSION_CTA: NavLink = {
+  label: "Book a free session",
+  href: "/book-counselling",
+  description: "A free first conversation with a Nextwise counsellor.",
+};
+
+/** CIUX-01 — the auth entry points, shared by the header and mobile menu. */
+export const AUTH_LINKS = {
+  login: { label: "Log in", href: "/login" },
+  signup: { label: "Sign up", href: "/register" },
+} as const;
+
 export const FOOTER_NAV: Record<string, NavLink[]> = {
-  Products: [
+  Explore: [
+    { ...findNav("/careers"), label: "Explore Careers" },
     { ...findNav("/career"), label: "Career Intelligence" },
+    findNav("/universities"),
+    findNav("/courses"),
     { ...findNav("/abroad"), label: "Nextwise Abroad" },
   ],
-  Explore: [
-    { ...findNav("/careers"), label: "Careers" },
-    findNav("/courses"),
-    findNav("/universities"),
-    findNav("/study-options"),
+  "Free tools": [
+    findNav("/career-discovery"),
     findNav("/compare"),
+    { label: "Compare Courses", href: "/courses/compare" },
+    findNav("/study-options"),
   ],
   Nextwise: [
     findNav("/how-it-works"),
-    findNav("/book-counselling"),
     findNav("/pricing"),
+    { ...findNav("/book-counselling"), label: "Free Discovery Session" },
+    findNav("/parents"),
     findNav("/about"),
-    findNav("/career-discovery"),
+    findNav("/trust"),
   ],
-  "For Families": [findNav("/parents"), findNav("/trust"), findNav("/contact")],
   Legal: [
     { label: "Privacy Policy", href: "/privacy" },
     { label: "Terms of Service", href: "/terms" },
     { label: "Refund Policy", href: "/refund-policy" },
-  ],
-  Account: [
-    { label: "Sign In", href: "/login" },
-    { label: "Get Started", href: "/register" },
+    findNav("/contact"),
   ],
 };
 
 /**
- * Contact details are placeholders until verified information is supplied
- * by the business owner. Never invent an address, phone number, or
- * registration ID — surface the placeholder state instead.
- *
- * NW08.5 — `hello@nextwise.example` (an RFC 2606 reserved "example" domain
- * that cannot route real mail) was removed per this milestone's explicit
- * instruction not to present a fabricated-looking business email address
- * as if it were a real contact method. No real, approved email address has
- * been supplied, so this now states that plainly — the same honest
- * "coming soon" / "not yet published" treatment already used below for
- * phone support and the physical office, not a guessed replacement address.
+ * CIUX-01 — public contact details, derived from src/config/contact.ts (the
+ * single source). Kept under the CONTACT name for existing callers. No
+ * office address, hours or response time is published (none approved).
  */
 export const CONTACT = {
-  emailLabel: "Email support — coming soon",
-  phoneLabel: "Phone support — coming soon",
+  people: CONTACT_PEOPLE,
+  phone: OFFICIAL_CONTACT.phone,
+  website: OFFICIAL_CONTACT.website,
+  /** The founders' addresses, comma-separated, for compact one-line uses. */
+  emailLabel: CONTACT_PEOPLE.map((p) => p.email).join(", "),
+  phoneLabel: OFFICIAL_CONTACT.phone.display,
   cityStatement:
-    "Built for students and families across Odisha. We operate as a remote-first guidance team; a physical office is not yet published.",
-  supportHours: "Mon–Sat, 10:00–18:00 IST (illustrative — to be confirmed)",
-};
+    "Built for students and families across Odisha and India. We work as a remote-first guidance team.",
+} as const;
 
 export const LEGAL_STATUS = {
   lastUpdated: "28 August 2026",

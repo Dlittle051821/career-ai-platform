@@ -35,14 +35,14 @@ export function SectionHeading({
       {eyebrow ? (
         <p
           className={cn(
-            "mb-3 text-sm font-semibold uppercase tracking-wide",
-            light ? "text-on-primary-strong" : "text-secondary"
+            "mb-3 text-sm font-semibold",
+            light ? "text-[var(--brand-aqua)]" : "text-secondary-dark"
           )}
         >
           {eyebrow}
         </p>
       ) : null}
-      <Tag className={cn("text-3xl sm:text-4xl font-semibold balance", light ? "text-on-primary" : "text-primary", titleClassName)}>
+      <Tag className={cn("text-[length:var(--text-h2)] leading-[var(--text-h2--line-height)] font-semibold balance", light ? "text-on-primary" : "text-primary", titleClassName)}>
         {title}
       </Tag>
       {description ? (

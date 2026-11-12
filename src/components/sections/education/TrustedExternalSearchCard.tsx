@@ -105,7 +105,7 @@ export function TrustedExternalSearchCard({ result }: { result: AdapterResult })
         {result.warningText ? (
           <div
             className="mt-3 flex items-start gap-2 rounded-[var(--radius-control)] border px-3.5 py-3 text-sm"
-            style={{ borderColor: "var(--brand-coral)", backgroundColor: "var(--brand-coral-pale)", color: "var(--brand-coral)" }}
+            style={{ borderColor: "var(--brand-coral)", backgroundColor: "var(--brand-coral-pale)", color: "var(--brand-coral-deep)" }}
             role="note"
           >
             <ShieldAlert aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
