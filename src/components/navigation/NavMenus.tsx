@@ -4,11 +4,11 @@ import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent as 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, ChevronDown } from "lucide-react";
-import { DISCOVERY_SESSION_CTA, HEADER_DIRECT_LINKS, NAV_GROUPS, type NavGroup } from "@/config/site";
+import { DISCOVERY_SESSION_CTA, HEADER_DIRECT_LINKS, HEADER_LEADING_LINKS, HEADER_NAV_HREFS, NAV_GROUPS, type NavGroup } from "@/config/site";
 import { resolveActiveNavHref } from "@/lib/navigation/active-nav";
 
 /**
- * The global desktop navigation (CIUX-01, unified in CIUX-01B): three
+ * The global desktop navigation (CIUX-01, unified in CIUX-01B): Home, three
  * disclosure menus (Explore, Free tools, How it works) and one direct link
  * (Pricing) inside the homepage's navigation capsule. The same component and
  * the same stylesheet (src/styles/site-header.css) render it on the homepage
@@ -38,7 +38,7 @@ export function NavMenus() {
   const hoverOpenedAt = useRef(0);
   const baseId = useId();
   // one most-specific match across the whole header, so a nested route lights up one place only
-  const activeHref = resolveActiveNavHref(pathname, [...NAV_GROUPS.flatMap((g) => g.links.map((l) => l.href)), ...HEADER_DIRECT_LINKS.map((l) => l.href)]);
+  const activeHref = resolveActiveNavHref(pathname, HEADER_NAV_HREFS);
 
   if (pathname !== lastPath) {
     setLastPath(pathname);
@@ -100,6 +100,16 @@ export function NavMenus() {
       }}
     >
       <ul>
+        {HEADER_LEADING_LINKS.map((link) => {
+          const active = link.href === activeHref;
+          return (
+            <li key={link.href} className="nwh-item">
+              <Link href={link.href} aria-current={active ? "page" : undefined} className="nwh-pill">
+                <span>{link.label}</span>
+              </Link>
+            </li>
+          );
+        })}
         {NAV_GROUPS.map((group) => {
           const open = openId === group.id;
           const active = group.links.some((l) => l.href === activeHref);

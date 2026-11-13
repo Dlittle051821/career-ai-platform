@@ -222,8 +222,22 @@ export const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
+/**
+ * CIUX-01B — direct (non-dropdown) header links before the groups: Home
+ * first, so every page is one click from the homepage (the logo links there
+ * too). Desktop menus and the phone menu both read this list.
+ */
+export const HEADER_LEADING_LINKS: NavLink[] = [HOME_NAV_LINK];
+
 /** CIUX-01 — a direct (non-dropdown) header link after the groups. */
 export const HEADER_DIRECT_LINKS: NavLink[] = [findNav("/pricing")];
+
+/** CIUX-01B — every header destination, in header order (for one active-place resolution). */
+export const HEADER_NAV_HREFS: string[] = [
+  ...HEADER_LEADING_LINKS.map((l) => l.href),
+  ...NAV_GROUPS.flatMap((g) => g.links.map((l) => l.href)),
+  ...HEADER_DIRECT_LINKS.map((l) => l.href),
+];
 
 /** CIUX-01 — the persistent free-session action (public booking page). */
 export const DISCOVERY_SESSION_CTA: NavLink = {

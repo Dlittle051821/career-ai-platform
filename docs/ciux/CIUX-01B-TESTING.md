@@ -131,3 +131,30 @@ Reading:
 
 - Real-device testing (iOS Safari, Android Chrome) and screen-reader passes (VoiceOver, NVDA): recommended during the offline review.
 - Signed-in header states were checked in code and unit tests only. The browser runs were signed out, to avoid creating accounts.
+
+## Final navigation correction: Home (2026-11-13)
+
+**`home-nav.cjs`: 45 of 45 passed**
+
+| Area | Result |
+|---|---|
+| Desktop order | Home, Explore, Free tools, How it works, Pricing. Home is active on `/`, and is the only active item there. |
+| Flows | Homepage → How It Works → Home. Study Abroad → Home. Pricing → Home. Logo → Home (from Contact). Browser Back and Forward work. |
+| Home hover | The same coral pill (rgb 255, 77, 109; opacity 1; 0.2 s timing) |
+| Keyboard | Tab from the logo lands on Home. The focus pill shows the navy ring. Enter goes home. |
+| Capsule clearance | Clear of the logo and account actions (≥ 12 px) at 768 × 800, 1024 × 768, 1280 × 720, 1366 × 768, 1440 × 900 and 1920 × 1080, on `/` and `/how-it-works` |
+| Phones (360, 390 px) | Home is the first destination in the menu. The row is ≥ 44 px. Its active state is correct. No overflow. Home in the phone menu goes home. |
+| Errors | None |
+
+**Regression**
+- **Interaction suite:** 99 of 99 passed.
+- **Layout and accessibility:** no horizontal overflow in 125 checks (25 routes at 360, 390, 768, 1024 and 1440 px); axe found 0 violations.
+- **Hit areas:** still at least 24 px.
+- **Homepage story:** identical to the approved CIUX-01B in 16 of 16 frames. Only the header strip was masked, because it now holds the Home item; page height and story markup are identical.
+- **Hydration:** 0 warnings in development mode with a fresh browser, across 13 routes.
+
+**Gates**
+- **Vitest:** 184 files, 3160 passed, 1 skipped.
+- **TypeScript:** 0 errors.
+- **ESLint:** 0 errors, 6 pre-existing warnings.
+- **Production build:** passes.

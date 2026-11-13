@@ -169,3 +169,19 @@ See the README in the delivery package (`C:\ClaudeBuilds\CIUX-01B-PKG\README.txt
 5. **Mailbox delivery and CC-26 QA acceptance** are still open, as reported in CIUX-01.
 
 **After approval:** push `ciux/01b-header-hero` (or merge it into `ciux/01-foundation`), then CIUX-02, the rest of How It Works below the first screen.
+
+## Final navigation correction: Home (approved review follow-up, 2026-11-13)
+
+**What changed**
+- **Home is the first header item, before Explore.** It is a direct link to `/` (Next.js `Link`) and uses the same `nwh-pill` design: typography, shape, Electric Coral hover/focus pill and timing.
+  - On `/` it shows the active state: bold label and dot, `aria-current="page"`. On every other page it stays visible, one click from the homepage.
+- **Defined once, in config.** `HEADER_LEADING_LINKS = [HOME_NAV_LINK]` and `HEADER_NAV_HREFS` (every header destination in order) live in `src/config/site.ts`.
+  - `NavMenus` (desktop) and `MobileNavGroups` (phone) both render Home first from that list.
+  - Active-place resolution uses `HEADER_NAV_HREFS`, so Home is active only on `/` itself.
+- **The logo** already linked to `/` (`aria-label="Nextwise home"`); that is unchanged and now tested.
+- **Phones:** Home is the first destination in the menu, after the "Book a free session" action.
+
+**What did not change**
+- Header geometry and the approved spacing are untouched. The capsule simply grows by one pill and stays clear of the logo and account actions (at least 12 px) at every desktop size, from 768 × 800 up to 1920 × 1080.
+- The homepage story, the page heroes, the contact details and all security code are unchanged.
+- Only 6 files changed: `site.ts`, `NavMenus.tsx`, `MobileNavGroups.tsx` and three test files.

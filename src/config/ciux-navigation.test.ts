@@ -7,6 +7,8 @@ import {
   DISCOVERY_SESSION_CTA,
   FOOTER_NAV,
   HEADER_DIRECT_LINKS,
+  HEADER_LEADING_LINKS,
+  HEADER_NAV_HREFS,
   MAIN_NAV_ITEMS,
   NAV_GROUPS,
 } from "@/config/site";
@@ -93,7 +95,7 @@ describe("CIUX-01 official contact details (src/config/contact.ts)", () => {
 
 describe("CIUX-01 navigation (NAV_GROUPS)", () => {
   const groupHrefs = NAV_GROUPS.flatMap((g) => g.links.map((l) => l.href));
-  const headerHrefs = [...groupHrefs, ...HEADER_DIRECT_LINKS.map((l) => l.href), DISCOVERY_SESSION_CTA.href];
+  const headerHrefs = [...HEADER_LEADING_LINKS.map((l) => l.href), ...groupHrefs, ...HEADER_DIRECT_LINKS.map((l) => l.href), DISCOVERY_SESSION_CTA.href];
 
   it("has the three groups in order: Explore, Free tools, How it works", () => {
     expect(NAV_GROUPS.map((g) => g.id)).toEqual(["explore", "tools", "nextwise"]);
@@ -123,8 +125,13 @@ describe("CIUX-01 navigation (NAV_GROUPS)", () => {
 
   it("a link appears in only one header place, so only one item can show as active", () => {
     const counts = new Map<string, number>();
-    for (const h of [...groupHrefs, ...HEADER_DIRECT_LINKS.map((l) => l.href)]) counts.set(h, (counts.get(h) ?? 0) + 1);
+    for (const h of HEADER_NAV_HREFS) counts.set(h, (counts.get(h) ?? 0) + 1);
     expect([...counts].filter(([, n]) => n > 1)).toEqual([]);
+  });
+
+  it("Home is the first header destination and points at the homepage (CIUX-01B)", () => {
+    expect(HEADER_LEADING_LINKS).toEqual([{ label: "Home", href: "/" }]);
+    expect(HEADER_NAV_HREFS[0]).toBe("/");
   });
 
   it("the free session call to action is the public booking page", () => {

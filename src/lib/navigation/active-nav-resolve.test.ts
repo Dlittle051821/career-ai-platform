@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { resolveActiveNavHref } from "./active-nav";
-import { HEADER_DIRECT_LINKS, NAV_GROUPS } from "@/config/site";
+import { HEADER_NAV_HREFS, NAV_GROUPS } from "@/config/site";
 
-const ALL = [...NAV_GROUPS.flatMap((g) => g.links.map((l) => l.href)), ...HEADER_DIRECT_LINKS.map((l) => l.href)];
+const ALL = HEADER_NAV_HREFS;
 const groupOf = (href: string | null) => NAV_GROUPS.find((g) => g.links.some((l) => l.href === href))?.id ?? (href ? "direct" : null);
 
 describe("CIUX-01B resolveActiveNavHref — one active place in the header", () => {
@@ -17,11 +17,16 @@ describe("CIUX-01B resolveActiveNavHref — one active place in the header", () 
     ["/pricing", "/pricing", "direct"],
     ["/pricing/checkout/explore", "/pricing", "direct"],
     ["/privacy", null, null],
-    ["/", null, null],
+    ["/", "/", "direct"],
   ])("%s → %s (%s)", (path, href, group) => {
     const got = resolveActiveNavHref(path, ALL);
     expect(got).toBe(href);
     expect(groupOf(got)).toBe(group);
+  });
+
+  it("Home is active only on the homepage itself, never on internal pages", () => {
+    expect(resolveActiveNavHref("/", ALL)).toBe("/");
+    for (const p of ["/how-it-works", "/abroad", "/pricing", "/careers/ai-engineer", "/privacy"]) expect(resolveActiveNavHref(p, ALL)).not.toBe("/");
   });
 
   it("never treats a shared word prefix as a parent (/career is not the parent of /careers or /career-discovery)", () => {

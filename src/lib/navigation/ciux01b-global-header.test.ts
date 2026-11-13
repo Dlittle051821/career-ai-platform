@@ -56,6 +56,16 @@ describe("CIUX-01B one global header", () => {
     }
   });
 
+  it("Home comes first in the desktop and the phone navigation, from the central config; the logo also links home", () => {
+    for (const rel of ["components/navigation/NavMenus.tsx", "components/navigation/MobileNavGroups.tsx"]) {
+      const code = strip(read(rel));
+      expect(code.indexOf("HEADER_LEADING_LINKS.map"), rel).toBeGreaterThan(-1);
+      expect(code.indexOf("HEADER_LEADING_LINKS.map"), rel).toBeLessThan(code.indexOf("NAV_GROUPS.map"));
+    }
+    expect(strip(read("components/navigation/NavMenus.tsx"))).toMatch(/HEADER_LEADING_LINKS\.map[\s\S]*?className="nwh-pill"/);
+    expect(strip(read("components/navigation/Header.tsx"))).toMatch(/<Link href="\/"[^>]*aria-label="Nextwise home"/);
+  });
+
   it("navigation destinations are defined once (NAV_GROUPS) and used by both desktop and phone menus", () => {
     expect(strip(read("components/navigation/NavMenus.tsx"))).toContain("NAV_GROUPS.map");
     expect(strip(read("components/navigation/MobileNavGroups.tsx"))).toContain("NAV_GROUPS.map");

@@ -4,7 +4,7 @@ import { useId, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown } from "lucide-react";
-import { HEADER_DIRECT_LINKS, NAV_GROUPS, type NavGroup } from "@/config/site";
+import { HEADER_DIRECT_LINKS, HEADER_LEADING_LINKS, HEADER_NAV_HREFS, NAV_GROUPS, type NavGroup } from "@/config/site";
 import { resolveActiveNavHref } from "@/lib/navigation/active-nav";
 
 /**
@@ -17,13 +17,23 @@ import { resolveActiveNavHref } from "@/lib/navigation/active-nav";
  */
 export function MobileNavGroups({ onNavigate, className }: { onNavigate?: () => void; className?: string }) {
   const pathname = usePathname();
-  const activeHref = resolveActiveNavHref(pathname, [...NAV_GROUPS.flatMap((g) => g.links.map((l) => l.href)), ...HEADER_DIRECT_LINKS.map((l) => l.href)]);
+  const activeHref = resolveActiveNavHref(pathname, HEADER_NAV_HREFS);
   const initial = NAV_GROUPS.find((g) => g.links.some((l) => l.href === activeHref))?.id ?? null;
   const [openId, setOpenId] = useState<NavGroup["id"] | null>(initial);
   const baseId = useId();
 
   return (
     <ul className={className ? `ciux-mobile-groups ${className}` : "ciux-mobile-groups"}>
+      {HEADER_LEADING_LINKS.map((link) => {
+        const current = link.href === activeHref;
+        return (
+          <li key={link.href}>
+            <Link href={link.href} onClick={onNavigate} aria-current={current ? "page" : undefined} className="ciux-mg-trigger">
+              {link.label}
+            </Link>
+          </li>
+        );
+      })}
       {NAV_GROUPS.map((group) => {
         const open = openId === group.id;
         const panelId = `${baseId}-${group.id}`;
