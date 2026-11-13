@@ -1,0 +1,503 @@
+/* ==========================================================================
+   CIUX-01B — the global Nextwise header. ONE stylesheet for the homepage and
+   every public page (components/navigation/Header.tsx → SiteHeader).
+
+   The values are the approved V5.4 homepage header's (formerly in
+   components/sections/home/v54/v54.css and the CIUX-01 block in globals.css,
+   both now removed there). Plain, unlayered CSS on purpose: the homepage's
+   own stylesheet is unlayered and resets padding/margins inside .nw4, which
+   would outrank Tailwind's layered utilities. Every rule here has at least
+   two classes (or an element + class) so it also outranks `.nw4 *`.
+
+   Two contexts, one design:
+   - home  — inside the homepage story; position, zoom, intro fade and the
+             scroll-story state stay with the homepage engine (v54.css).
+   - page  — every other public page; the same geometry from
+             src/lib/navigation/header-geometry.ts (set on <html> before
+             first paint). Transparent at the top, solid once scrolled —
+             the same two states as the homepage.
+   ========================================================================== */
+
+:root {
+  --nwh-z: 1;
+  --nwh-x: 40px;
+  --nwh-y: 24px;
+  --nwh-offset: 110px;
+  --nwh-ease: cubic-bezier(.2, .8, .2, 1);
+  --nwh-coral: #FF4D6D;
+  --nwh-coral-hover: #FF5F7B;
+  --nwh-on-coral: #03045F;
+  --nwh-navy: #03045F;
+  --nwh-ink: #0B1033;
+}
+@media (max-width: 699.98px), (max-aspect-ratio: 86/100) {
+  :root { --nwh-x: 14px; --nwh-y: 14px; --nwh-offset: 70px; }
+}
+
+/* ---------- the bar ---------- */
+header.nwh {
+  height: 86px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 45px 0 44px;
+  border-radius: 30px;
+  font-family: var(--font-jakarta), "Plus Jakarta Sans", system-ui, sans-serif;
+  color: var(--nwh-ink);
+  transition: background-color .35s, box-shadow .35s, height .35s;
+}
+header.nwh[data-nwh-context="page"] {
+  position: fixed;
+  z-index: 50;
+  left: var(--nwh-x);
+  right: var(--nwh-x);
+  top: var(--nwh-y);
+  zoom: var(--nwh-z);
+}
+/* solid state: homepage once the story scrolls; other pages once the page scrolls */
+header.nwh[data-solid],
+.nw4.nw54[data-v54-state="scroll-story"] header.nwh {
+  height: 60px;
+  padding: 0 10px 0 22px;
+  background: rgba(255, 255, 255, .95);
+  box-shadow: 0 12px 32px -20px rgba(3, 4, 95, .45);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+header.nwh .nwh-brand { display: flex; align-items: center; border-radius: 10px; }
+header.nwh .nwh-brand:focus-visible { outline: 2px solid var(--nwh-navy); outline-offset: 3px; }
+/* invisible hit-area extensions (nothing drawn): logo and account buttons stay ≥ 24 px at the smallest header scale */
+header.nwh .nwh-brand,
+header.nwh .nwh-login,
+header.nwh .nwh-signup { position: relative; }
+header.nwh .nwh-brand::after,
+header.nwh .nwh-login::after,
+header.nwh .nwh-signup::after { content: ""; position: absolute; inset: -6px -3px; }
+
+/* ---------- the navigation capsule and its pills ---------- */
+header.nwh .nwh-nav {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2px;
+  padding: 0 4px;
+  height: 38px;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(3, 4, 95, .1);
+  background: rgba(255, 255, 255, .72);
+  font-size: 14.5px;
+  font-weight: 500;
+  letter-spacing: -.005em;
+  color: var(--nwh-ink);
+}
+header.nwh .nwh-nav > ul { display: contents; list-style: none; margin: 0; padding: 0; }
+header.nwh .nwh-item { position: relative; list-style: none; }
+/* An Electric Coral pill grows in behind the label on hover / keyboard focus / open (opacity + scale on a
+   pseudo-element, ~220 ms) with a soft lift shadow; pressed = a slight press-in. The hit area never changes. */
+header.nwh .nwh-pill {
+  position: relative;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* the pill is drawn 30 px tall (::before inset 5px), but its hit area is 40 px, so it stays at least 24 px
+     (WCAG 2.2 target size) even when the header follows the stage down to its smallest scale (0.62) */
+  height: 40px;
+  margin: -1px 0;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  color: var(--nwh-ink);
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: color .2s var(--nwh-ease);
+}
+header.nwh .nwh-pill::before {
+  content: "";
+  position: absolute;
+  inset: 5px 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--nwh-coral);
+  opacity: 0;
+  transform: scale(.86);
+  box-shadow: 0 8px 18px -10px rgba(200, 30, 69, 0);
+  transition: opacity .2s var(--nwh-ease), transform .22s var(--nwh-ease), box-shadow .22s var(--nwh-ease);
+}
+header.nwh .nwh-pill:hover,
+header.nwh .nwh-pill:focus-visible,
+header.nwh .nwh-pill[aria-expanded="true"] { color: var(--nwh-on-coral); }
+header.nwh .nwh-pill:hover::before,
+header.nwh .nwh-pill:focus-visible::before,
+header.nwh .nwh-pill[aria-expanded="true"]::before {
+  opacity: 1;
+  transform: scale(1);
+  box-shadow: 0 8px 18px -10px rgba(200, 30, 69, .75);
+}
+header.nwh .nwh-pill:active::before { opacity: 1; transform: scale(.95); }
+header.nwh .nwh-pill:focus-visible { outline: none; }
+header.nwh .nwh-pill:focus-visible::before { outline: 2px solid var(--nwh-navy); outline-offset: 2px; }
+header.nwh .nwh-pill svg { width: 14px; height: 14px; transition: transform .22s var(--nwh-ease); }
+header.nwh .nwh-pill[aria-expanded="true"] svg { transform: rotate(180deg); }
+/* current page / current section: weight and a small marker, not colour alone */
+header.nwh .nwh-pill[aria-current="page"],
+header.nwh .nwh-pill[data-active] { font-weight: 700; color: var(--nwh-navy); }
+header.nwh .nwh-pill[aria-current="page"]::after,
+header.nwh .nwh-pill[data-active]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: currentColor;
+}
+header.nwh .nwh-pill[data-active]:hover,
+header.nwh .nwh-pill[data-active][aria-expanded="true"],
+header.nwh .nwh-pill[aria-current="page"]:hover { color: var(--nwh-on-coral); }
+@media (hover: none) {
+  header.nwh .nwh-pill:hover:not([aria-expanded="true"])::before { opacity: 0; transform: scale(.86); }
+  header.nwh .nwh-pill:hover:not([aria-expanded="true"]) { color: var(--nwh-ink); }
+}
+
+/* ---------- desktop menu panels ---------- */
+header.nwh .nwh-panel {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  z-index: 60;
+  width: 560px;
+  transform: translateX(-50%);
+  padding-top: 12px; /* the bridge between trigger and panel: the pointer never "falls out" of the menu */
+  text-align: left;
+  letter-spacing: normal;
+}
+header.nwh .nwh-panel[data-wide] { width: 600px; }
+header.nwh .nwh-panel[hidden] { display: none; }
+header.nwh .nwh-card {
+  padding: 8px;
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid rgba(3, 4, 95, .1);
+  box-shadow: 0 24px 48px -20px rgba(3, 4, 95, .35), 0 2px 8px -4px rgba(3, 4, 95, .12);
+  transform-origin: top center;
+  animation: nwh-panel-in .22s var(--nwh-ease) both;
+}
+@keyframes nwh-panel-in {
+  from { opacity: 0; transform: translateY(-6px) scale(.985); }
+  to { opacity: 1; transform: none; }
+}
+header.nwh .nwh-summary { padding: 12px 16px 4px; font-size: 12px; font-weight: 500; color: #4A5068; }
+header.nwh .nwh-list { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; list-style: none; margin: 0; padding: 0; }
+header.nwh .nwh-link {
+  display: block;
+  padding: 12px 16px;
+  border-radius: 14px;
+  color: var(--nwh-navy);
+  text-decoration: none;
+  transition: background-color .15s var(--nwh-ease);
+}
+header.nwh .nwh-link:hover,
+header.nwh .nwh-link:focus-visible { background: #FFE4E9; }
+header.nwh .nwh-link:focus-visible { outline: 2px solid var(--nwh-navy); outline-offset: -2px; }
+header.nwh .nwh-link[aria-current="page"] { background: #EEF3F8; }
+header.nwh .nwh-link-title { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: var(--nwh-navy); }
+header.nwh .nwh-link-desc { display: block; margin-top: 2px; font-size: 13px; line-height: 1.35; font-weight: 400; color: #4A5068; }
+header.nwh .nwh-book {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: #EEF3F8;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--nwh-navy);
+  text-decoration: none;
+  transition: background-color .15s var(--nwh-ease);
+}
+header.nwh .nwh-book:hover,
+header.nwh .nwh-book:focus-visible { background: #FFE4E9; }
+header.nwh .nwh-book svg { width: 16px; height: 16px; flex: none; color: #C81E45; }
+
+/* ---------- account actions ---------- */
+header.nwh .nwh-actions { display: flex; align-items: center; gap: 8px; }
+/* Log in: clearly readable, quietly outlined. Sign up / workspace: the Electric Coral pill — one dominant action. */
+header.nwh .nwh-login {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--nwh-navy);
+  padding: 0 18px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(3, 4, 95, .18);
+  background: rgba(255, 255, 255, .6);
+  text-decoration: none;
+  transition: border-color .2s, background-color .2s, box-shadow .2s;
+}
+header.nwh .nwh-login:hover { border-color: rgba(3, 4, 95, .42); background: #fff; box-shadow: 0 6px 14px -10px rgba(3, 4, 95, .5); }
+header.nwh .nwh-login:active { background: #F1F6FB; }
+header.nwh .nwh-login:focus-visible { outline: 2px solid var(--nwh-navy); outline-offset: 2px; }
+header.nwh .nwh-signup {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--nwh-on-coral);
+  background: var(--nwh-coral);
+  height: 38px;
+  padding: 0 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 10px 20px -14px rgba(3, 4, 95, .8);
+  transition: background-color .2s, transform .22s var(--nwh-ease), box-shadow .22s;
+}
+header.nwh .nwh-signup:hover { background: var(--nwh-coral-hover); transform: translateY(-1px); box-shadow: 0 12px 22px -14px rgba(200, 30, 69, .8); }
+header.nwh .nwh-signup:active { transform: translateY(0) scale(.98); }
+header.nwh .nwh-signup:focus-visible { outline: 2px solid var(--nwh-navy); outline-offset: 3px; }
+/* signed in: the account menu trigger, a round companion to the workspace pill */
+header.nwh .nwh-account {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(3, 4, 95, .18);
+  background: rgba(255, 255, 255, .6);
+  color: var(--nwh-navy);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color .2s, background-color .2s;
+}
+header.nwh .nwh-account:hover,
+header.nwh .nwh-account[aria-expanded="true"] { border-color: rgba(3, 4, 95, .42); background: #fff; }
+header.nwh .nwh-account:focus-visible { outline: 2px solid var(--nwh-navy); outline-offset: 2px; }
+
+header.nwh .nwh-signup svg { width: 16px; height: 16px; flex: none; }
+header.nwh .nwh-acct { position: relative; }
+header.nwh .nwh-acct-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  z-index: 60;
+  width: 232px;
+  padding: 6px;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid rgba(3, 4, 95, .1);
+  box-shadow: 0 24px 48px -20px rgba(3, 4, 95, .35);
+  text-align: left;
+  animation: nwh-panel-in .22s var(--nwh-ease) both;
+}
+header.nwh .nwh-acct-who { padding: 10px 12px; border-bottom: 1px solid rgba(3, 4, 95, .08); }
+header.nwh .nwh-acct-name { font-size: 14px; font-weight: 700; color: var(--nwh-navy); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+header.nwh .nwh-acct-role { font-size: 12px; font-weight: 600; color: #005A8C; }
+header.nwh .nwh-acct-email { font-size: 12px; color: #4A5068; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+header.nwh .nwh-acct-list { list-style: none; margin: 0; padding: 4px 0; }
+header.nwh .nwh-acct-out { border-top: 1px solid rgba(3, 4, 95, .08); padding-top: 4px; }
+header.nwh .nwh-acct-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: #3E4F72;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+header.nwh .nwh-acct-item svg { width: 16px; height: 16px; flex: none; }
+header.nwh .nwh-acct-item:hover:not(:disabled) { background: #FFE4E9; color: var(--nwh-navy); }
+header.nwh .nwh-acct-item:focus-visible { outline: 2px solid var(--nwh-navy); outline-offset: -2px; }
+header.nwh .nwh-acct-item:disabled { opacity: .6; cursor: default; }
+header.nwh .nwh-acct-item[data-danger] { color: #B42318; }
+header.nwh .nwh-acct-item[data-danger]:hover { background: #FDECEA; color: #B42318; }
+header.nwh .nwh-acct-soon { margin-left: auto; font-size: 12px; }
+
+/* ---------- phones and portrait tablets: menu button and panel ---------- */
+header.nwh .nwh-menu-btn {
+  display: none;
+  position: relative;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(3, 4, 95, .14);
+  background: #fff;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+header.nwh .nwh-menu-btn span,
+header.nwh .nwh-menu-btn span::before,
+header.nwh .nwh-menu-btn span::after {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18px;
+  height: 2px;
+  margin: -1px 0 0 -9px;
+  border-radius: 2px;
+  background: var(--nwh-navy);
+  transition: transform .22s var(--nwh-ease), opacity .15s;
+}
+header.nwh .nwh-menu-btn span::before,
+header.nwh .nwh-menu-btn span::after { content: ""; margin: 0; left: 0; top: 0; }
+header.nwh .nwh-menu-btn span::before { transform: translateY(-6px); }
+header.nwh .nwh-menu-btn span::after { transform: translateY(6px); }
+header.nwh .nwh-menu-btn[aria-expanded="true"] span { background: transparent; }
+header.nwh .nwh-menu-btn[aria-expanded="true"] span::before { transform: rotate(45deg); }
+header.nwh .nwh-menu-btn[aria-expanded="true"] span::after { transform: rotate(-45deg); }
+header.nwh .nwh-menu-btn:focus-visible { outline: 2px solid var(--nwh-navy); outline-offset: 2px; }
+
+header.nwh .nwh-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: min(320px, calc(100vw - 28px));
+  max-height: calc(100dvh - 96px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(3, 4, 95, .06), 0 24px 48px -20px rgba(3, 4, 95, .45);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  animation: nwh-panel-in .22s var(--nwh-ease) both;
+}
+header.nwh .nwh-menu[hidden] { display: none; }
+header.nwh .nwh-menu-nav { display: flex; flex-direction: column; gap: 6px; }
+header.nwh .nwh-menu .nwh-menu-book {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  margin-bottom: 4px;
+  border-radius: 999px;
+  background: var(--nwh-coral);
+  color: var(--nwh-on-coral);
+  font-size: 16px;
+  font-weight: 650;
+  text-decoration: none;
+}
+header.nwh .nwh-menu .nwh-menu-book:hover { background: var(--nwh-coral-hover); }
+header.nwh .nwh-menu .ciux-mobile-groups { list-style: none; margin: 0; padding: 0; }
+header.nwh .nwh-menu .ciux-mg-trigger {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--nwh-navy);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+header.nwh .nwh-menu .ciux-mg-trigger[aria-expanded="true"],
+header.nwh .nwh-menu .ciux-mg-trigger:hover,
+header.nwh .nwh-menu .ciux-mg-trigger[aria-current="page"] { background: #EEF3F8; }
+header.nwh .nwh-menu .ciux-mg-trigger svg { width: 20px; height: 20px; flex: none; transition: transform .22s var(--nwh-ease); }
+header.nwh .nwh-menu .ciux-mg-trigger[aria-expanded="true"] svg { transform: rotate(180deg); }
+header.nwh .nwh-menu .ciux-mg-summary { display: none; }
+header.nwh .nwh-menu .ciux-mg-list { list-style: none; margin: 0; padding: 2px 0 6px 8px; }
+header.nwh .nwh-menu .ciux-mg-list[hidden] { display: none; }
+header.nwh .nwh-menu .ciux-mg-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--nwh-ink);
+  text-decoration: none;
+}
+header.nwh .nwh-menu .ciux-mg-link:hover { background: #FFE4E9; }
+header.nwh .nwh-menu .ciux-mg-link[aria-current="page"] { background: #FFE4E9; font-weight: 600; }
+header.nwh .nwh-menu .ciux-mg-link[aria-current="page"]::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--nwh-coral);
+}
+header.nwh .nwh-menu-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 8px 4px 4px;
+  border-top: 1px solid rgba(3, 4, 95, .08);
+}
+header.nwh .nwh-menu-actions > * { height: 48px; justify-content: center; font-size: 15px; }
+header.nwh .nwh-menu-actions > :only-child { grid-column: 1 / -1; }
+header.nwh .nwh-menu-actions form { display: contents; }
+header.nwh .nwh-menu-actions button.nwh-login { width: 100%; cursor: pointer; font-family: inherit; }
+
+/* the portrait layout (phones, portrait tablets) — the same rule as the homepage stage (stage.ts) */
+@media (max-width: 699.98px), (max-aspect-ratio: 86/100) {
+  header.nwh { height: 56px; padding: 0 6px 0 14px; gap: 8px; }
+  header.nwh[data-solid],
+  .nw4.nw54[data-v54-state="scroll-story"] header.nwh { height: 56px; padding: 0 6px 0 12px; }
+  header.nwh > .nwh-nav,
+  header.nwh > .nwh-actions .nwh-login,
+  header.nwh > .nwh-actions .nwh-account { display: none; }
+  header.nwh > .nwh-actions { margin-left: auto; }
+  header.nwh > .nwh-actions .nwh-signup { height: 40px; padding: 0 16px; font-size: 14px; }
+  header.nwh .nwh-menu-btn { display: block; flex: none; }
+}
+
+/* ---------- the page shell: content starts below the floating header ---------- */
+body:not(:has(.nw54)) > main#main-content { padding-top: var(--nwh-offset); }
+/* the site header is not rendered on the homepage (it renders its own SiteHeader inside the story); this guard
+   also covers preview routes that render a homepage story */
+body:has(.nw54) > header.nwh[data-nwh-context="page"] { display: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  header.nwh,
+  header.nwh .nwh-pill,
+  header.nwh .nwh-pill::before,
+  header.nwh .nwh-pill svg,
+  header.nwh .nwh-signup,
+  header.nwh .nwh-menu-btn span,
+  header.nwh .nwh-menu-btn span::before,
+  header.nwh .nwh-menu-btn span::after { transition: none; }
+  header.nwh .nwh-card,
+  header.nwh .nwh-menu,
+  header.nwh .nwh-acct-panel { animation: none; }
+  header.nwh .nwh-signup:hover { transform: none; }
+}

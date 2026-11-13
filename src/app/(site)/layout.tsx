@@ -8,8 +8,11 @@ import { BRAND_LOGO, BRAND_NAME, BRAND_SHORT_DESCRIPTION, BRAND_TAGLINE } from "
 import { fontVariables } from "@/lib/fonts";
 import { getOrganizationJsonLd, getWebsiteJsonLd, toSafeJsonLdString } from "@/lib/seo/structured-data";
 import { HomepageFailsafe } from "@/components/sections/home/launch/HomepageFailsafe";
+import { HEADER_GEOMETRY_SCRIPT } from "@/lib/navigation/header-geometry";
 import "../globals.css";
 import "@/styles/cc22b-launch-overrides.css";
+import "@/styles/site-header.css";
+import "@/styles/page-hero.css";
 
 const DEFAULT_TITLE = `${BRAND_NAME} — ${BRAND_TAGLINE}`;
 
@@ -76,7 +79,9 @@ export const metadata: Metadata = {
  */
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={fontVariables}>
+    // CIUX-01B: suppressHydrationWarning covers only <html>'s own attributes — the header geometry script sets
+    // --nwh-* and data-nwh-mode there before hydration, by design (src/lib/navigation/header-geometry.ts).
+    <html lang="en" className={fontVariables} suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans text-text antialiased">
         <script
           type="application/ld+json"
@@ -86,6 +91,9 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: toSafeJsonLdString(getWebsiteJsonLd()) }}
         />
+        {/* CIUX-01B: places the global header with the homepage's stage geometry before the first paint
+            (src/lib/navigation/header-geometry.ts), so it never jumps or shifts content. */}
+        <script dangerouslySetInnerHTML={{ __html: HEADER_GEOMETRY_SCRIPT }} />
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>

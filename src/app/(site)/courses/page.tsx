@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { publicPageMetadata } from "@/config/seo";
 import Link from "next/link";
 import { Section } from "@/components/layout/Section";
+import { PageHero } from "@/components/sections/PageHero";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -22,8 +23,6 @@ import { LaunchCountryDiscovery } from "@/components/sections/education/LaunchCo
 import { resolveListEmptyState } from "@/lib/ui/list-state";
 import type { CourseDurationUnit } from "@/types/education";
 import { GeometricBackdrop } from "@/components/graphics/GeometricBackdrop";
-import { FADE_UP_CLASSES } from "@/lib/ui/motion";
-import { cn } from "@/lib/utils";
 import CoursesLoading from "./list-skeleton";
 
 // M17A Step 5 — canonical is deliberately static and points at the clean
@@ -260,17 +259,10 @@ async function CoursesPageContent({ searchParams }: CoursesPageProps) {
   const destinationInternalCountMatches = Boolean(destinationCountryRow && countryIds.length === 1 && countryIds[0] === destinationCountryRow.id);
 
   return (
-    <Section tone="muted" className="relative overflow-hidden pt-10 sm:pt-14">
+    <>
+    <PageHero size="compact" fadeTo="muted" eyebrow="Course Explorer" title="Browse courses" description="Search and filter a starter dataset of university courses — subject, qualification level, study mode, tuition, and intakes — with a link through to each course's own detail page. Select up to four to compare them side by side." />
+    <Section tone="muted" className="relative overflow-hidden pt-6 sm:pt-6 lg:pt-8">
       <GeometricBackdrop variant="grid" />
-      <div className={cn("mb-6", FADE_UP_CLASSES)}>
-        <p className="text-sm font-semibold uppercase tracking-wide text-secondary">Course Explorer</p>
-        <h1 className="mt-2 text-3xl font-semibold text-primary balance sm:text-4xl">Browse courses</h1>
-        <p className="mt-2 max-w-2xl text-muted">
-          Search and filter a starter dataset of university courses — subject, qualification level, study mode,
-          tuition, and intakes — with a link through to each course&apos;s own detail page. Select up to four to
-          compare them side by side.
-        </p>
-      </div>
 
       <LaunchCountryDiscovery
         selectedCode={selectedLaunchCode}
@@ -407,5 +399,6 @@ async function CoursesPageContent({ searchParams }: CoursesPageProps) {
         them.
       </GuidanceNotice>
     </Section>
+    </>
   );
 }

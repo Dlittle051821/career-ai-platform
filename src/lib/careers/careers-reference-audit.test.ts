@@ -87,11 +87,14 @@ describe("UX10-C01 — CareerInsightsPanel is an honest substitute, never fabric
 });
 
 describe("UX10-C01 — real journey-step data reuse (no second icon/route mapping invented)", () => {
-  it("JourneyMiniMap and CareersHero both reuse the one real EXPLORER_JOURNEY_STEPS list", () => {
+  it("JourneyMiniMap reuses the one real EXPLORER_JOURNEY_STEPS list, and CareersHero invents no second one", () => {
+    // CIUX-01B: the hero no longer repeats the journey as a chip cluster (it is the shared PageHero); the
+    // JourneyMiniMap strip just below is the one place the steps are shown, from the one real list.
     const journeyMiniMap = stripComments(COMPONENT_SOURCES["JourneyMiniMap.tsx"]);
     const hero = stripComments(COMPONENT_SOURCES["CareersHero.tsx"]);
     expect(journeyMiniMap).toContain('from "@/lib/careers/explorer-journey"');
-    expect(hero).toContain('from "@/lib/careers/explorer-journey"');
+    expect(hero).toContain("<PageHero");
+    expect(hero).not.toMatch(/order: \d|"\/career-discovery"|"\/universities"/);
   });
 
   it("explorer-journey.ts links only to real, pre-existing public routes, never a fabricated one", () => {

@@ -48,8 +48,11 @@ const WORKSPACE_LINKS: Record<string, { label: string; href: string; icon: Lucid
 export function WorkspaceEntryLink({
   className,
   forceLabel = false,
+  bare = false,
 }: {
   className?: string;
+  /** CIUX-01B: render only `className` (the global header styles it as its coral workspace pill). */
+  bare?: boolean;
   /** MobileNav's drawer is always narrower than the `sm:` breakpoint, so the pill's default "icon-only below `sm:`" label behavior would hide the label entirely there — pass true to always render it. */
   forceLabel?: boolean;
 }) {
@@ -68,14 +71,14 @@ export function WorkspaceEntryLink({
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={cn(
+      className={bare ? className : cn(
         "inline-flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-pill)] border px-3.5 text-sm font-semibold transition-colors duration-200",
         active ? "border-action bg-[var(--brand-coral-pale)] text-primary" : "border-primary/15 bg-surface text-primary hover:border-primary/35",
         className
       )}
     >
       <Icon aria-hidden="true" className="h-4 w-4" />
-      <span className={forceLabel ? undefined : "hidden sm:inline"}>{label}</span>
+      <span className={forceLabel || bare ? undefined : "hidden sm:inline"}>{label}</span>
     </Link>
   );
 }

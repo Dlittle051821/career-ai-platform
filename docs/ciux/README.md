@@ -12,6 +12,10 @@ Branch `ciux/01-foundation`, created from `cc26/launch-readiness` at `8659828` (
 - A navy footer and a rebuilt contact page using the official contact details from one config file; the fake-success demo form is gone.
 - 0 axe violations on 23 public routes (baseline 132), no overflow at 360 to 1440 px, homepage story pixel-identical to the baseline.
 
+## CIUX-01B (header and page-hero unification)
+
+[CIUX-01B-REPORT.md](CIUX-01B-REPORT.md) (root cause, architecture, route coverage, summary) and [CIUX-01B-TESTING.md](CIUX-01B-TESTING.md) (visual, interaction, homepage, accessibility and performance evidence). Branch `ciux/01b-header-hero` from `b15c162`; local review only.
+
 ## Documents
 
 | | Document |

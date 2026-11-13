@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Scale, TriangleAlert } from "lucide-react";
 import { Section } from "@/components/layout/Section";
+import { PageHero } from "@/components/sections/PageHero";
 import { Card } from "@/components/ui/Card";
 import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
 import { ComparePicker } from "@/components/sections/compare/ComparePicker";
@@ -64,8 +65,9 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
 
   if (slugs.length < MIN_COMPARE_CAREERS) {
     return (
-      <Section tone="muted" className="pt-10 sm:pt-14">
-        <PageIntro />
+      <>
+      <PageIntro />
+      <Section tone="muted" className="pt-6 sm:pt-6 lg:pt-8">
         <Card className="mt-6">
           <ComparePicker options={options} selected={selectedForPicker} />
         </Card>
@@ -78,6 +80,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
           </p>
         </Card>
       </Section>
+      </>
     );
   }
 
@@ -87,8 +90,9 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
 
   if (careers.length < MIN_COMPARE_CAREERS) {
     return (
-      <Section tone="muted" className="pt-10 sm:pt-14">
-        <PageIntro />
+      <>
+      <PageIntro />
+      <Section tone="muted" className="pt-6 sm:pt-6 lg:pt-8">
         <Card className="mt-6">
           <ComparePicker options={options} selected={selectedForPicker} />
         </Card>
@@ -100,6 +104,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
           </p>
         </Card>
       </Section>
+      </>
     );
   }
 
@@ -132,8 +137,9 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
   });
 
   return (
-    <Section tone="muted" className="pt-10 sm:pt-14">
-      <PageIntro />
+    <>
+    <PageIntro />
+    <Section tone="muted" className="pt-6 sm:pt-6 lg:pt-8">
 
       {missingCount > 0 ? (
         <Card className="mt-6 border-warning/25 bg-warning-light text-sm text-warning">
@@ -159,18 +165,18 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
         of these careers matches your own profile.
       </GuidanceNotice>
     </Section>
+    </>
   );
 }
 
 function PageIntro() {
   return (
-    <div className="mb-2">
-      <p className="text-sm font-semibold uppercase tracking-wide text-secondary">Compare</p>
-      <h1 className="mt-2 text-3xl font-semibold text-primary balance sm:text-4xl">Compare careers side by side</h1>
-      <p className="mt-2 max-w-2xl text-muted">
-        See how two or three careers stack up on relevant subjects, skills, education routes, and characteristics —
-        useful whether or not you&apos;re signed in.
-      </p>
-    </div>
+    <PageHero
+      size="compact"
+      fadeTo="muted"
+      eyebrow="Compare careers"
+      title="Compare careers side by side"
+      description="See how two or three careers stack up on relevant subjects, skills, education routes, and characteristics — useful whether or not you're signed in."
+    />
   );
 }

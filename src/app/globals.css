@@ -1177,90 +1177,13 @@
    prefers-reduced-motion.
    ================================================================== */
 
-/* Desktop menus: a short fade and lift on open (no delay, no blur). */
-.ciux-menu-panel:not([hidden]) .ciux-menu-card {
-  animation: ciux-menu-in var(--duration-base) var(--ease-out-soft) both;
-  transform-origin: top center;
-}
-@keyframes ciux-menu-in {
-  from { opacity: 0; transform: translateY(-6px) scale(0.985); }
-  to { opacity: 1; transform: none; }
-}
-
-/* Mobile sheet slides in from the right. */
-.ciux-sheet[open] {
-  animation: ciux-sheet-in var(--duration-slow) var(--ease-out-soft) both;
-}
-@keyframes ciux-sheet-in {
-  from { transform: translateX(24px); opacity: 0; }
-  to { transform: none; opacity: 1; }
-}
+/* CIUX-01B: the header, its menus and the phone menu are styled in src/styles/site-header.css. */
 
 /* Footer and other navy surfaces: a white focus ring stays visible. */
 .ciux-footer :focus-visible,
 .bg-ink :focus-visible {
   outline-color: #ffffff;
 }
-
-/* Homepage header: the shared menus reuse the homepage's own pill look. */
-.nw4.nw54 .ciux-home-nav > ul { display: contents; }
-.nw4.nw54 .ciux-home-trigger {
-  gap: 6px;
-  border: 0;
-  background: none;
-  font: inherit;
-  cursor: pointer;
-}
-.nw4.nw54 .ciux-home-trigger.ciux-open { color: var(--nw-action-primary-text); }
-.nw4.nw54 .ciux-home-trigger.ciux-open::before { opacity: 1; transform: scale(1); }
-/* The homepage stylesheet is unlayered and resets padding/margins inside
-   .nw4, which outranks Tailwind's layered utilities — so the open menu is
-   restated here in plain CSS with the same values as the site header. */
-.nw4.nw54 .ciux-home-nav .ciux-menu-panel { text-align: left; letter-spacing: normal; padding-top: 12px; }
-.nw4.nw54 .ciux-home-nav .ciux-menu-card {
-  padding: 8px; border-radius: 20px; background: #fff;
-  border: 1px solid rgba(3, 4, 95, 0.1); box-shadow: var(--shadow-lifted);
-}
-.nw4.nw54 .ciux-home-nav .ciux-menu-summary { padding: 12px 16px 4px; font-size: 12px; font-weight: 500; color: #4a5068; }
-.nw4.nw54 .ciux-home-nav .ciux-menu-list { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; list-style: none; }
-.nw4.nw54 .ciux-home-nav .ciux-menu-link {
-  display: block; padding: 12px 16px; border-radius: 14px; color: #03045f;
-  transition: background-color var(--duration-fast);
-}
-.nw4.nw54 .ciux-home-nav .ciux-menu-link:hover,
-.nw4.nw54 .ciux-home-nav .ciux-menu-link:focus-visible { background: #ffe4e9; }
-.nw4.nw54 .ciux-home-nav .ciux-menu-title { font-size: 15px; font-weight: 600; color: #03045f; }
-.nw4.nw54 .ciux-home-nav .ciux-menu-desc { display: block; margin-top: 2px; font-size: 13px; line-height: 1.35; color: #4a5068; }
-.nw4.nw54 .ciux-home-nav .ciux-menu-book {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  margin-top: 4px; padding: 12px 16px; border-radius: 14px; background: #eef3f8;
-  font-size: 14px; font-weight: 600; color: #03045f;
-}
-.nw4.nw54 .ciux-home-nav .ciux-menu-book:hover { background: #ffe4e9; }
-
-/* Homepage mobile menu: room for the grouped list, scrolls inside itself. */
-.nw4.nw54 .v54-menu { max-height: calc(100dvh - 96px); overflow-y: auto; overscroll-behavior: contain; }
-.nw4.nw54 .v54-menu .ciux-home-mobile-nav { gap: 6px; }
-.nw4.nw54 .v54-menu .ciux-mobile-groups { list-style: none; }
-.nw4.nw54 .v54-menu .ciux-mg-trigger {
-  display: flex; width: 100%; min-height: 48px; align-items: center; justify-content: space-between;
-  padding: 0 16px; border-radius: 14px; font-size: 16px; font-weight: 600; color: #03045f; text-align: left;
-}
-.nw4.nw54 .v54-menu .ciux-mg-trigger[aria-expanded="true"],
-.nw4.nw54 .v54-menu .ciux-mg-trigger:hover { background: #eef3f8; }
-.nw4.nw54 .v54-menu .ciux-mg-summary { display: none; }
-.nw4.nw54 .v54-menu .ciux-mg-list { list-style: none; padding: 2px 0 6px 8px; }
-.nw4.nw54 .v54-menu .ciux-mg-link { min-height: 44px; padding: 0 16px; font-size: 15px; font-weight: 500; color: #0b1033; gap: 10px; }
-.nw4.nw54 .v54-menu .ciux-mg-link[aria-current="page"] { background: #ffe4e9; font-weight: 600; }
-.nw4.nw54 .v54-menu .ciux-home-book {
-  justify-content: center;
-  margin-bottom: 4px;
-  border-radius: 999px;
-  background: var(--nw-action-primary);
-  color: var(--nw-action-primary-text);
-  font-weight: 650;
-}
-.nw4.nw54 .v54-menu .ciux-home-book:hover { background: var(--nw-action-primary-hover); }
 
 /* Scroll reveal (components/motion/Reveal.tsx): visible by default, only
    animated when JavaScript has marked it and motion is allowed. */
@@ -1272,7 +1195,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ciux-menu-panel:not([hidden]) .ciux-menu-card,
-  .ciux-sheet[open] { animation: none; }
   .ciux-reveal[data-ciux-reveal] { opacity: 1; transform: none; transition: none; }
 }

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { publicPageMetadata } from "@/config/seo";
 import Link from "next/link";
 import { Section } from "@/components/layout/Section";
+import { PageHero } from "@/components/sections/PageHero";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
@@ -17,8 +18,6 @@ import { isLaunchCountryCode, LAUNCH_COUNTRY_CODES, type LaunchCountryCode } fro
 import { LaunchCountryDiscovery } from "@/components/sections/education/LaunchCountryDiscovery";
 import { resolveListEmptyState } from "@/lib/ui/list-state";
 import { GeometricBackdrop } from "@/components/graphics/GeometricBackdrop";
-import { FADE_UP_CLASSES } from "@/lib/ui/motion";
-import { cn } from "@/lib/utils";
 import UniversitiesLoading from "./list-skeleton";
 
 // M17A Step 5 — canonical is deliberately static and points at the clean
@@ -143,16 +142,10 @@ async function UniversitiesPageContent({ searchParams }: UniversitiesPageProps) 
   }
 
   return (
-    <Section tone="muted" className="relative overflow-hidden pt-10 sm:pt-14">
+    <>
+    <PageHero size="compact" fadeTo="muted" eyebrow="University Explorer" title="Browse universities" description="Search and filter a starter dataset of universities — location, institution type, study levels and modes, and a link through to each university's own detail page." />
+    <Section tone="muted" className="relative overflow-hidden pt-6 sm:pt-6 lg:pt-8">
       <GeometricBackdrop variant="grid" />
-      <div className={cn("mb-6", FADE_UP_CLASSES)}>
-        <p className="text-sm font-semibold uppercase tracking-wide text-secondary">University Explorer</p>
-        <h1 className="mt-2 text-3xl font-semibold text-primary balance sm:text-4xl">Browse universities</h1>
-        <p className="mt-2 max-w-2xl text-muted">
-          Search and filter a starter dataset of universities — location, institution type, study levels and modes,
-          and a link through to each university&apos;s own detail page.
-        </p>
-      </div>
 
       <LaunchCountryDiscovery selectedCode={selectedLaunchCode} buildHref={buildCountryHref} unavailableCodes={unavailableLaunchCodes} className="mb-6" />
 
@@ -233,5 +226,6 @@ async function UniversitiesPageContent({ searchParams }: UniversitiesPageProps) 
         current fees, deadlines, and admission requirements directly with the institution before you act on them.
       </GuidanceNotice>
     </Section>
+    </>
   );
 }

@@ -2,75 +2,96 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CalendarCheck } from "lucide-react";
-import { DISCOVERY_SESSION_CTA } from "@/config/site";
-import { LinkButton } from "@/components/ui/Button";
+import { usePathname } from "next/navigation";
+import { AUTH_LINKS } from "@/config/site";
 import { NextwiseBrandLogo } from "@/components/brand/NextwiseBrandLogo";
+import { useAuthProfile } from "@/lib/supabase/use-auth-profile";
 import { AccountMenu } from "./AccountMenu";
 import { WorkspaceEntryLink } from "./WorkspaceEntryLink";
 import { MobileNav } from "./MobileNav";
 import { NavMenus } from "./NavMenus";
-import { cn } from "@/lib/utils";
 
 /**
- * CIUX-01 — the site header for every public page except the homepage
- * (whose approved V5.4 scene renders its own header with the same NavMenus;
- * the site layout hides this one there).
+ * CIUX-01B — THE Nextwise header: one component for the homepage and every
+ * public page, styled by one stylesheet (src/styles/site-header.css).
  *
- * Mirrors the homepage header: master logo left, the grouped navigation
- * centred, account actions right ("Log in" quiet, "Sign up" Electric Coral;
- * signed in: My Studio + the account menu). "Book a free session" stays
- * visible from 1280 px and is the first item of the mobile menu below
- * 1024 px. Sticky: transparent at the top, frosted white with a hairline
- * once the page scrolls (the same 72 → 64 px settle as before).
+ *   master logo · navigation capsule (NavMenus) · account actions · phone menu (MobileNav)
+ *
+ * context="home"  rendered by the approved V5.4 story (NextwiseV54Home) inside
+ *                 its root; the homepage engine positions, scales and fades it
+ *                 and switches it to the solid state as the story scrolls.
+ * context="page"  rendered once by the (site) layout for every other public
+ *                 page; same geometry (header-geometry.ts, set before first
+ *                 paint), transparent at the top and the same solid state
+ *                 once the page scrolls. Not rendered on the homepage.
+ *
+ * The visible differences between routes are only the active section, the
+ * scroll state and the signed-in state — never a different design.
  */
-export function Header() {
-  const [scrolled, setScrolled] = useState(false);
+export function SiteHeader({ context, rootId }: { context: "home" | "page"; rootId?: string }) {
+  const pathname = usePathname();
+  const solid = useScrolled(context === "page");
+  if (context === "page" && pathname === "/") return null;
 
+  return (
+    <header
+      className={context === "home" ? "v54-header nwh" : "nwh"}
+      data-nwh-context={context}
+      data-solid={solid ? "" : undefined}
+      aria-label="Nextwise"
+    >
+      <Link href="/" className={context === "home" ? "v54-brand nwh-brand" : "nwh-brand"} aria-label="Nextwise home">
+        <NextwiseBrandLogo variant="compact" tone="light" height={36} label="" priority />
+      </Link>
+      <NavMenus />
+      <HeaderActions />
+      <MobileNav rootId={rootId} />
+    </header>
+  );
+}
+
+/** The (site) layout's header for every public page except the homepage. */
+export function Header() {
+  return <SiteHeader context="page" />;
+}
+
+/**
+ * Signed out (and until the first auth check resolves): "Log in" (quiet
+ * outline) and "Sign up" (Electric Coral). Signed in: the role-aware
+ * workspace (My Studio / Counsellor Workspace / Admin Studio) as the coral
+ * pill, and the account menu. Same /login and /register routes; no auth
+ * logic is changed here.
+ */
+function HeaderActions() {
+  const { user, ready } = useAuthProfile();
+  if (ready && user)
+    return (
+      <div className="nwh-actions">
+        <WorkspaceEntryLink bare forceLabel className="nwh-signup" />
+        <AccountMenu />
+      </div>
+    );
+  return (
+    <div className="nwh-actions">
+      <Link href={AUTH_LINKS.login.href} className="v54-login nwh-login" data-v54-account="login">
+        {AUTH_LINKS.login.label}
+      </Link>
+      <Link href={AUTH_LINKS.signup.href} className="v54-signup nwh-signup" data-v54-account="signup">
+        {AUTH_LINKS.signup.label}
+      </Link>
+    </div>
+  );
+}
+
+/** True once the page has scrolled past the top (page context only; the homepage engine drives its own state). */
+function useScrolled(enabled: boolean) {
+  const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
+    if (!enabled) return;
     const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  return (
-    <header
-      className={cn(
-        "ciux-header sticky top-0 z-40 transition-[background-color,border-color,box-shadow] duration-[var(--duration-base)]",
-        scrolled
-          ? "border-b border-primary/10 bg-surface/90 shadow-[0_12px_32px_-24px_rgba(3,4,95,0.45)] backdrop-blur-md supports-[backdrop-filter]:bg-surface/80"
-          : "border-b border-transparent bg-transparent"
-      )}
-    >
-      <div
-        className={cn(
-          "mx-auto flex w-full max-w-[1320px] items-center justify-between gap-3 px-4 transition-[height] duration-[var(--duration-base)] sm:px-6 lg:px-8",
-          scrolled ? "h-16" : "h-[4.5rem]"
-        )}
-      >
-        <Link href="/" aria-label="Nextwise home" className="flex shrink-0 items-center rounded-md">
-          <NextwiseBrandLogo variant="compact" tone="light" height={34} label="" priority />
-        </Link>
-
-        <NavMenus />
-
-        <div className="hidden shrink-0 items-center gap-2 lg:flex">
-          <LinkButton
-            href={DISCOVERY_SESSION_CTA.href}
-            variant="outline"
-            size="sm"
-            className="hidden xl:inline-flex"
-            icon={<CalendarCheck aria-hidden="true" className="h-4 w-4" />}
-          >
-            {DISCOVERY_SESSION_CTA.label}
-          </LinkButton>
-          <WorkspaceEntryLink />
-          <AccountMenu />
-        </div>
-
-        <MobileNav />
-      </div>
-    </header>
-  );
+  }, [enabled]);
+  return scrolled;
 }

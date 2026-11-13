@@ -234,74 +234,22 @@
 }
 
 /* ================= navigation (master logo; the site header is hidden on this page only) ================= */
+/* CIUX-01B: the header itself (bar, navigation capsule, coral pills, menus, account actions, phone menu) is the global
+   Nextwise header — components/navigation/Header.tsx, styled ONLY by src/styles/site-header.css, the same as every
+   other page. What stays here is what the homepage engine drives: where the header sits on the stage, its scale, the
+   intro fade (--nw4-nav) and where it settles once the story scrolls. */
 body:has(.nw54)>header{display:none!important}
 .nw4.nw54 .v54-header{position:fixed;z-index:50;left:var(--v54-hx,40px);right:var(--v54-hx,40px);top:calc(var(--v54-hy,24px) + (1 - var(--nw4-nav,1)) * -14px);
-  height:86px;zoom:var(--v54-hz,1);display:flex;align-items:center;justify-content:space-between;padding:0 45px 0 44px;border-radius:30px;
-  opacity:var(--nw4-nav,1);font-family:var(--v54-ui);transition:background-color .35s,box-shadow .35s,height .35s}
+  zoom:var(--v54-hz,1);opacity:var(--nw4-nav,1)}
 .nw4.nw54:not([data-nw4-ready]) .v54-header{opacity:0}
 /* CC-22 HomepageFailsafe: if the engine never becomes ready, the static hero is shown — show the header with it */
 .nw4.nw54[data-nw4-failsafe]:not([data-nw4-ready]) .v54-header{opacity:1}
 .nw4.nw54 .v54-header:focus-within{opacity:1}
-.nw4.nw54[data-v54-state="scroll-story"] .v54-header{height:60px;top:var(--v54-hy,24px);padding:0 10px 0 22px;background:rgba(255,255,255,.95);box-shadow:0 12px 32px -20px rgba(3,4,95,.45);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
-.nw4.nw54 .v54-brand{display:flex;align-items:center;border-radius:10px}
-.nw4.nw54 .v54-nav{position:absolute;left:50%;transform:translateX(-50%);display:flex;gap:2px;padding:0 4px;height:38px;align-items:center;border-radius:999px;border:1px solid rgba(3,4,95,.1);background:rgba(255,255,255,.72);font-size:14.5px;font-weight:500;letter-spacing:-.005em;color:#0B1033}
-/* Navigation pills: the hit area and padding never change (no layout shift) — an Electric Coral pill grows in behind the label
-   on hover / keyboard focus (opacity + scale on a pseudo-element, ~220 ms), with a soft lift shadow; pressed = a slight press-in. */
-.nw4.nw54 .v54-pill{position:relative;z-index:0;display:flex;align-items:center;height:30px;padding:0 18px;border-radius:999px;color:#0B1033;
-  -webkit-tap-highlight-color:transparent;transition:color .2s cubic-bezier(.2,.8,.2,1)}
-.nw4.nw54 .v54-pill::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:var(--nw-action-primary);opacity:0;transform:scale(.86);
-  box-shadow:0 8px 18px -10px rgba(200,30,69,0);transition:opacity .2s cubic-bezier(.2,.8,.2,1),transform .22s cubic-bezier(.2,.8,.2,1),box-shadow .22s cubic-bezier(.2,.8,.2,1)}
-.nw4.nw54 .v54-pill:hover,.nw4.nw54 .v54-pill:focus-visible{color:var(--nw-action-primary-text)}
-.nw4.nw54 .v54-pill:hover::before,.nw4.nw54 .v54-pill:focus-visible::before{opacity:1;transform:scale(1);box-shadow:0 8px 18px -10px rgba(200,30,69,.75)}
-.nw4.nw54 .v54-pill:active::before{opacity:1;transform:scale(.95)}
-.nw4.nw54 .v54-pill:focus-visible{outline:2px solid var(--nw-brand-navy);outline-offset:2px}
-/* current page: weight and a small marker, not colour alone */
-.nw4.nw54 .v54-pill[aria-current="page"]{font-weight:700;color:var(--nw-brand-navy)}
-.nw4.nw54 .v54-pill[aria-current="page"]::after{content:"";position:absolute;left:50%;bottom:3px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:currentColor}
-@media (hover:none){.nw4.nw54 .v54-pill:hover::before{opacity:0;transform:scale(.86)}.nw4.nw54 .v54-pill:hover{color:#0B1033}}
-
-.nw4.nw54 .v54-actions{display:flex;align-items:center;gap:8px}
-/* Log in: clearly readable, quietly outlined; Sign up: the Electric Coral pill — one dominant action */
-.nw4.nw54 .v54-login{font-size:14.5px;font-weight:600;color:#03045F;padding:0 18px;height:38px;display:inline-flex;align-items:center;border-radius:999px;
-  border:1px solid rgba(3,4,95,.18);background:rgba(255,255,255,.6);transition:border-color .2s,background-color .2s,box-shadow .2s}
-.nw4.nw54 .v54-login:hover{border-color:rgba(3,4,95,.42);background:#fff;box-shadow:0 6px 14px -10px rgba(3,4,95,.5)}
-.nw4.nw54 .v54-login:active{background:#F1F6FB}
-.nw4.nw54 .v54-login:focus-visible{outline:2px solid var(--nw-brand-navy);outline-offset:2px}
-.nw4.nw54 .v54-signup{font-size:15px;font-weight:650;color:var(--nw-action-primary-text);background:var(--nw-action-primary);height:38px;padding:0 20px;display:inline-flex;align-items:center;gap:8px;border-radius:999px;
-  box-shadow:0 10px 20px -14px rgba(3,4,95,.8);transition:background-color .2s,transform .22s cubic-bezier(.2,.8,.2,1),box-shadow .22s}
-.nw4.nw54 .v54-signup:hover{background:var(--nw-action-primary-hover);transform:translateY(-1px);box-shadow:0 12px 22px -14px rgba(200,30,69,.8)}
-.nw4.nw54 .v54-signup:active{transform:translateY(0) scale(.98)}
-.nw4.nw54 .v54-signup:focus-visible{outline:2px solid var(--nw-brand-navy);outline-offset:3px}
-.nw4.nw54 .v54-signup .v54-arrow{width:auto;height:auto;background:none;font-size:15px}
-
-/* menu (phones, portrait tablets) */
-.nw4.nw54 .v54-menu-btn{display:none;position:relative;width:44px;height:44px;border-radius:50%;border:1px solid rgba(3,4,95,.14);background:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.nw4.nw54 .v54-menu-btn span,.nw4.nw54 .v54-menu-btn span::before,.nw4.nw54 .v54-menu-btn span::after{position:absolute;left:50%;top:50%;width:18px;height:2px;margin:-1px 0 0 -9px;border-radius:2px;background:#03045F;transition:transform .22s cubic-bezier(.2,.8,.2,1),opacity .15s}
-.nw4.nw54 .v54-menu-btn span::before,.nw4.nw54 .v54-menu-btn span::after{content:"";margin:0;left:0;top:0}
-.nw4.nw54 .v54-menu-btn span::before{transform:translateY(-6px)}
-.nw4.nw54 .v54-menu-btn span::after{transform:translateY(6px)}
-.nw4.nw54 .v54-menu-btn[aria-expanded="true"] span{background:transparent}
-.nw4.nw54 .v54-menu-btn[aria-expanded="true"] span::before{transform:rotate(45deg)}
-.nw4.nw54 .v54-menu-btn[aria-expanded="true"] span::after{transform:rotate(-45deg)}
-.nw4.nw54 .v54-menu-btn:focus-visible{outline:2px solid var(--nw-brand-navy);outline-offset:2px}
-.nw4.nw54 .v54-menu{position:absolute;right:0;top:calc(100% + 8px);width:min(320px,calc(100vw - 28px));padding:8px;border-radius:22px;background:#fff;
-  box-shadow:0 0 0 1px rgba(3,4,95,.06),0 24px 48px -20px rgba(3,4,95,.45);display:flex;flex-direction:column;gap:6px}
-.nw4.nw54 .v54-menu[hidden]{display:none}
-.nw4.nw54 .v54-menu nav{display:flex;flex-direction:column}
-.nw4.nw54 .v54-menu nav a{display:flex;align-items:center;min-height:48px;padding:0 16px;border-radius:14px;font-size:16px;font-weight:600;color:#03045F}
-.nw4.nw54 .v54-menu nav a:active,.nw4.nw54 .v54-menu nav a:hover{background:#FFE4E9}
-.nw4.nw54 .v54-menu-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 4px 4px;border-top:1px solid rgba(3,4,95,.08)}
-.nw4.nw54 .v54-menu-actions a{height:48px;justify-content:center;font-size:15px}
-.nw4.nw54 .v54-menu-actions a:only-child{grid-column:1 / -1}
+.nw4.nw54[data-v54-state="scroll-story"] .v54-header{top:var(--v54-hy,24px)}
 
 /* the portrait stage: phones, and portrait tablets (src/lib/home/v54/stage.ts: aspect below ≈ 0.86) */
 @media (max-width:699.98px),(max-aspect-ratio:86/100){
-  .nw4.nw54 .v54-header{height:56px;padding:0 6px 0 14px;left:var(--v54-hx,14px);right:var(--v54-hx,14px);top:calc(var(--v54-hy,14px) + (1 - var(--nw4-nav,1)) * -14px);gap:8px}
-  .nw4.nw54[data-v54-state="scroll-story"] .v54-header{height:56px;padding:0 6px 0 12px}
-  .nw4.nw54 .v54-header>.v54-nav,.nw4.nw54 .v54-header>.v54-actions .v54-login{display:none}
-  .nw4.nw54 .v54-header>.v54-actions{margin-left:auto}
-  .nw4.nw54 .v54-header>.v54-actions .v54-signup{height:40px;padding:0 16px;font-size:14px}
-  .nw4.nw54 .v54-menu-btn{display:block;flex:none}
+  .nw4.nw54 .v54-header{left:var(--v54-hx,14px);right:var(--v54-hx,14px);top:calc(var(--v54-hy,14px) + (1 - var(--nw4-nav,1)) * -14px)}
 }
 
 /* ---------- V5.3 Future Horizon: a faint aspirational scene behind the student ----------

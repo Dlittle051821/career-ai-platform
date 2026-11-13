@@ -168,14 +168,15 @@ describe("NW-V5.4 — hero copy, technology typography, coral actions and the ho
   });
 
   it("Log in is clearly secondary (quiet outline, no coral); Sign up is the single coral account action; phones keep Sign up and move Log in into the menu", () => {
-    const css = read(CSS);
-    const login = css.match(/\.nw4\.nw54 \.v54-login\{([^}]*)\}/)![1]!;
-    expect(login).toMatch(/border:1px solid rgba\(3,4,95,\.18\)/);
-    expect(login).not.toMatch(/--nw-action|FF4D6D|255,77,109/);
-    expect(css).toMatch(/\.nw4\.nw54 \.v54-signup\{[^}]*background:var\(--nw-action-primary\)/);
-    expect(css).toMatch(/@media \(max-width:699\.98px\),\(max-aspect-ratio:86\/100\)\{[\s\S]*?\.v54-header>\.v54-actions \.v54-login\{display:none\}/);
-    expect(css).toMatch(/\.nw4\.nw54 \.v54-menu-btn\{display:block;flex:none\}/);
-    expect(css).not.toMatch(/v54-signin|v54-start\b/);
+    // CIUX-01B: the account actions are the global header's, styled in src/styles/site-header.css (every page).
+    const css = read("src/styles/site-header.css");
+    const login = css.match(/header\.nwh \.nwh-login \{([^}]*)\}/)![1]!;
+    expect(login).toMatch(/border: 1px solid rgba\(3, 4, 95, \.18\)/);
+    expect(login).not.toMatch(/--nwh-coral|FF4D6D|255, 77, 109/);
+    expect(css).toMatch(/header\.nwh \.nwh-signup \{[^}]*background: var\(--nwh-coral\)/);
+    expect(css).toMatch(/@media \(max-width: 699\.98px\), \(max-aspect-ratio: 86\/100\) \{[\s\S]*?header\.nwh > \.nwh-actions \.nwh-login,[\s\S]*?\{ display: none; \}/);
+    expect(css).toMatch(/header\.nwh \.nwh-menu-btn \{ display: block; flex: none; \}/);
+    expect(read(CSS)).not.toMatch(/v54-signin|v54-start\b/);
   });
 
   it("every question card shares one blue-and-white treatment: no per-card or focus-moment accent colour", () => {
@@ -230,7 +231,9 @@ describe("NW-V5.4 — hero copy, technology typography, coral actions and the ho
     expect(createHash("sha256").update(b).digest("hex").slice(0, 16)).toBe("bbaee9bcb7325d46");
     expect(V54_PORTRAIT.d.x).toBeCloseTo(320 * REF_SCALE, 0);
     expect(read(HERO)).toMatch(/data-nw4-hero-photo=""/);
-    expect(read(HOME)).toContain("<NextwiseBrandLogo");
+    // CIUX-01B: the homepage renders the global header, which carries the Master Logo component.
+    expect(read(HOME)).toContain('<SiteHeader context="home"');
+    expect(read("src/components/navigation/Header.tsx")).toContain("<NextwiseBrandLogo");
     expect(existsSync(path.join(ROOT, "public", MASTER_LOGO.horizontalLight.src))).toBe(true);
   });
 });

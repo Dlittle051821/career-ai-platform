@@ -20,11 +20,10 @@ import {
 } from "@/lib/home/v4/images";
 import { V4Picture } from "@/components/sections/home/v4/V4Picture";
 import "@/components/sections/home/v4/v4-home.css";
-import { NextwiseBrandLogo } from "@/components/brand/NextwiseBrandLogo";
 import { v54Grotesk, v54Sora } from "./fonts";
 import { HorizonScene, NextwiseV54Hero } from "./NextwiseV54Hero";
-import { V54AccountProvider, V54HeaderActions, V54MobileMenu } from "./V54Account";
-import { NavMenus } from "@/components/navigation/NavMenus";
+import { V54AccountProvider } from "./V54Account";
+import { SiteHeader } from "@/components/navigation/Header";
 import { V54Motion } from "./V54Motion";
 import "./v54.css";
 
@@ -62,15 +61,8 @@ export function NextwiseV54Home() {
     <div id={ROOT_ID} className={`nw4 nw54 ${v54Grotesk.variable} ${v54Sora.variable}`} data-nw4-root="" data-nw54-root="" data-v54-state="intro" data-v54-type="a" data-v54-chapter="hero">
       <V54Motion rootId={ROOT_ID} />
       <V54AccountProvider>
-      <header className="v54-header" aria-label="Nextwise">
-        <Link href="/" className="v54-brand" aria-label="Nextwise home">
-          <NextwiseBrandLogo variant="compact" tone="light" height={36} label="" priority />
-        </Link>
-        {/* CIUX-01: the site-wide grouped navigation, in the homepage's own pill style. */}
-        <NavMenus variant="home" />
-        <V54HeaderActions />
-        <V54MobileMenu rootId={ROOT_ID} />
-      </header>
+      {/* CIUX-01B: the global Nextwise header (the same component as every other page). */}
+      <SiteHeader context="home" rootId={ROOT_ID} />
       <p className="v54-sr" aria-live="polite" data-v54-live="" />
       <nav className="nw4-skipnav" aria-label="Homepage sections">
         <ul>

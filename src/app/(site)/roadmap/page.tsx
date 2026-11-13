@@ -23,7 +23,7 @@ export default async function RoadmapPage() {
 
   return (
     <>
-      <PageHero
+      <PageHero size="compact"
         eyebrow="Your roadmap"
         title={title}
         description="Every student follows the same ten stages, in free-to-explore order. This view shows the general journey — a roadmap personalised to your own interests and results is a later milestone."

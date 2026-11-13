@@ -114,16 +114,17 @@ describe("DS02 — /book-counselling is a genuine public entry page, not a fake 
 
 describe("DS02 — auth CTAs preserve a safe return-to-booking destination", () => {
   it("the logged-out hero sends Create Free Account and Sign In through next=/discovery-session/book", () => {
-    expect(HERO).toContain('href="/register?next=/discovery-session/book"');
-    expect(HERO).toContain('href="/login?next=/discovery-session/book"');
-    expect(HERO).toContain("Create Free Account");
-    expect(HERO).toContain("Sign In");
+    // CIUX-01B: the hero's actions are PageHero props (href: "…") in sentence case; same routes, same `next`.
+    expect(HERO).toMatch(/href(=|: )"\/register\?next=\/discovery-session\/book"/);
+    expect(HERO).toMatch(/href(=|: )"\/login\?next=\/discovery-session\/book"/);
+    expect(HERO).toMatch(/Create free account/i);
+    expect(HERO).toMatch(/Sign in/i);
   });
 
   it("an already-authenticated visitor sees a direct Book Free Session CTA instead of being asked to sign in again (brief's own preferred Option A)", () => {
     expect(HERO).toContain("isAuthenticated");
-    expect(HERO).toMatch(/href="\/discovery-session\/book"/);
-    expect(HERO).toContain("Book Free Session");
+    expect(HERO).toMatch(/href(=|: )"\/discovery-session\/book"/);
+    expect(HERO).toMatch(/Book free session/i);
   });
 
   it("LoginForm and the auth callback route both resolve `next` through the shared getSafeRedirectPath helper, not a hand-rolled check", () => {
@@ -170,7 +171,8 @@ describe("DS02 — public vs. authenticated Discovery CTA destinations stay corr
       ["not-found.tsx", NOT_FOUND_PAGE],
     ];
     for (const [name, source] of publicSources) {
-      expect(source, `${name} should link to /book-counselling`).toMatch(/href="\/book-counselling"/);
+      // CIUX-01B: heroes pass actions as PageHero props (href: "…") or through the shared DISCOVERY_SESSION_CTA.
+      expect(source, `${name} should link to /book-counselling`).toMatch(/href(=|: )"\/book-counselling"|DISCOVERY_SESSION_CTA\.href/);
     }
     expect(STUDY_EUROPE_PAGE).toContain('secondaryHref="/book-counselling"');
     expect(HOW_IT_WORKS_PAGE).toContain('secondaryHref="/book-counselling"');
@@ -209,13 +211,20 @@ describe("DS02 — UX10-DS01's real booking workflow is completely untouched", (
 
 describe("DS02 — accessibility and structure invariants", () => {
   it("exactly one <h1> across the new public-landing sections (the hero)", () => {
+    // CIUX-01B: the hero renders through the shared PageHero, which owns the page's single <h1>.
     const counts = [HERO, CARDS].map((s) => (s.match(/<h1[\s>]/g) ?? []).length);
-    expect(counts.reduce((a, b) => a + b, 0)).toBe(1);
+    expect(counts.reduce((a, b) => a + b, 0)).toBe(0);
+    expect((HERO.match(/<PageHero\b/g) ?? []).length).toBe(1);
+    const pageHero = readFileSync(path.resolve(import.meta.dirname, "../PageHero.tsx"), "utf8");
+    expect((pageHero.match(/<h1[\s>]/g) ?? []).length).toBe(1);
   });
 
-  it("decorative hero question bubbles are aria-hidden", () => {
-    expect(HERO).toMatch(/QUESTION_BUBBLES/);
-    expect(HERO).toContain('aria-hidden="true"');
+  it("the hero's question topics are plain text in a labelled group, never links or the only copy of a CTA", () => {
+    // CIUX-01B: the decorative bubbles became readable topics (HeroStepsCard) — nothing interactive is hidden.
+    expect(HERO).toMatch(/const QUESTIONS: HeroStep\[\]/);
+    const questions = HERO.slice(HERO.indexOf("const QUESTIONS"), HERO.indexOf("];", HERO.indexOf("const QUESTIONS")));
+    expect(questions).not.toMatch(/href:/);
+    expect(HERO).toMatch(/<HeroStepsCard[^>]*label="Questions people bring to a Discovery Session"/);
   });
 });
 

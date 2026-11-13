@@ -1,4 +1,5 @@
 import { Fraunces, Plus_Jakarta_Sans, Sora } from "next/font/google";
+import { v54Grotesk } from "@/components/sections/home/v54/fonts";
 
 /**
  * Shared font configuration for every root layout in the app.
@@ -42,4 +43,6 @@ export const fraunces = Fraunces({
   axes: ["opsz", "SOFT"],
 });
 
-export const fontVariables = `${jakarta.variable} ${sora.variable} ${fraunces.variable}`;
+// CIUX-01B: the homepage's display face (Space Grotesk, the V5.4 hero headline) is now also the page-hero
+// headline face on every public page. The same next/font instance the homepage uses, so it is one font file.
+export const fontVariables = `${jakarta.variable} ${sora.variable} ${fraunces.variable} ${v54Grotesk.variable}`;

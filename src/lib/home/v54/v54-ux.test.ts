@@ -12,6 +12,12 @@ const ROOT = path.resolve(import.meta.dirname, "../../../..");
 const read = (rel: string) => readFileSync(path.join(ROOT, rel), "utf8").replace(/\r\n/g, "\n");
 const CSS = "src/components/sections/home/v54/v54.css";
 const HOME = "src/components/sections/home/v54/NextwiseV54Home.tsx";
+// CIUX-01B: the homepage header is now the global Nextwise header (one component, one stylesheet for every page).
+// The V5.4 navigation guarantees below are asserted where that header now lives; the approved look is unchanged
+// (pixel comparison in docs/ciux/CIUX-01B-TESTING.md).
+const HEADER_CSS = "src/styles/site-header.css";
+const MOBILE_MENU = "src/components/navigation/MobileNav.tsx";
+const flat = (css: string) => css.replace(/\s+/g, "");
 const HERO = "src/components/sections/home/v54/NextwiseV54Hero.tsx";
 
 describe("NW-V5.4 — the approved N animation is preserved", () => {
@@ -256,22 +262,24 @@ describe("NW-V5.4 — full-bleed responsive layout", () => {
 });
 
 describe("NW-V5.4 — navigation and account actions", () => {
-  it("the four navigation items are Electric Coral pills on hover / focus, with no layout shift (hover never changes size or spacing)", () => {
-    const css = read(CSS);
+  it("the navigation items are Electric Coral pills on hover / focus, with no layout shift (hover never changes size or spacing)", () => {
+    // CIUX-01B: the pill rules live in the global header stylesheet, shared by every page.
+    const css = flat(read(HEADER_CSS));
     expect(V54_NAV.map((n) => n.label)).toEqual(["Explore", "How it works", "Study Abroad", "Pricing"]);
-    expect(css).toMatch(/\.v54-pill:hover::before,\.nw4\.nw54 \.v54-pill:focus-visible::before\{opacity:1;transform:scale\(1\)/);
+    expect(css).toContain("header.nwh.nwh-pill:hover::before,header.nwh.nwh-pill:focus-visible::before,header.nwh.nwh-pill[aria-expanded=\"true\"]::before{opacity:1;transform:scale(1)");
     const interactive = css
       .split("}")
-      .filter((r) => /\.v54-(pill|login|signup)[^{]*:(hover|focus-visible|active)/.test(r.split("{")[0]!))
+      .filter((r) => /\.nwh-(pill|login|signup)[^{]*:(hover|focus-visible|active)/.test(r.split("{")[0]!))
       .map((r) => r.split("{")[1] ?? "");
     expect(interactive.length).toBeGreaterThan(4);
     for (const body of interactive) expect(body).not.toMatch(/(^|;)\s*(padding|margin|width|height|font-size|font-weight|border-width|gap)\s*:/);
     // transitions ≈ 180–250 ms, no bounce
-    expect(css).toMatch(/transition:opacity \.2s cubic-bezier\(\.2,\.8,\.2,1\),transform \.22s/);
+    expect(css).toContain("--nwh-ease:cubic-bezier(.2,.8,.2,1)");
+    expect(css).toContain("transition:opacity.2svar(--nwh-ease),transform.22svar(--nwh-ease)");
     // touch devices: no sticky hover pill
-    expect(css).toMatch(/@media \(hover:none\)\{\.nw4\.nw54 \.v54-pill:hover::before\{opacity:0/);
+    expect(css).toMatch(/@media\(hover:none\)\{header\.nwh\.nwh-pill:hover:not\(\[aria-expanded="true"\]\)::before\{opacity:0/);
     // current page is shown by weight and a marker, not colour alone
-    expect(css).toMatch(/\.v54-pill\[aria-current="page"\]\{font-weight:700/);
+    expect(css).toMatch(/header\.nwh\.nwh-pill\[aria-current="page"\],header\.nwh\.nwh-pill\[data-active\]\{font-weight:700/);
   });
 
   it("Sign up and Log in use the existing registration and authentication routes; Get started free stays the hero action", () => {
@@ -292,13 +300,17 @@ describe("NW-V5.4 — navigation and account actions", () => {
   });
 
   it("phones and portrait tablets: a menu button with the same links, Log in and Sign up; Escape closes and restores focus", () => {
-    const acc = read("src/components/sections/home/v54/V54Account.tsx");
+    // CIUX-01B: the homepage's menu button and panel are now the global header's phone menu (every page).
+    expect(read(HOME)).toMatch(/<SiteHeader context="home" rootId=\{ROOT_ID\} \/>/);
+    const acc = read(MOBILE_MENU);
     expect(acc).toMatch(/aria-expanded=\{open\}/);
     expect(acc).toMatch(/aria-controls=\{panelId\}/);
-    expect(acc).toMatch(/if \(e\.key === "Escape"\) \{\s*setOpen\(false\);\s*btn\.current\?\.focus\(\);/);
+    expect(acc).toMatch(/if \(e\.key !== "Escape"\) return;\s*setOpen\(false\);\s*btn\.current\?\.focus\(\);/);
     // the chapter controller pauses while the menu is open
     expect(acc).toMatch(/root\?\.setAttribute\("data-v54-menu-open", ""\)/);
     expect(read("src/lib/home/v54/chapters.ts")).toMatch(/const enabled = \(\) => !root\.hasAttribute\("data-v54-menu-open"\);/);
-    expect(read(CSS)).toMatch(/\.nw4\.nw54 \.v54-menu nav a\{display:flex;align-items:center;min-height:48px/);
+    const css = flat(read(HEADER_CSS));
+    expect(css).toMatch(/header\.nwh\.nwh-menu\.ciux-mg-trigger\{display:flex;width:100%;min-height:48px/);
+    expect(css).toMatch(/header\.nwh\.nwh-menu\.ciux-mg-link\{display:flex;align-items:center;gap:10px;min-height:44px/);
   });
 });

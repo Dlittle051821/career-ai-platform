@@ -5,41 +5,40 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, ChevronDown } from "lucide-react";
 import { DISCOVERY_SESSION_CTA, HEADER_DIRECT_LINKS, NAV_GROUPS, type NavGroup } from "@/config/site";
-import { isAnyNavLinkActive, isNavLinkActive } from "@/lib/navigation/active-nav";
-import { cn } from "@/lib/utils";
+import { resolveActiveNavHref } from "@/lib/navigation/active-nav";
 
 /**
- * CIUX-01 — the desktop navigation: three disclosure menus (Explore, Free
- * tools, How it works) and one direct link (Pricing), shared by the site
- * header and the homepage header (variant="home" reuses the homepage's own
- * pill styling so the approved homepage look is unchanged).
+ * The global desktop navigation (CIUX-01, unified in CIUX-01B): three
+ * disclosure menus (Explore, Free tools, How it works) and one direct link
+ * (Pricing) inside the homepage's navigation capsule. The same component and
+ * the same stylesheet (src/styles/site-header.css) render it on the homepage
+ * and on every public page; only the active state changes with the route.
  *
  * Pattern: WAI-ARIA disclosure navigation (buttons with aria-expanded that
  * show a list of links) — not role="menu", which would remove normal Tab
- * order. Opens on click, on Enter/Space, and on pointer hover (desktop
- * pointers only, with a short close delay). Closes on Escape (focus returns
- * to the trigger), outside click, focus leaving the menu, or navigation.
- * Arrow Down on a trigger opens its menu and focuses the first link; inside
- * an open menu, Arrow Up/Down, Home and End move between its links (they
- * never scroll the page or move the homepage chapters).
- * Panels carry data-v54-free so the homepage chapter controller leaves
- * their arrow keys alone.
+ * order. Opens on click, on Enter/Space, and on pointer hover (mouse only,
+ * with a short close delay; a click that follows a hover-open keeps it
+ * open). Closes on Escape (focus returns to the trigger), outside click,
+ * focus leaving the menu, choosing a link (at once, before the next page
+ * has loaded), or navigation. Arrow Down on a trigger opens its
+ * menu and focuses the first link; inside an open menu, Arrow Up/Down, Home
+ * and End move between its links (they never scroll the page or move the
+ * homepage chapters). Panels carry data-v54-free so the homepage chapter
+ * controller leaves their keys alone.
  */
-type Variant = "site" | "home";
-
 const HOVER_CLOSE_DELAY = 140;
 const HOVER_CLICK_GRACE = 600;
 
-export function NavMenus({ variant = "site" }: { variant?: Variant }) {
+export function NavMenus() {
   const pathname = usePathname();
   const [openId, setOpenId] = useState<NavGroup["id"] | null>(null);
   const [lastPath, setLastPath] = useState(pathname);
   const navRef = useRef<HTMLElement>(null);
   const closeTimer = useRef<number | undefined>(undefined);
-  // When a mouse hover has just opened a menu, the click that follows (the
-  // same pointer arriving on the trigger) must not immediately close it.
   const hoverOpenedAt = useRef(0);
   const baseId = useId();
+  // one most-specific match across the whole header, so a nested route lights up one place only
+  const activeHref = resolveActiveNavHref(pathname, [...NAV_GROUPS.flatMap((g) => g.links.map((l) => l.href)), ...HEADER_DIRECT_LINKS.map((l) => l.href)]);
 
   if (pathname !== lastPath) {
     setLastPath(pathname);
@@ -78,8 +77,7 @@ export function NavMenus({ variant = "site" }: { variant?: Variant }) {
     const links = [...panel.querySelectorAll<HTMLAnchorElement>("a[href]")];
     if (!links.length) return;
     const i = links.indexOf(document.activeElement as HTMLAnchorElement);
-    const next =
-      which === "first" ? 0 : which === "last" ? links.length - 1 : (i + which + links.length) % links.length;
+    const next = which === "first" ? 0 : which === "last" ? links.length - 1 : (i + which + links.length) % links.length;
     links[next]?.focus();
   };
 
@@ -92,37 +90,24 @@ export function NavMenus({ variant = "site" }: { variant?: Variant }) {
     focusPanelLink(e.currentTarget, move);
   };
 
-  const home = variant === "home";
-  const triggerClass = (active: boolean, open: boolean) =>
-    home
-      ? cn("v54-pill ciux-home-trigger", open && "ciux-open")
-      : cn(
-          "ciux-nav-item group relative inline-flex h-10 items-center gap-1 rounded-[var(--radius-pill)] px-3.5 text-[14.5px] font-medium transition-colors duration-[var(--duration-fast)]",
-          active ? "font-semibold text-primary" : "text-text-soft hover:text-primary",
-          open && "bg-surface-alt text-primary"
-        );
-
   return (
     <nav
       ref={navRef}
       aria-label="Main"
-      className={home ? "v54-nav ciux-home-nav" : "hidden lg:block"}
+      className="nwh-nav"
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpenId(null);
       }}
     >
-      <ul className={home ? "contents" : "flex items-center gap-0.5"}>
+      <ul>
         {NAV_GROUPS.map((group) => {
           const open = openId === group.id;
-          const active = isAnyNavLinkActive(
-            pathname,
-            group.links.map((l) => l.href)
-          );
+          const active = group.links.some((l) => l.href === activeHref);
           const panelId = `${baseId}-${group.id}-panel`;
           return (
             <li
               key={group.id}
-              className="relative"
+              className="nwh-item"
               onPointerEnter={(e) => {
                 if (e.pointerType !== "mouse") return;
                 cancelClose();
@@ -136,7 +121,7 @@ export function NavMenus({ variant = "site" }: { variant?: Variant }) {
               <button
                 id={`${baseId}-${group.id}-trigger`}
                 type="button"
-                className={triggerClass(active, open)}
+                className="nwh-pill"
                 aria-expanded={open}
                 aria-controls={panelId}
                 data-active={active ? "" : undefined}
@@ -154,61 +139,41 @@ export function NavMenus({ variant = "site" }: { variant?: Variant }) {
                 }}
               >
                 <span>{group.label}</span>
-                <ChevronDown
-                  aria-hidden="true"
-                  className={cn(
-                    "h-3.5 w-3.5 transition-transform duration-[var(--duration-base)] motion-reduce:transition-none",
-                    open && "rotate-180"
-                  )}
-                />
-                {!home && active ? <ActiveDot /> : null}
+                {active ? <span className="sr-only">(current section)</span> : null}
+                <ChevronDown aria-hidden="true" />
               </button>
               <div
                 id={panelId}
                 hidden={!open}
                 data-v54-free=""
+                data-wide={group.id === "nextwise" ? "" : undefined}
+                className="nwh-panel"
                 onKeyDown={onPanelKeyDown}
-                className={cn(
-                  "ciux-menu-panel absolute left-1/2 top-full z-50 w-[min(560px,calc(100vw-2rem))] -translate-x-1/2 pt-3",
-                  group.id === "nextwise" && "w-[min(600px,calc(100vw-2rem))]"
-                )}
               >
-                <div className="ciux-menu-card overflow-hidden rounded-[var(--radius-card)] border border-primary/10 bg-surface p-2 shadow-lifted">
-                  <p className="ciux-menu-summary px-4 pb-1 pt-3 text-xs font-medium text-muted">{group.summary}</p>
-                  <ul className="ciux-menu-list grid gap-0.5 sm:grid-cols-2">
+                <div className="nwh-card">
+                  <p className="nwh-summary">{group.summary}</p>
+                  <ul className="nwh-list">
                     {group.links.map((link) => {
-                      const current = isNavLinkActive(pathname, link.href);
+                      const current = link.href === activeHref;
                       return (
                         <li key={link.href}>
-                          <Link
-                            href={link.href}
-                            aria-current={current ? "page" : undefined}
-                            className={cn(
-                              "ciux-menu-link block rounded-[14px] px-4 py-3 transition-colors duration-[var(--duration-fast)] hover:bg-[var(--brand-coral-pale)] focus-visible:bg-[var(--brand-coral-pale)]",
-                              current && "bg-surface-alt"
-                            )}
-                          >
-                            <span className="ciux-menu-title flex items-center gap-2 text-[15px] font-semibold text-primary">
+                          <Link href={link.href} aria-current={current ? "page" : undefined} className="nwh-link" onClick={() => setOpenId(null)}>
+                            <span className="nwh-link-title">
                               {link.label}
                               {current ? <span className="sr-only">(current page)</span> : null}
                             </span>
-                            {link.description ? (
-                              <span className="ciux-menu-desc mt-0.5 block text-[13px] leading-snug text-muted">{link.description}</span>
-                            ) : null}
+                            {link.description ? <span className="nwh-link-desc">{link.description}</span> : null}
                           </Link>
                         </li>
                       );
                     })}
                   </ul>
-                  <Link
-                    href={DISCOVERY_SESSION_CTA.href}
-                    className="ciux-menu-book mt-1 flex items-center justify-between gap-3 rounded-[14px] bg-surface-alt px-4 py-3 text-sm font-semibold text-primary transition-colors duration-[var(--duration-fast)] hover:bg-[var(--brand-coral-pale)]"
-                  >
+                  <Link href={DISCOVERY_SESSION_CTA.href} className="nwh-book" onClick={() => setOpenId(null)}>
                     <span>
                       {DISCOVERY_SESSION_CTA.label}
-                      <span className="ciux-menu-desc block text-[13px] font-normal text-muted">{DISCOVERY_SESSION_CTA.description}</span>
+                      <span className="nwh-link-desc">{DISCOVERY_SESSION_CTA.description}</span>
                     </span>
-                    <ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0 text-[var(--brand-coral-strong)]" />
+                    <ArrowRight aria-hidden="true" />
                   </Link>
                 </div>
               </div>
@@ -216,31 +181,16 @@ export function NavMenus({ variant = "site" }: { variant?: Variant }) {
           );
         })}
         {HEADER_DIRECT_LINKS.map((link) => {
-          const active = isNavLinkActive(pathname, link.href);
+          const active = link.href === activeHref;
           return (
-            <li key={link.href} className="relative">
-              <Link
-                href={link.href}
-                aria-current={active ? "page" : undefined}
-                className={triggerClass(active, false)}
-              >
+            <li key={link.href} className="nwh-item">
+              <Link href={link.href} aria-current={active ? "page" : undefined} className="nwh-pill">
                 <span>{link.label}</span>
-                {!home && active ? <ActiveDot /> : null}
               </Link>
             </li>
           );
         })}
       </ul>
     </nav>
-  );
-}
-
-/** The active-section marker: a small coral dot under the label. */
-function ActiveDot() {
-  return (
-    <span
-      aria-hidden="true"
-      className="pointer-events-none absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-action"
-    />
   );
 }

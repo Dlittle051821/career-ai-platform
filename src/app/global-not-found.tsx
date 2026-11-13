@@ -4,6 +4,9 @@ import { Footer } from "@/components/navigation/Footer";
 import { fontVariables } from "@/lib/fonts";
 import SiteNotFound from "./(site)/not-found";
 import "./globals.css";
+import "@/styles/site-header.css";
+import "@/styles/page-hero.css";
+import { HEADER_GEOMETRY_SCRIPT } from "@/lib/navigation/header-geometry";
 
 /**
  * CC-22B — the app has several root layouts ((site), dashboard, studio,
@@ -20,8 +23,12 @@ export const metadata: Metadata = {
 
 export default function GlobalNotFound() {
   return (
-    <html lang="en" className={fontVariables}>
+    // CIUX-01B: suppressHydrationWarning covers only <html>'s own attributes — the header geometry script sets
+    // --nwh-* and data-nwh-mode there before hydration, by design (src/lib/navigation/header-geometry.ts).
+    <html lang="en" className={fontVariables} suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans text-text antialiased">
+        {/* CIUX-01B: the global header's geometry before first paint (as in the (site) layout). */}
+        <script dangerouslySetInnerHTML={{ __html: HEADER_GEOMETRY_SCRIPT }} />
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>

@@ -21,6 +21,7 @@ export function LegalPlaceholder({ eyebrow, title, intro, categories, breadcrumb
   return (
     <>
       <PageHero
+        size="compact"
         eyebrow={eyebrow}
         title={title}
         description={intro}

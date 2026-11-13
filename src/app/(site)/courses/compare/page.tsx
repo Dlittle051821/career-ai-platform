@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Scale } from "lucide-react";
 import { Section } from "@/components/layout/Section";
+import { PageHero } from "@/components/sections/PageHero";
 import { Card } from "@/components/ui/Card";
 import { LinkButton } from "@/components/ui/Button";
 import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
@@ -64,8 +65,9 @@ export default async function CompareCoursesPage({ searchParams }: CompareCourse
 
   if (courses.length < MIN_COMPARE_COURSES) {
     return (
-      <Section tone="muted" className="pt-10 sm:pt-14">
-        <PageIntro />
+      <>
+      <PageIntro />
+      <Section tone="muted" className="pt-6 sm:pt-6 lg:pt-8">
         <Card className="mt-6 flex flex-col items-center gap-3 py-14 text-center">
           <Scale aria-hidden="true" className="h-10 w-10 text-muted" />
           <h2 className="text-lg font-semibold text-primary">Pick at least two courses to compare</h2>
@@ -79,6 +81,7 @@ export default async function CompareCoursesPage({ searchParams }: CompareCourse
           </LinkButton>
         </Card>
       </Section>
+      </>
     );
   }
 
@@ -100,8 +103,9 @@ export default async function CompareCoursesPage({ searchParams }: CompareCourse
   const hasMixedCurrencies = new Set(courses.map((c) => c.tuitionCurrency)).size > 1;
 
   return (
-    <Section tone="muted" className="pt-10 sm:pt-14">
-      <PageIntro />
+    <>
+    <PageIntro />
+    <Section tone="muted" className="pt-6 sm:pt-6 lg:pt-8">
 
       {missingCount > 0 ? (
         <Card className="mt-6 border-warning/25 bg-warning-light text-sm text-warning">
@@ -128,18 +132,18 @@ export default async function CompareCoursesPage({ searchParams }: CompareCourse
         before you act on them.
       </GuidanceNotice>
     </Section>
+    </>
   );
 }
 
 function PageIntro() {
   return (
-    <div className="mb-2">
-      <p className="text-sm font-semibold uppercase tracking-wide text-secondary">Compare</p>
-      <h1 className="mt-2 text-3xl font-semibold text-primary balance sm:text-4xl">Compare courses side by side</h1>
-      <p className="mt-2 max-w-2xl text-muted">
-        See how two to four courses stack up on tuition, duration, entry requirements, and more — useful whether or
-        not you&apos;re signed in.
-      </p>
-    </div>
+    <PageHero
+      size="compact"
+      fadeTo="muted"
+      eyebrow="Compare courses"
+      title="Compare courses side by side"
+      description="See how two to four courses stack up on tuition, duration, entry requirements, and more — useful whether or not you're signed in."
+    />
   );
 }

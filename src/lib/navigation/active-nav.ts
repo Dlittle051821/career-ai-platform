@@ -41,3 +41,17 @@ export function isNavLinkActive(pathname: string | null | undefined, href: strin
 export function isAnyNavLinkActive(pathname: string | null | undefined, hrefs: readonly string[]): boolean {
   return hrefs.some((href) => isNavLinkActive(pathname, href));
 }
+
+/**
+ * CIUX-01B: the single most specific navigation link for the current page,
+ * so a nested route never lights up two places at once — e.g. on
+ * /courses/compare "Compare Courses" (Free tools) wins over "Courses"
+ * (Explore). Returns null when no link matches.
+ */
+export function resolveActiveNavHref(pathname: string | null | undefined, hrefs: readonly string[]): string | null {
+  let best: string | null = null;
+  for (const href of hrefs) {
+    if (isNavLinkActive(pathname, href) && (best === null || href.length > best.length)) best = href;
+  }
+  return best;
+}

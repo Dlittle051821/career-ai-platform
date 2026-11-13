@@ -41,7 +41,7 @@ export default async function PricingPage() {
     <>
       <PricingHero paidCheckoutEnabled={paidCheckoutEnabled} />
 
-      <Section tone="surface" containerClassName="max-w-[1500px]">
+      <Section tone="surface" className="pt-4 sm:pt-6 lg:pt-8" containerClassName="max-w-[1500px]">
         <PricingPlansSection plans={plans} paidCheckoutEnabled={paidCheckoutEnabled} />
       </Section>
 

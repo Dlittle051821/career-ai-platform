@@ -21,13 +21,13 @@
   "src/app/(site)/page.tsx": "081c47cceb4fdbdabc8b32e2925f1d4a9f7b73bc4aaa9954ef5a34568c062bef",
   "src/components/brand/NextwiseBrandLogo.tsx": "f0af5f644911eb14fae5b5244d022dec3b93424c734cf263aefdd0ce68f21821",
   "src/components/sections/home/v54/NextwiseV54Hero.tsx": "b65defc15278510ac08d44e25f842a8c901713f67c5a25808f86f73a7bb990d0",
-  "src/components/sections/home/v54/NextwiseV54Home.tsx": "de47e5848db096a7b1253d38bdcf3c0b255bea1176bf93b7fe60a140ac6ec505",
+  "src/components/sections/home/v54/NextwiseV54Home.tsx": "f9a83c2bd522e4c175dc50dbea1aa33fed53286c68ee923a410e1768d89f867c",
   "src/components/sections/home/v54/ThoughtCard.tsx": "d178908ae3bc2fa849cfec126325222568dc33829f70d6010cb90bd54b7d6de7",
-  "src/components/sections/home/v54/V54Account.tsx": "93bb06f42a1e7fda53c78cfeb51cd31d185542a12b5905d2c704ea21e0e75e06",
+  "src/components/sections/home/v54/V54Account.tsx": "00eed38c83d979cbb71e3609afeb69bc4a2d5ca28730a01f900a9fe95f70e7c7",
   "src/components/sections/home/v54/V54Icons.tsx": "ac3f0c3ea45982a50cc1a0ec3ecba48dc06f638409e967209e63b2b16e8cacc7",
   "src/components/sections/home/v54/V54Motion.tsx": "c0b354690f0aa1ccdab696172f1444044e97b2f8b1822f50060cdd2476ca8d1f",
   "src/components/sections/home/v54/fonts.ts": "e1837fd38eb30d348b48b796a6ceb9ec53f29b8864d7b5bf6e942c4ebfca6e0a",
-  "src/components/sections/home/v54/v54.css": "bdefc19768a6e4b8654e5454d9dbf77f3015fbb8d2ff887d906fcff6e6ddfc86",
+  "src/components/sections/home/v54/v54.css": "c935582a40bdd38af4a1c450fdbae3c6e388e7df03993ae6e0ae64172937d682",
   "src/lib/brand/master-logo.ts": "31939974b5bbb85734db494d659fae63c588f9d8120bf3e6e7e2155ac7f30a72",
   "src/lib/home/v54/backdrop.ts": "5cd4e70142016bd923e9e6df34d682d0e65c389d17fd9144a902d0817547dcee",
   "src/lib/home/v54/chapters.ts": "a15d0e719a9a712cf7f683cb8f7f096c86453888dd1710157d784c918f9ad872",
@@ -36,6 +36,6 @@
   "src/lib/home/v54/motion.ts": "60a26a618bf644ddafe495ca17a2637852556fed74255f98227eb5e8072bbf36",
   "src/lib/home/v54/stage.ts": "223af5d508225bd4ffbfce1a4d52aa3ddca0d6dc9c4262c399cd85f3f373129f",
   "src/lib/home/v54/tour.ts": "0c69bc42714bf01d6ad42c7bf3ea0bd1959b5fae6b9f48978d7132335c0c9222",
-  "src/lib/home/v54/v54-ux.test.ts": "28fb1bb475d7e31bdf70a2bd9d89b7074949dfe61983fe5ccacc390945b4c611",
-  "src/lib/home/v54/v54.test.ts": "00b50060a3e6c005d5f7fbc044365e81d2d985a256bb3d414d8a52196fdbf4ab"
+  "src/lib/home/v54/v54-ux.test.ts": "fa1a13060e3ffd2c0716b36e42e42274b0a93465648ed7fba54fae6369bbc25d",
+  "src/lib/home/v54/v54.test.ts": "a3b69999de3423169e5c799499c884bd1e2e753fe1f258721c86355a5237c3c1"
 }

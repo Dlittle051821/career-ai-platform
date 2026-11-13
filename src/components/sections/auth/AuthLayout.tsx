@@ -18,7 +18,8 @@ interface AuthLayoutProps {
  */
 export function AuthLayout({ title, description, children, footer }: AuthLayoutProps) {
   return (
-    <div className="flex min-h-[calc(100vh-4.5rem-1px)] items-center justify-center bg-surface-alt px-4 py-12 sm:py-16">
+    // CIUX-01B: the page-hero paper light (src/styles/page-hero.css, .nw-auth), running up behind the floating header.
+    <div className="nw-auth flex min-h-[calc(100vh-4.5rem-1px)] items-center justify-center px-4 py-12 sm:py-16">
       <div className="w-full max-w-md">
         <div className="mb-8 flex justify-center">
           <Logo />

@@ -19,6 +19,16 @@ import baseline from "./cc24-v54-baseline-hashes.json";
  * now expects the story followed by QuickExplore). Every other homepage, logo and asset pin is unchanged
  * from a1017b9, and a pixel comparison against the cc26 baseline showed the
  * story scenes unchanged (docs/ciux/CIUX-01-TESTING.md).
+ *
+ * CIUX-01B re-pinned five more, on the owner's CIUX-01B instruction to give
+ * the homepage and every public page ONE authoritative header: the homepage
+ * now renders the global SiteHeader (NextwiseV54Home.tsx), its header CSS
+ * moved to src/styles/site-header.css (v54.css keeps only the engine-driven
+ * position, scale and intro fade), V54Account.tsx keeps only the hero call
+ * to action, and the two V5.4 test files assert the same navigation
+ * guarantees where the header now lives (v54.test.ts, v54-ux.test.ts). The
+ * homepage is pixel-identical to CIUX-01 b15c162 in 16 of 16 reduced-motion
+ * frames, header included (docs/ciux/CIUX-01B-TESTING.md).
  */
 
 const ROOT = path.resolve(import.meta.dirname, "../../..");

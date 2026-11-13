@@ -153,15 +153,18 @@ describe("DS01 — the real, database-backed booking workflow is preserved exact
 
 describe("DS01 — accessibility and structure invariants", () => {
   it("exactly one <h1> across the page's own new section composition (the hero), every other new section uses <h2>", () => {
+    // CIUX-01B: the hero renders through the shared PageHero, which owns the page's single <h1>.
     const sources = [HERO, STEPS, DISCUSSION_OUTCOMES, AUDIENCE_EXPECTATIONS];
     const counts = sources.map((s) => (s.match(/<h1[\s>]/g) ?? []).length);
-    expect(counts.reduce((a, b) => a + b, 0)).toBe(1);
-    expect((HERO.match(/<h1[\s>]/g) ?? []).length).toBe(1);
+    expect(counts.reduce((a, b) => a + b, 0)).toBe(0);
+    expect((HERO.match(/<PageHero\b/g) ?? []).length).toBe(1);
   });
 
-  it("decorative hero question bubbles are aria-hidden and never carry the only copy of a real CTA", () => {
-    expect(HERO).toMatch(/QUESTION_BUBBLES/);
-    expect(HERO).toMatch(/aria-hidden="true"[\s\S]{0,40}className=\{cn\(/);
+  it("nothing decorative in the hero carries the only copy of a real CTA", () => {
+    // CIUX-01B: the decorative question bubbles (and the photo they sat on) are gone; the hero is copy, two real
+    // actions and a trust row. Every action is a real link.
+    expect(HERO).not.toMatch(/QUESTION_BUBBLES|aria-hidden="true"[^>]*href/);
+    expect(HERO).toMatch(/primaryAction=\{\{ href: "#discovery-session-form"/);
   });
 
   it("the discussion-topics and audience cards are not mandatory form fields — the real form's own fields are untouched", () => {
@@ -176,7 +179,7 @@ describe("DS01 — accessibility and structure invariants", () => {
   });
 
   it("the hero's primary CTA scrolls to the real form anchor rather than linking to a different/fake route", () => {
-    expect(HERO).toContain('href="#discovery-session-form"');
+    expect(HERO).toMatch(/href(=|: )"#discovery-session-form"/);
     expect(PAGE).toContain('id="discovery-session-form"');
   });
 });
