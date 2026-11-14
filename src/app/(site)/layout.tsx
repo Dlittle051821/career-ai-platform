@@ -10,7 +10,7 @@ import { getOrganizationJsonLd, getWebsiteJsonLd, toSafeJsonLdString } from "@/l
 import { HomepageFailsafe } from "@/components/sections/home/launch/HomepageFailsafe";
 import { HEADER_GEOMETRY_SCRIPT } from "@/lib/navigation/header-geometry";
 import { LaunchModeProvider } from "@/components/launch/LaunchModeContext";
-import { FULL_PLATFORM, resolveLaunchMode } from "@/lib/launch/launch-mode";
+import { PUBLIC_MARKETING, resolveLaunchMode } from "@/lib/launch/launch-mode";
 import "../globals.css";
 import "@/styles/cc22b-launch-overrides.css";
 import "@/styles/site-header.css";
@@ -110,7 +110,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
             see RegistrationPrompt.tsx's own docblock. Renders nothing
             (a closed <dialog>) until its own timer/contextual-trigger
             logic decides to open. */}
-        {launchMode === FULL_PLATFORM ? <RegistrationPrompt /> : null}
+        {launchMode !== PUBLIC_MARKETING ? <RegistrationPrompt /> : null}
         </LaunchModeProvider>
         <HomepageFailsafe />
       </body>

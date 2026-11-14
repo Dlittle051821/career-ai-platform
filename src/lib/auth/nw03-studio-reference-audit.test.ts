@@ -66,7 +66,8 @@ describe("NW03.6 audit — /studio/abroad never fabricates Abroad progress/appli
 describe("NW03.6 audit — AC-04: Abroad signup must never be forced through Career onboarding", () => {
   it("RegisterForm routes its post-signup redirect through the shared safe-redirect validator, not a hardcoded /welcome", () => {
     const content = read("src/components/sections/auth/RegisterForm.tsx");
-    expect(content).toContain("getSafeRedirectPath(searchParams.get(\"next\"), \"/welcome\")");
+    // V5.6.3.1 (owner-approved hotfix): the plain-registration fallback is now the Studio, not /welcome.
+    expect(content).toContain("getSafeRedirectPath(searchParams.get(\"next\"), \"/studio\")");
     expect(content).toMatch(/router\.push\(\s*safeNext\s*\)/);
     // The old, unconditional hardcode must be gone from the actual redirect call.
     expect(content).not.toMatch(/router\.push\(\s*["']\/welcome["']\s*\)/);

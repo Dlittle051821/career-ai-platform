@@ -40,7 +40,7 @@
  *   AI_COST_INPUT_PER_MTOK / AI_COST_OUTPUT_PER_MTOK   optional rate override (USD per 1M tokens)
  */
 import { AI_PROVIDER_NAMES, type AiProviderName } from "./types";
-import { isPublicMarketingMode } from "@/lib/launch/launch-mode";
+import { arePaidFeaturesForcedOff } from "@/lib/launch/launch-mode";
 
 export type AiMode = "disabled" | AiProviderName;
 
@@ -125,9 +125,9 @@ export function resolveAiConfig(env: Env = process.env): AiConfig {
   };
 
   let mode: AiMode = "disabled";
-  if (isPublicMarketingMode(env)) {
-    // V5.6.2 public launch: no AI of any kind in public-marketing mode.
-    notes.push("Public-marketing launch mode (NEXTWISE_LAUNCH_MODE) — AI is disabled.");
+  if (arePaidFeaturesForcedOff(env)) {
+    // V5.6.2 public launch / V5.6.3.1: no AI of any kind outside full-platform mode.
+    notes.push("Public launch mode (NEXTWISE_LAUNCH_MODE) — AI is disabled.");
   } else if (requested === "disabled") {
     notes.push("AI is switched off (AI_PROVIDER=disabled).");
   } else if (!(AI_PROVIDER_NAMES as readonly string[]).includes(requested)) {

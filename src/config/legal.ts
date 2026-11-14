@@ -43,7 +43,7 @@ const PHONE = OFFICIAL_CONTACT.phone.display;
 export const PRIVACY_POLICY: LegalDocument = {
   title: "Privacy Policy",
   summary:
-    "How Nextwise handles information when you visit www.nextwise.world or contact us. The website has no accounts, forms, payments or advertising trackers.",
+    "How Nextwise handles information when you visit www.nextwise.world, create a student account or contact us. The website takes no payments and has no advertising trackers.",
   sections: [
     {
       heading: "Who we are",
@@ -54,14 +54,15 @@ export const PRIVACY_POLICY: LegalDocument = {
     {
       heading: "What this policy covers",
       paragraphs: [
-        "This policy covers the public website and the messages and calls you send us. Online accounts, online booking, applications and online payments are not open on the website. We will update this policy before any of them opens.",
+        "This policy covers the website, student accounts and the Student Studio, and the messages and calls you send us. Online payments are not open on the website. We will update this policy before they open.",
       ],
     },
     {
-      heading: "Information you send us",
+      heading: "Information you give us",
       paragraphs: [
-        "The website has no forms. When you email or call us, we receive what you choose to share. That is usually your name, your email address or phone number, and your message. A message may include information about a student's studies, interests or plans.",
-        "The Contact and Book a free session pages only open your own email app or phone. Nothing you type there is sent to us or stored by the website.",
+        "When you create a student account, we receive your name, email address, phone number and a password. Your password is handled by our authentication provider; we never see it.",
+        "In your Studio you can add information about your studies, interests, plans and the courses or universities you save, and you can book a free Discovery Session. We keep what you add so your account works.",
+        "When you email or call us, we receive what you choose to share. That is usually your name, your email address or phone number, and your message. The Contact page only opens your own email app or phone.",
       ],
     },
     {
@@ -74,7 +75,7 @@ export const PRIVACY_POLICY: LegalDocument = {
     {
       heading: "Cookies and browser storage",
       paragraphs: [
-        "The website does not set cookies, and it does not use third-party analytics, advertising or social-media tracking.",
+        "When you sign in, the website sets essential cookies that keep you signed in. It sets no other cookies, and it does not use third-party analytics, advertising or social-media tracking.",
         "The homepage keeps one small setting in your browser's session storage, so the opening animation does not replay during the same visit. Your browser deletes it when you close the tab.",
       ],
     },
@@ -82,6 +83,7 @@ export const PRIVACY_POLICY: LegalDocument = {
       heading: "How we use information",
       paragraphs: ["We use the information you send us only to:"],
       bullets: [
+        "provide your account and Studio;",
         "reply to you;",
         "arrange a free Discovery Session or other conversation you ask for;",
         "send you information you ask for.",
@@ -96,25 +98,25 @@ export const PRIVACY_POLICY: LegalDocument = {
     {
       heading: "Service providers",
       paragraphs: [
-        "The website is hosted by Vercel. The education information shown on the website is stored with Supabase. These providers may process information on servers outside India. We only use them to run the website.",
+        "The website is hosted by Vercel. Student accounts, sign-in and the information in your Studio, as well as the education information shown on the website, are stored with Supabase. These providers may process information on servers outside India. We only use them to run the website.",
       ],
     },
     {
       heading: "Students under 18",
       paragraphs: [
-        "Many of our visitors are students. If you are under 18, please involve a parent or guardian before you send us personal information. We ask only for what we need to answer your question.",
+        "Many of our visitors are students. If you are under 18, please involve a parent or guardian before you create an account or send us personal information. We ask only for what we need to provide the account and answer your questions.",
       ],
     },
     {
       heading: "How long we keep information",
       paragraphs: [
-        "We keep messages and call notes only as long as we need them to respond to you and to follow up on what you asked for, unless the law requires us to keep them longer.",
+        "We keep your account information while your account is open. We keep messages and call notes only as long as we need them to respond to you and to follow up on what you asked for, unless the law requires us to keep them longer.",
       ],
     },
     {
       heading: "Your choices",
       paragraphs: [
-        `You can ask us to tell you what information we hold about you, to correct it or to delete it. You can also ask us to stop contacting you. Write to ${EMAILS}. Depending on the law that applies to you, you may have further rights, and we will help you use them.`,
+        `You can ask us to tell you what information we hold about you, to correct it or to delete it, including deleting your account. You can also ask us to stop contacting you. Write to ${EMAILS}. Depending on the law that applies to you, you may have further rights, and we will help you use them.`,
       ],
     },
     {
@@ -132,7 +134,7 @@ export const TERMS_OF_USE: LegalDocument = {
       heading: "About these terms",
       paragraphs: [
         "These terms apply when you use www.nextwise.world, which is run by Nextwise. By using the website, you agree to them. If you do not agree, please do not use the website.",
-        "Any paid service will be covered by a separate written agreement, which you will see before you pay. Online accounts, booking, applications and payments are not open on the website.",
+        "Any paid service will be covered by a separate written agreement, which you will see before you pay. Online payments are not open on the website.",
       ],
     },
     {

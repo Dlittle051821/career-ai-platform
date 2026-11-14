@@ -50,12 +50,12 @@ describe("CC-23 middleware: auth-only pages vs Server Actions", () => {
     expect(res.headers.get("location")).toBeNull();
   });
 
-  it("still bounces a signed-in student's page visit to /login and /register to /dashboard", async () => {
+  it("still bounces a signed-in student's page visit to /login and /register to their Studio (V5.6.3.1: was /dashboard)", async () => {
     state.user = { id: "u1" };
     for (const p of ["/login", "/register", "/login?next=/studio"]) {
       const res = await updateSession(req(p));
       expect(res.status).toBe(307);
-      expect(new URL(res.headers.get("location") ?? "").pathname).toBe("/dashboard");
+      expect(new URL(res.headers.get("location") ?? "").pathname).toBe("/studio");
     }
   });
 

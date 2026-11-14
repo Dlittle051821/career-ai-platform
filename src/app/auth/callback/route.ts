@@ -42,7 +42,7 @@ export async function GET(request: Request) {
       error,
     } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      const destination = safeNext || (user ? await resolveDefaultWorkspacePath(supabase, user.id) : "/dashboard");
+      const destination = safeNext || (user ? await resolveDefaultWorkspacePath(supabase, user.id) : "/studio");
       return NextResponse.redirect(`${origin}${destination}`);
     }
   }

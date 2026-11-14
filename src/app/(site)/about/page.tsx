@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { PageHero } from "@/components/sections/PageHero";
 import { CTASection } from "@/components/sections/CTASection";
 import { CONTACT_PEOPLE, OFFICIAL_CONTACT } from "@/config/contact";
-import { isPublicMarketingMode } from "@/lib/launch/launch-mode";
+import { FULL_PLATFORM, PUBLIC_MARKETING, resolveLaunchMode } from "@/lib/launch/launch-mode";
 import { BRAND_NAME } from "@/config/site";
 
 export const metadata: Metadata = publicPageMetadata(
@@ -24,7 +24,7 @@ const PRINCIPLES = [
 ];
 
 export default function AboutPage() {
-  const publicLaunch = isPublicMarketingMode();
+  const launchMode = resolveLaunchMode();
   return (
     <>
       <PageHero
@@ -102,19 +102,26 @@ export default function AboutPage() {
       <Section tone="muted">
         <Card>
           <h2 className="text-lg font-semibold text-primary">Mission versus what&apos;s live today</h2>
-          {publicLaunch ? (
+          {launchMode === PUBLIC_MARKETING ? (
             <p className="mt-2 text-sm leading-relaxed text-text-soft">
               Today this website shares career and education information, and we arrange the free Discovery Session by
               email or phone. Online accounts, booking, applications and payments are not open on the website yet. The
               career discovery questions reflect your own answers back to you; they don&apos;t run a scored,
               personalised AI assessment. We&apos;d rather be clear about that than let the site imply otherwise.
             </p>
-          ) : (
+          ) : launchMode === FULL_PLATFORM ? (
             <p className="mt-2 text-sm leading-relaxed text-text-soft">
               Account creation, student applications, discovery sessions, counselling, and payments on this site are
               real, not a mock-up. What is not yet live is a student-facing AI recommendation engine — the career
               discovery preview on this site today reflects your own answers back to you; it does not run a scored,
               personalised AI assessment yet. We&apos;d rather be clear about that than let the site imply otherwise.
+            </p>
+          ) : (
+            <p className="mt-2 text-sm leading-relaxed text-text-soft">
+              Student accounts and the Student Studio are open: you can create an account, build your profile and book
+              a free Discovery Session. Online payment isn&apos;t open yet. The career discovery preview reflects your own
+              answers back to you; it doesn&apos;t run a scored, personalised AI assessment. We&apos;d rather be clear
+              about that than let the site imply otherwise.
             </p>
           )}
           <p className="mt-4 text-sm text-text-soft">

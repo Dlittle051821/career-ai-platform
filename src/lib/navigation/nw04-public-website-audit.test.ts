@@ -232,7 +232,8 @@ describe("NW04.6 — sitemap gained /career and /abroad, launch-country registry
 describe("NW04.7 — the safe-redirect flow fixed in NW03 is still intact end to end", () => {
   it("RegisterForm still uses getSafeRedirectPath, not a hardcoded /welcome", () => {
     const content = read("components/sections/auth/RegisterForm.tsx");
-    expect(content).toContain('getSafeRedirectPath(searchParams.get("next"), "/welcome")');
+    // V5.6.3.1 (owner-approved hotfix): the plain-registration fallback is now the Studio, not /welcome.
+    expect(content).toContain('getSafeRedirectPath(searchParams.get("next"), "/studio")');
     expect(content).not.toMatch(/router\.push\(\s*["']\/welcome["']\s*\)/);
   });
 

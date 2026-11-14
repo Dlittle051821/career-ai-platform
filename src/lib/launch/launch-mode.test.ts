@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   ACCOUNT_ENTRY_PREFIXES,
   FULL_PLATFORM,
+  PUBLIC_ACCOUNTS,
   PUBLIC_MARKETING,
   classifyPublicMarketingRequest,
   resolveLaunchMode,
@@ -19,7 +20,9 @@ describe("launch mode selection (fails closed)", () => {
   it.each([
     [{}, FULL_PLATFORM],
     [{ VERCEL_ENV: "preview" }, FULL_PLATFORM],
-    [{ VERCEL_ENV: "production" }, PUBLIC_MARKETING],
+    [{ VERCEL_ENV: "production" }, PUBLIC_ACCOUNTS],
+    [{ VERCEL_ENV: "production", NEXTWISE_LAUNCH_MODE: "public-accounts" }, PUBLIC_ACCOUNTS],
+    [{ NEXTWISE_LAUNCH_MODE: "public-accounts" }, PUBLIC_ACCOUNTS],
     [{ VERCEL_ENV: "production", NEXTWISE_LAUNCH_MODE: "public-marketing" }, PUBLIC_MARKETING],
     [{ VERCEL_ENV: "production", NEXTWISE_LAUNCH_MODE: "full-platform" }, FULL_PLATFORM],
     [{ NEXTWISE_LAUNCH_MODE: "public-marketing" }, PUBLIC_MARKETING],
@@ -123,7 +126,7 @@ describe("middleware and defence in depth", () => {
 
   it("checks the launch mode before refreshing any Supabase session", () => {
     expect(mw.indexOf("isPublicMarketingMode()")).toBeGreaterThan(-1);
-    expect(mw.indexOf("isPublicMarketingMode()")).toBeLessThan(mw.indexOf("return updateSession(request)"));
+    expect(mw.indexOf("isPublicMarketingMode()")).toBeLessThan(mw.indexOf("await updateSession(request)"));
   });
 
   it("the matcher only skips image files inside public/'s own folders", () => {
@@ -150,8 +153,8 @@ describe("middleware and defence in depth", () => {
     expect(read(f)).toContain("notFoundInPublicMarketingMode();");
   });
 
-  it("the public site layout hides the registration prompt in public-marketing mode", () => {
-    expect(read("src/app/(site)/layout.tsx")).toContain("{launchMode === FULL_PLATFORM ? <RegistrationPrompt /> : null}");
+  it("the public site layout hides the registration prompt in public-marketing mode only", () => {
+    expect(read("src/app/(site)/layout.tsx")).toContain("{launchMode !== PUBLIC_MARKETING ? <RegistrationPrompt /> : null}");
   });
 
   it("the browser never starts Supabase Auth in public-marketing mode", () => {
@@ -173,7 +176,8 @@ describe("payments and AI are forced off in public-marketing mode", () => {
     GEMINI_API_KEY: "g",
   };
 
-  it("payments stay off even with every payment variable set", () => {
+  it("payments stay off even with every payment variable set (production default = public-accounts)", () => {
+    expect(resolvePaymentLaunchMode({ ...ALL_ON, NEXTWISE_LAUNCH_MODE: "public-accounts" }).paidCheckoutEnabled).toBe(false);
     expect(resolvePaymentLaunchMode({ ...ALL_ON, VERCEL_ENV: "production" })).toEqual({
       paidCheckoutEnabled: false,
       blockReason: "public_marketing_launch",
@@ -183,6 +187,7 @@ describe("payments and AI are forced off in public-marketing mode", () => {
 
   it("AI stays off even with OpenAI approved", () => {
     expect(resolveAiConfig({ ...ALL_ON, VERCEL_ENV: "production" }).mode).toBe("disabled");
+    expect(resolveAiConfig({ ...ALL_ON, NEXTWISE_LAUNCH_MODE: "public-accounts" }).mode).toBe("disabled");
     expect(resolveAiConfig({ ...ALL_ON, AI_PROVIDER: "gemini", NEXTWISE_LAUNCH_MODE: "public-marketing" }).mode).toBe("disabled");
   });
 
@@ -200,5 +205,25 @@ describe("payments and AI are forced off in public-marketing mode", () => {
       expect(d.action === "redirect" || d.action === "not-found", p).toBe(true);
     }
     expect(ACCOUNT_ENTRY_PREFIXES).toContain("/login");
+  });
+});
+
+describe("V5.6.3.1: public-accounts mode (production default) restores authentication", () => {
+  const mw = read("middleware.ts");
+  it("production without an explicit mode opens accounts", () => {
+    expect(resolveLaunchMode({ VERCEL_ENV: "production" })).toBe(PUBLIC_ACCOUNTS);
+  });
+  it("outside public-marketing the middleware runs the normal session middleware and labels the mode", () => {
+    expect(mw).toMatch(/if \(isPublicMarketingMode\(\)\) \{[\s\S]*?\n  \}\n[\s\S]*?const response = await updateSession\(request\);\n  response\.headers\.set\(LAUNCH_MODE_HEADER, resolveLaunchMode\(\)\);/);
+  });
+  it("the restricted-launch gates stay limited to public-marketing (so /login, /register, /studio, /admin work)", () => {
+    expect(read("src/lib/launch/server-gate.ts")).toContain("if (isPublicMarketingMode()) notFound();");
+  });
+  it("students land on /studio; admin roles come only from admin_roles", () => {
+    const ws = read("src/lib/auth/default-workspace.ts");
+    expect(ws).toContain('.from("admin_roles")');
+    expect(ws).toContain('return "/studio";');
+    expect(read("src/components/sections/auth/RegisterForm.tsx")).toContain('getSafeRedirectPath(searchParams.get("next"), "/studio")');
+    expect(read("src/app/auth/callback/route.ts")).toContain('resolveDefaultWorkspacePath(supabase, user.id) : "/studio"');
   });
 });

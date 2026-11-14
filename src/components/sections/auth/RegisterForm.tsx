@@ -62,7 +62,9 @@ export function RegisterForm() {
   // getSafeRedirectPath() validator LoginForm.tsx already uses, so a plain
   // registration (no `next`, the common case) still lands on "/welcome"
   // exactly as before — only an explicit, safe `next` changes the outcome.
-  const safeNext = getSafeRedirectPath(searchParams.get("next"), "/welcome");
+  // V5.6.3.1: a plain registration lands on the student Studio, which shows the
+  // profile task when the profile is incomplete (was "/welcome").
+  const safeNext = getSafeRedirectPath(searchParams.get("next"), "/studio");
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));

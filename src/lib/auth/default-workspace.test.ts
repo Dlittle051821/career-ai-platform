@@ -35,9 +35,9 @@ function fakeSupabase(role: string | null) {
 }
 
 describe("resolveDefaultWorkspacePath", () => {
-  it("a user with no admin_roles row (an ordinary student) resolves to /dashboard", async () => {
+  it("a user with no admin_roles row (an ordinary student) resolves to /studio (V5.6.3.1: was /dashboard)", async () => {
     const path = await resolveDefaultWorkspacePath(fakeSupabase(null), "user-123");
-    expect(path).toBe("/dashboard");
+    expect(path).toBe("/studio");
   });
 
   const ADMIN_ROLES: AdminRole[] = ["super_admin", "admin", "counsellor", "finance", "content_editor", "analyst"];
@@ -48,8 +48,8 @@ describe("resolveDefaultWorkspacePath", () => {
     });
   }
 
-  it("a stale/unrecognized role string (e.g. a role value removed from ADMIN_ROLES) is never trusted — falls back to /dashboard, never /admin", async () => {
+  it("a stale/unrecognized role string (e.g. a role value removed from ADMIN_ROLES) is never trusted — falls back to /studio, never /admin", async () => {
     const path = await resolveDefaultWorkspacePath(fakeSupabase("some_removed_role"), "user-123");
-    expect(path).toBe("/dashboard");
+    expect(path).toBe("/studio");
   });
 });

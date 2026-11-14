@@ -27,18 +27,28 @@
  * controlled only by RLS, grants and the Auth settings. See
  * docs/release/V562-PUBLIC-LAUNCH.md.
  *
+ * V5.6.3.1 authentication hotfix: a third mode, "public-accounts", is now the
+ * production default. It serves the website exactly as full-platform does
+ * (login, registration, auth callbacks, Studio, Admin and the counsellor
+ * workspace, all behind the normal session middleware and the server-side
+ * role checks), but payments and AI stay forced off in code, as in
+ * public-marketing. public-marketing remains available, and is still what
+ * any unknown value falls back to.
+ *
  * Mode selection (fail closed):
- *   NEXTWISE_LAUNCH_MODE=public-marketing  -> public marketing
+ *   NEXTWISE_LAUNCH_MODE=public-marketing  -> public marketing (no accounts)
+ *   NEXTWISE_LAUNCH_MODE=public-accounts   -> public accounts (accounts open; payments and AI forced off)
  *   NEXTWISE_LAUNCH_MODE=full-platform     -> full platform
- *   unset, and VERCEL_ENV=production       -> public marketing
+ *   unset, and VERCEL_ENV=production       -> public accounts
  *   unset, anywhere else                   -> full platform (local, Preview)
  *   any other value                        -> public marketing
  */
 
 export const LAUNCH_MODE_ENV = "NEXTWISE_LAUNCH_MODE";
 export const PUBLIC_MARKETING = "public-marketing";
+export const PUBLIC_ACCOUNTS = "public-accounts";
 export const FULL_PLATFORM = "full-platform";
-export type LaunchMode = typeof PUBLIC_MARKETING | typeof FULL_PLATFORM;
+export type LaunchMode = typeof PUBLIC_MARKETING | typeof PUBLIC_ACCOUNTS | typeof FULL_PLATFORM;
 
 /** Response header that lets a release check confirm which mode a deployment runs in. */
 export const LAUNCH_MODE_HEADER = "x-nextwise-launch-mode";
@@ -49,8 +59,22 @@ export function resolveLaunchMode(env: EnvLike = process.env): LaunchMode {
   const raw = env[LAUNCH_MODE_ENV]?.trim();
   if (raw === FULL_PLATFORM) return FULL_PLATFORM;
   if (raw === PUBLIC_MARKETING) return PUBLIC_MARKETING;
+  if (raw === PUBLIC_ACCOUNTS) return PUBLIC_ACCOUNTS;
   if (raw) return PUBLIC_MARKETING; // unknown value: fail closed
-  return env.VERCEL_ENV === "production" ? PUBLIC_MARKETING : FULL_PLATFORM;
+  return env.VERCEL_ENV === "production" ? PUBLIC_ACCOUNTS : FULL_PLATFORM;
+}
+
+/** True when accounts are open on the website (public-accounts or full-platform). */
+export function areAccountsOpen(env: EnvLike = process.env): boolean {
+  return resolveLaunchMode(env) !== PUBLIC_MARKETING;
+}
+
+/**
+ * True when payments and AI must stay off whatever their own switches say:
+ * every mode except full-platform.
+ */
+export function arePaidFeaturesForcedOff(env: EnvLike = process.env): boolean {
+  return resolveLaunchMode(env) !== FULL_PLATFORM;
 }
 
 export function isPublicMarketingMode(env: EnvLike = process.env): boolean {

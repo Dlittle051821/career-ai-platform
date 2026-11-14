@@ -1,5 +1,5 @@
 import "server-only";
-import { isPublicMarketingMode } from "@/lib/launch/launch-mode";
+import { arePaidFeaturesForcedOff } from "@/lib/launch/launch-mode";
 
 /**
  * CC-22B — the launch payment mode. Paid online checkout is OFF unless all
@@ -50,9 +50,9 @@ type EnvLike = Readonly<Record<string, string | undefined>>;
 
 /** Pure and side-effect free so it can be unit-tested with any environment. */
 export function resolvePaymentLaunchMode(env: EnvLike = process.env): PaymentLaunchMode {
-  // V5.6.2 public launch: no payments of any kind in public-marketing mode,
-  // whatever the payment variables say.
-  if (isPublicMarketingMode(env)) {
+  // V5.6.2 public launch / V5.6.3.1: no payments of any kind outside full-platform
+  // mode (public-marketing and public-accounts), whatever the payment variables say.
+  if (arePaidFeaturesForcedOff(env)) {
     return { paidCheckoutEnabled: false, blockReason: "public_marketing_launch" };
   }
   if (env[PAID_CHECKOUT_FLAG_ENV] !== PAID_CHECKOUT_FLAG_ENABLED_VALUE) {

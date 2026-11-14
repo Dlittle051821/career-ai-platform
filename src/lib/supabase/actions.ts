@@ -36,6 +36,6 @@ export async function resolveMyDefaultWorkspace(): Promise<string> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return "/dashboard";
+  if (!user) return "/studio";
   return resolveDefaultWorkspacePath(supabase, user.id);
 }

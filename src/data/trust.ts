@@ -39,7 +39,7 @@ export const WE_NEVER_PROMISE = [
 ];
 
 export const DATA_PROTECTION_PRINCIPLES = [
-  "The website has no accounts or forms, sets no cookies and uses no third-party analytics or advertising trackers.",
+  "Student accounts use only essential sign-in cookies; the website uses no third-party analytics or advertising trackers.",
   "We use what you send us by email or phone only to reply and to arrange what you ask for.",
   "We don't sell personal information or share it with institutions unless you ask us to.",
   "You can ask what we hold about you, and ask us to correct or delete it.",

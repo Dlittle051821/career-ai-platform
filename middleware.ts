@@ -5,6 +5,7 @@ import {
   PUBLIC_MARKETING,
   classifyPublicMarketingRequest,
   isPublicMarketingMode,
+  resolveLaunchMode,
 } from "@/lib/launch/launch-mode";
 
 /** Rewriting to a path no route serves renders the site's 404 page with status 404. */
@@ -33,7 +34,11 @@ export async function middleware(request: NextRequest) {
     response.headers.set(LAUNCH_MODE_HEADER, PUBLIC_MARKETING);
     return response;
   }
-  return updateSession(request);
+  // public-accounts and full-platform: the normal session middleware (login
+  // redirects for protected pages; signed-in users away from /login and /register).
+  const response = await updateSession(request);
+  response.headers.set(LAUNCH_MODE_HEADER, resolveLaunchMode());
+  return response;
 }
 
 export const config = {

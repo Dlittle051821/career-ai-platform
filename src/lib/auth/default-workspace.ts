@@ -65,5 +65,8 @@ export async function resolveDefaultWorkspacePath(
     return "/admin";
   }
 
-  return "/dashboard";
+  // V5.6.3.1: students (and anyone without a trusted admin_roles row) land on
+  // their Studio. Admin roles are read from admin_roles only, which a client
+  // can never write (only an admin can), so no sign-up can reach /admin.
+  return "/studio";
 }
