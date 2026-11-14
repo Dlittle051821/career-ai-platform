@@ -33,6 +33,12 @@ import baseline from "./cc24-v54-baseline-hashes.json";
  * NW-V5.6.2 (approved 13 Nov 2026) re-pins NextwiseV54Home.tsx only: scene 2
  * renders v562/TwoPathways in backdrop panel 1. The CIUX-01B SiteHeader
  * (with Home), the hero, the N, the engine and every other pin are unchanged.
+ *
+ * NW-V5.6.3 (14 Nov 2026, awaiting the owner's approval) re-pins two files,
+ * nothing else: NextwiseV54Home.tsx (scene 3 renders v563/CareerPreview) and
+ * src/lib/brand/master-logo.ts (Master Logo v2.0, the owner-supplied pink-tinted
+ * artwork; the v1 files stay pinned and in place). The hero, the N and its
+ * artwork, the engine, v54.css and the Two Pathways scene are unchanged.
  */
 
 const ROOT = path.resolve(import.meta.dirname, "../../..");

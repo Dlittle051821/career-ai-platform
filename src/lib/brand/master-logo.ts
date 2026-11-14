@@ -1,36 +1,35 @@
 /**
- * Nextwise Master Logo v1.0 — the single source of truth for every
- * presentation of the brand mark (see docs/home-v5/BRAND-MASTER-LOGO.md).
+ * Nextwise Master Logo v2.0 — the single source of truth for every
+ * presentation of the brand mark outside the homepage animation.
  *
- * Every variant is built from the same approved artwork:
- *   - the ORIGINAL upward-arrow N symbol (public/brand/nextwise-icon.png,
- *     unchanged; the symbol file below is a lossless crop of it), and
- *   - the custom "extwise" wordmark with the blue-accented x and the
- *     "Know What's Next." tagline, extracted from the approved Master Logo
- *     v1.0 raster (1448 × 1086) onto a transparent background.
+ * v2.0 (V5.6.3, 14 Nov 2026) is the owner-approved pink-tinted artwork: the
+ * upward arrow of the N blends from Nextwise blue into Electric Coral. The
+ * owner supplied the masters (docs/brand/master-v2-source/); every web file in
+ * public/brand/master-v2/ is built from them by docs/brand/build-master-v2.py,
+ * scaled and placed only — never redrawn — on the same canvas sizes as v1, so
+ * every logo box on the site keeps its geometry.
  *
- * The "-dark" files are the same alpha artwork with the wordmark inked in
- * Canvas white, the x in Soft Aqua and the tagline in Ice Blue so the lockup
- * reads on Deep Navy; the N symbol is never recoloured.
+ * The "-dark" files ink the wordmark for Deep Navy (Canvas white, the x in
+ * Soft Aqua, the tagline in Ice Blue); the N symbol is never recoloured.
  *
- * These are raster derivatives. A vector master (SVG/PDF) is still required
- * before the website-wide rollout — the requirements are documented in
- * docs/home-v5/BRAND-MASTER-LOGO.md.
+ * Not part of this set: ORIGINAL_N_ICON below, the artwork of the animated
+ * homepage N (locked choreography and rendering) and of the invoice PDF
+ * (payments) — both unchanged until the owner decides otherwise.
  */
 
 export type BrandArtwork = { src: string; width: number; height: number };
 
-export const MASTER_LOGO_VERSION = "1.0";
+export const MASTER_LOGO_VERSION = "2.0";
 
 export const MASTER_LOGO = {
-  fullLight: { src: "/brand/master-v1/nextwise-master-full-light.png", width: 1125, height: 373 },
-  fullDark: { src: "/brand/master-v1/nextwise-master-full-dark.png", width: 1125, height: 373 },
-  horizontalLight: { src: "/brand/master-v1/nextwise-master-horizontal-light.png", width: 1125, height: 300 },
-  horizontalDark: { src: "/brand/master-v1/nextwise-master-horizontal-dark.png", width: 1125, height: 300 },
-  symbol: { src: "/brand/master-v1/nextwise-master-symbol.png", width: 1073, height: 853 },
+  fullLight: { src: "/brand/master-v2/nextwise-master-full-light.png", width: 1125, height: 373 },
+  fullDark: { src: "/brand/master-v2/nextwise-master-full-dark.png", width: 1125, height: 373 },
+  horizontalLight: { src: "/brand/master-v2/nextwise-master-horizontal-light.png", width: 1125, height: 300 },
+  horizontalDark: { src: "/brand/master-v2/nextwise-master-horizontal-dark.png", width: 1125, height: 300 },
+  symbol: { src: "/brand/master-v2/nextwise-master-symbol.png", width: 1073, height: 853 },
 } as const satisfies Record<string, BrandArtwork>;
 
-/** The original, approved N icon the symbol is cropped from (also used by the animated N). */
+/** The original N icon (cyan arrow): the animated homepage N and the invoice PDF still use it — unchanged by v2.0. */
 export const ORIGINAL_N_ICON = "/brand/nextwise-icon.png";
 
 export type BrandLogoVariant = "full" | "horizontal" | "compact" | "symbol";

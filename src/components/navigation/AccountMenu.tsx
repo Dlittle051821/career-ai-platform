@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, UserCog } from "lucide-react";
+import { ChevronDown, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, UserCog } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { logout } from "@/lib/supabase/actions";
 import { firstNameOf } from "@/lib/supabase/use-auth-user";
 import { useAuthProfile } from "@/lib/supabase/use-auth-profile";
 import { getAccountMenuLinks, resolveAccountMenuLabel, type AccountMenuLinkKind } from "@/lib/navigation/account-menu";
+import { MASTER_LOGO } from "@/lib/brand/master-logo";
 
 const LINK_ICONS: Record<AccountMenuLinkKind, LucideIcon> = {
   dashboard: LayoutDashboard,
@@ -19,8 +21,8 @@ const LINK_ICONS: Record<AccountMenuLinkKind, LucideIcon> = {
 
 /**
  * The signed-in account control of the global header (CIUX-01B restyle of
- * the M-series role-aware menu): a round button with the account's initial
- * that opens a small panel with the role label, name, the links for that
+ * the M-series role-aware menu): a rounded button with the official Nextwise
+ * N symbol and a chevron (V5.6.3; previously the account's typed initial) that opens a small panel with the role label, name, the links for that
  * role (student/admin/counsellor — src/lib/navigation/account-menu.ts), a
  * Settings placeholder, and Log out. Signed out it renders nothing: the
  * header shows "Log in" and "Sign up" itself (HeaderActions in Header.tsx).
@@ -81,7 +83,11 @@ export function AccountMenu() {
         aria-label={`Account menu for ${firstName}, ${roleLabel}`}
         className="nwh-account"
       >
-        <span aria-hidden="true">{(firstName || "?").slice(0, 1).toUpperCase()}</span>
+        {/* V5.6.3: the official Nextwise N (Master Logo v2.0 symbol) instead of a typed initial, with a chevron so it reads as a menu */}
+        <span className="nwh-account-mark" aria-hidden="true">
+          <Image src={MASTER_LOGO.symbol.src} width={24} height={19} alt="" draggable={false} />
+        </span>
+        <ChevronDown className="nwh-account-chev" aria-hidden="true" />
       </button>
 
       {open ? (

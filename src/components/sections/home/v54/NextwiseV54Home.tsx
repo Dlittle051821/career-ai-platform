@@ -27,6 +27,9 @@ import "./v54.css";
 import { TwoPathways } from "../v562/TwoPathways";
 import { TwoPathwaysMotion } from "../v562/TwoPathwaysMotion";
 import "../v562/two-pathways.css";
+import { CareerPreview } from "../v563/CareerPreview";
+import "../v563/career-intelligence.css";
+import { buildCareerPreview } from "@/lib/home/v563/career-preview";
 
 const Arrow = () => (
   <span className="ar" aria-hidden="true">
@@ -58,6 +61,10 @@ const ROOT_ID = "nw54";
  * Electric Coral pills for navigation hover/focus and separates "Log in"
  * from "Sign up"; the account state comes from the existing auth hook.
  */
+
+/** V5.6.3 — built once at render time from the verified career records (server side). */
+const CAREER_PREVIEW = buildCareerPreview();
+
 export function NextwiseV54Home() {
   const words = V4_TRUST_STATEMENT.split(/\s+/);
 
@@ -145,139 +152,9 @@ export function NextwiseV54Home() {
                   Explore Careers <Arrow />
                 </Link>
               </div>
-              <div className="a app c-app" data-sec="2" data-i="1" role="region" aria-label="Career profile preview (illustrative)">
-                <div className="app-h" style={{ color: "var(--f2)" }}>
-                  <span>Career profile</span>
-                  <span className="tag illu">Illustrative preview</span>
-                </div>
-                <div style={{ padding: "22px 28px 14px" }}>
-                  <div className="serif" style={{ fontSize: 36, lineHeight: "40px", color: "var(--f0)" }}>
-                    UX Designer
-                  </div>
-                  <div style={{ fontSize: 13.5, color: "var(--f3)", marginTop: 6 }}>Design · Technology · Research</div>
-                </div>
-                <div className="tabs" role="tablist" aria-label="Career profile sections">
-                  {V4_CAREER_TABS.map((tab) => (
-                    <button
-                      key={tab.key}
-                      type="button"
-                      className="tab"
-                      role="tab"
-                      id={`nw4-ctab-${tab.key}`}
-                      aria-controls={`nw4-cpanel-${tab.key}`}
-                      aria-selected={tab.key === "overview"}
-                      tabIndex={tab.key === "overview" ? 0 : -1}
-                      data-sw="career"
-                      data-key={tab.key}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
-                <div className="panels" style={{ height: 396, margin: "0 28px" }}>
-                  <div className="panel" role="tabpanel" id="nw4-cpanel-overview" aria-labelledby="nw4-ctab-overview" data-pn="career" data-key="overview" style={{ paddingTop: 22 }}>
-                    <div className="k">What the work involves</div>
-                    <p style={{ fontSize: 15, lineHeight: "24px", color: "var(--f1)", marginBottom: 20 }}>
-                      UX designers study how people use products and services, then design screens and journeys that are easier to use. The work blends observation, problem solving and visual design.
-                    </p>
-                    <div className="why">
-                      <b style={{ display: "block", fontSize: 12, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--f2)", marginBottom: 6 }}>Why this appears for you</b>
-                      You said you enjoy designing and making things, and understanding how people think. We show the reasons — not a score.
-                    </div>
-                    <div className="k dOnly" style={{ marginTop: 22 }}>
-                      Related careers
-                    </div>
-                    <div className="chiprow dOnly">
-                      <span className="chip">Product Designer</span>
-                      <span className="chip">UX Researcher</span>
-                      <span className="chip">Service Designer</span>
-                      <span className="chip">Content Designer</span>
-                    </div>
-                  </div>
-                  <div className="panel" role="tabpanel" id="nw4-cpanel-day" aria-labelledby="nw4-ctab-day" data-pn="career" data-key="day" style={{ paddingTop: 18 }}>
-                    <div className="k">A typical week can include</div>
-                    <ul className="ul">
-                      <li>
-                        <i className="dot" />
-                        <span>
-                          <b>Research</b> — interviewing and observing the people who will use a product.
-                        </span>
-                      </li>
-                      <li>
-                        <i className="dot" />
-                        <span>
-                          <b>Sketching and prototyping</b> — turning ideas into screens you can test.
-                        </span>
-                      </li>
-                      <li>
-                        <i className="dot" />
-                        <span>
-                          <b>Testing</b> — watching people use a design and refining it.
-                        </span>
-                      </li>
-                      <li>
-                        <i className="dot" />
-                        <span>
-                          <b>Collaboration</b> — working closely with developers, product managers and writers.
-                        </span>
-                      </li>
-                    </ul>
-                  </div>
-                  <div className="panel" role="tabpanel" id="nw4-cpanel-routes" aria-labelledby="nw4-ctab-routes" data-pn="career" data-key="routes" style={{ paddingTop: 18 }}>
-                    <div className="k">Common routes in</div>
-                    <ul className="ul">
-                      <li>
-                        <i className="dot" style={{ background: "var(--f1)" }} />
-                        <span>
-                          <b>Degree</b> — design, human–computer interaction, psychology or computing are common starting points.
-                        </span>
-                      </li>
-                      <li>
-                        <i className="dot" style={{ background: "var(--f1)" }} />
-                        <span>
-                          <b>Apprenticeship or short course</b> — practical routes exist in some countries; quality varies, so check carefully.
-                        </span>
-                      </li>
-                      <li>
-                        <i className="dot" style={{ background: "var(--f1)" }} />
-                        <span>
-                          <b>Portfolio</b> — employers usually ask to see how you approach problems, not only final screens.
-                        </span>
-                      </li>
-                    </ul>
-                    <div className="why" style={{ marginTop: 16 }}>
-                      Next step suggestion: compare design degrees in Study Abroad, or talk the options through with an adviser.
-                    </div>
-                  </div>
-                  <div className="panel" role="tabpanel" id="nw4-cpanel-skills" aria-labelledby="nw4-ctab-skills" data-pn="career" data-key="skills" style={{ paddingTop: 22 }}>
-                    <div className="k">Strengths it draws on</div>
-                    <div className="chiprow" style={{ marginBottom: 22 }}>
-                      <span className="chip">Empathy</span>
-                      <span className="chip">Visual thinking</span>
-                      <span className="chip">Communication</span>
-                      <span className="chip">Problem solving</span>
-                      <span className="chip">Curiosity</span>
-                    </div>
-                    <div className="k">School subjects that can help</div>
-                    <div className="chiprow">
-                      <span className="chip">Art &amp; Design</span>
-                      <span className="chip">Computing</span>
-                      <span className="chip">Psychology</span>
-                      <span className="chip">English</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="c-actions">
-                  <Link className="btn sm line dOnly" href={V4_ROUTES.compareCareers}>
-                    Compare careers
-                  </Link>
-                  <Link className="btn sm line" href={V4_ROUTES.saveToStudio}>
-                    Save to Studio
-                  </Link>
-                  <Link className="btn sm forest" href={V4_ROUTES.bookSession}>
-                    Talk to an adviser
-                  </Link>
-                </div>
+              {/* V5.6.3: the Career Intelligence preview — three illustrative careers from verified records (v563/CareerPreview) */}
+              <div className="a c-app ci-host" data-sec="2" data-i="1" role="region" aria-label="Career profile preview (illustrative)">
+                <CareerPreview items={CAREER_PREVIEW} />
               </div>
             </section>
 

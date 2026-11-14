@@ -271,8 +271,11 @@ header.nwh .nwh-signup:active { transform: translateY(0) scale(.98); }
 header.nwh .nwh-signup:focus-visible { outline: 2px solid var(--nwh-navy); outline-offset: 3px; }
 /* signed in: the account menu trigger, a round companion to the workspace pill */
 header.nwh .nwh-account {
-  width: 38px;
+  /* V5.6.3: official N symbol + chevron (was a 38 px circle with a typed initial); same height and hit area */
   height: 38px;
+  min-width: 38px;
+  padding: 0 9px 0 10px;
+  gap: 3px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -289,6 +292,11 @@ header.nwh .nwh-account {
 header.nwh .nwh-account:hover,
 header.nwh .nwh-account[aria-expanded="true"] { border-color: rgba(3, 4, 95, .42); background: #fff; }
 header.nwh .nwh-account:focus-visible { outline: 2px solid var(--nwh-navy); outline-offset: 2px; }
+header.nwh .nwh-account-mark { display: inline-flex; width: 24px; height: 19px; line-height: 0; }
+header.nwh .nwh-account-mark img { width: 24px; height: 19px; object-fit: contain; }
+header.nwh .nwh-account-chev { width: 14px; height: 14px; opacity: .7; transition: transform .2s ease; }
+header.nwh .nwh-account[aria-expanded="true"] .nwh-account-chev { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { header.nwh .nwh-account-chev { transition: none; } }
 
 header.nwh .nwh-signup svg { width: 16px; height: 16px; flex: none; }
 header.nwh .nwh-acct { position: relative; }
