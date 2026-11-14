@@ -1,0 +1,59 @@
+# NEXTWISE UI/UX BASELINE V5.6.3 — runs on every pushed branch and pull request.
+# It only reads the repository and runs tests: it deploys nothing, uses no secrets,
+# and has no access to Vercel or Supabase. A branch that reverts approved shared UI fails here.
+name: UI/UX baseline
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ui-baseline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  baseline:
+    name: Locked files, tokens, navigation, routes, contacts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run verify:baseline
+
+  visual:
+    name: Visual regression (desktop 1440, tablet 768, phone 390)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    needs: baseline
+    env:
+      # Dummy values: the visual pages need no database. Nothing here reaches QA or production.
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:9
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-visual-baseline-dummy
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run verify:visual
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-diff
+          path: |
+            tests/visual/results
+            tests/visual/report
+          retention-days: 14
