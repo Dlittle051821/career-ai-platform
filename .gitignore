@@ -28,3 +28,7 @@ next-env.d.ts
 # NW09.2 OpenAI pilot — local evidence and budget ledger (never commit)
 /.nw09-pilot/
 /.nw09-backup/
+
+# UI/UX baseline visual regression output (reference images live in tests/visual/__baseline__)
+/tests/visual/results/
+/tests/visual/report/

@@ -16,7 +16,9 @@
     "import:education-data": "tsx scripts/import-education-data.ts",
     "seed:education-data": "tsx scripts/seed-education-data.ts",
     "test": "vitest run",
-    "test:db-security": "node --test scripts/security/cc25-counsellor-identity.db.test.mjs scripts/security/cc26-security-closure.db.test.mjs"
+    "test:db-security": "node --test scripts/security/cc25-counsellor-identity.db.test.mjs scripts/security/cc26-security-closure.db.test.mjs",
+    "verify:baseline": "node scripts/baseline/ui-baseline.mjs --check && vitest run src/config/ui-baseline src/config/approved-baseline.test.ts src/components/sections/cc24-ux-and-homepage-guard.test.ts",
+    "verify:visual": "playwright test -c playwright.visual.config.ts"
   },
   "dependencies": {
     "@google/genai": "^2.32.0",
@@ -34,6 +36,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "1.56.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26.2.0",
     "@types/pg": "^8.23.1",
