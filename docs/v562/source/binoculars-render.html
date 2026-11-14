@@ -1,0 +1,68 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:transparent;overflow:hidden}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"../node_modules/three/build/three.module.js","three/addons/":"../node_modules/three/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+// "Dreamscape binoculars": a soft sculptural binocular object, objectives facing the viewer.
+// The lens glass is left deep and calm; the animated viewports (paths, markers) are drawn by the page on top,
+// so this render also exports the projected lens circles (window.lens).
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+const Q = new URLSearchParams(location.search); const S = +Q.get('s') || 1600;
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(S, S); renderer.setClearColor(0, 0);
+renderer.toneMapping = THREE.NeutralToneMapping; renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; scene.environmentIntensity = 0.6;
+const key = new THREE.DirectionalLight(0xffffff, 2.0); key.position.set(-3, 4, 6); key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 8; key.shadow.bias = -0.0005;
+Object.assign(key.shadow.camera, { left: -3, right: 3, top: 3, bottom: -3 }); scene.add(key);
+const rim = new THREE.DirectionalLight(0xCAF0F8, 1.6); rim.position.set(4, 3, -4); scene.add(rim);
+const fill = new THREE.DirectionalLight(0x90E0EF, 0.6); fill.position.set(2, -3, 3); scene.add(fill);
+const cam = new THREE.PerspectiveCamera(24, 1, 0.1, 100); cam.position.set(0, 0.0, 11); cam.lookAt(0, 0, 0);
+
+const M = (color, o = {}) => new THREE.MeshPhysicalMaterial(Object.assign({ color, roughness: 0.42, clearcoat: 0.5, clearcoatRoughness: 0.25, sheen: 0.3, sheenColor: new THREE.Color(0xCAF0F8) }, o));
+const shell = M(0xEAF7FB, { roughness: 0.38 });                 // ice ceramic shell
+const band = M(0x0077B6, { roughness: 0.6, clearcoat: 0.1 });    // ocean soft-touch band
+const deep = M(0x0A2C7A, { roughness: 0.5 });                    // navy inner barrel
+const aqua = M(0x90E0EF, { roughness: 0.25, metalness: 0.6, clearcoat: 1 });
+const glass = new THREE.MeshPhysicalMaterial({ color: 0x041a5c, roughness: 0.08, metalness: 0.0, clearcoat: 1, clearcoatRoughness: 0.05, iridescence: 0.35, iridescenceIOR: 1.5 });
+
+const G = new THREE.Group(); scene.add(G);
+// barrel profile along +z (toward the viewer): eyepiece at z=-2.4, objective at z=0
+const prof = [[0.0, -2.45], [0.36, -2.45], [0.40, -2.35], [0.42, -1.8], [0.50, -1.25], [0.66, -0.75], [0.74, -0.35], [0.76, -0.08], [0.72, 0.0], [0.67, 0.0], [0.66, -0.02]];
+const lathe = new THREE.LatheGeometry(prof.map(([r, z]) => new THREE.Vector2(r, z)), 160); lathe.rotateX(Math.PI / 2); // y→z
+const sep = 0.86, lens = [];
+for (const sx of [-1, 1]) {
+  const b = new THREE.Group(); b.position.x = sx * sep; G.add(b);
+  const body = new THREE.Mesh(lathe, shell); body.castShadow = true; body.receiveShadow = true; b.add(body);
+  // ocean soft-touch band with fine grooves
+  const bandG = new THREE.CylinderGeometry(0.705, 0.68, 0.62, 160, 1, true); bandG.rotateX(Math.PI / 2);
+  const bd = new THREE.Mesh(bandG, band); bd.position.z = -0.62; b.add(bd);
+  for (let i = 0; i < 7; i++) { const t = new THREE.Mesh(new THREE.TorusGeometry(0.69 - i * 0.004, 0.006, 8, 160), band); t.position.z = -0.88 + i * 0.085; b.add(t); }
+  // objective: aqua rim + recessed navy throat + glass
+  const rimT = new THREE.Mesh(new THREE.TorusGeometry(0.70, 0.05, 24, 180), aqua); rimT.position.z = 0.0; b.add(rimT);
+  const throat = new THREE.Mesh(new THREE.CylinderGeometry(0.66, 0.66, 0.16, 120, 1, true), deep); throat.rotation.x = Math.PI / 2; throat.position.z = -0.06; b.add(throat);
+  const gl = new THREE.Mesh(new THREE.CircleGeometry(0.66, 160), glass); gl.position.z = -0.12; b.add(gl);
+  // remember the lens circle for the page overlay
+  lens.push({ c: new THREE.Vector3(sx * sep, 0, -0.12), r: 0.66 });
+}
+// sculpted bridge + focus wheel
+const br = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 0.9, 16, 48), shell); br.rotation.z = Math.PI / 2; br.position.set(0, 0.32, -1.45); br.castShadow = true; G.add(br);
+const br2 = br.clone(); br2.position.set(0, 0.3, -0.45); br2.scale.set(0.8, 0.8, 0.8); G.add(br2);
+const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.3, 64), band); wheel.rotation.z = Math.PI / 2; wheel.position.set(0, 0.52, -1.0); G.add(wheel);
+for (let i = 0; i < 40; i++) { const k = new THREE.Mesh(new THREE.BoxGeometry(0.31, 0.018, 0.018), deep); const a = i / 40 * Math.PI * 2; k.position.set(0, 0.52 + Math.sin(a) * 0.2, -1.0 + Math.cos(a) * 0.2); k.rotation.x = -a; G.add(k); }
+G.rotation.set(0.36, -0.55, 0.08); G.position.set(0.05, 0.1, 0);
+G.updateMatrixWorld(true);
+renderer.render(scene, cam);
+// project lens circles → page coordinates (ellipse approximated by centre + axes)
+const proj = (v) => { const p = v.clone().project(cam); return [(p.x + 1) / 2 * S, (1 - p.y) / 2 * S]; };
+window.lens = lens.map(({ c, r }) => {
+  const C = c.clone().applyMatrix4(G.matrixWorld);
+  const ax = new THREE.Vector3(r, 0, 0).applyQuaternion(G.quaternion), ay = new THREE.Vector3(0, r, 0).applyQuaternion(G.quaternion);
+  const pc = proj(C), px = proj(C.clone().add(ax)), py = proj(C.clone().add(ay));
+  return { cx: pc[0] / S, cy: pc[1] / S, ux: (px[0] - pc[0]) / S, uy: (px[1] - pc[1]) / S, vx: (py[0] - pc[0]) / S, vy: (py[1] - pc[1]) / S };
+});
+window.ready = true;
+</script></body></html>

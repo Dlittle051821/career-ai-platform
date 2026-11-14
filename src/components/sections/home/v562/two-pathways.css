@@ -1,0 +1,991 @@
+/*
+ * NW-V5.6.2 — "Where are you in your journey?" (Two Pathways, object-only).
+ *
+ * A one-to-one port of the approved prototype's styles. The prototype was
+ * composed at 1920 × 1080 in px; here every px is a unit `--u`
+ * = min(width / 1920, height / 1080) of the scene (container units), so the
+ * composition is identical at 1920 × 1080 and scales without drift to 1366,
+ * QHD, ultrawide (pillarboxed inside each field) and 4K. Text that would get
+ * too small on laptops has a px floor. The stacked layout (phones, portrait
+ * tablets — the same rule as V5.4's stage mode) uses the prototype's 390 × 844
+ * phone styles on a unit `--m`.
+ *
+ * Scene-level layering is V5.5's: the scene lives in backdrop panel 1 (screen
+ * space, edge to edge); while the story is settled on this chapter the stage
+ * above lets pointer events through.
+ */
+
+.nw4.nw54 .v54-p1 .tp562 {
+  pointer-events: auto;
+}
+.nw4.nw54[data-v54-chapter="pathways"]:not([data-v54-moving]) .nw4-stage {
+  pointer-events: none;
+}
+.nw4.nw54 .nw4-layer.L1 {
+  pointer-events: none;
+  background: transparent;
+}
+
+/* The travelling N: it arrives as before, then gives the scene to the title; it comes back with the next move. */
+.nw4.nw54[data-v54-chapter="pathways"]:not([data-v54-moving]) .nmark {
+  animation: tp562-n-out 0.45s ease forwards;
+}
+.nw4.nw54[data-v54-chapter="pathways"][data-v54-moving]:not([data-v54-moving="pathways"]) .nmark {
+  animation: tp562-n-in 0.35s ease both;
+}
+@keyframes tp562-n-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes tp562-n-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.tp562 {
+  --navy: #03045f;
+  --ocean: #0077b6;
+  --cyan: #00b4d8;
+  --aqua: #90e0ef;
+  --ice: #caf0f8;
+  --coral: #ff4d6d;
+  --display: var(--v54-display, "Space Grotesk", system-ui, sans-serif);
+  --body: var(--v54-ui, "Plus Jakarta Sans", system-ui, sans-serif);
+  --u: min(calc(100cqw / 1920), calc(100cqh / 1080));
+  --m: clamp(0.88px, min(calc(100cqw / 390), calc(100cqh / 844)), 1.7px);
+  position: absolute;
+  inset: 0;
+  container-type: size;
+  overflow: hidden;
+  background: var(--navy);
+  color: #fff;
+  font-family: var(--body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+.tp562 *,
+.tp562 *::before,
+.tp562 *::after {
+  box-sizing: border-box;
+}
+.tp562 p,
+.tp562 h2,
+.tp562 h3,
+.tp562 ul {
+  margin: 0;
+  padding: 0;
+}
+.tp562 a {
+  color: inherit;
+  text-decoration: none;
+}
+.tp562 button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+}
+.tp562 .tp-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.tp562 .tp-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+/* ---------- fields ---------- */
+/* both fields cover the scene; the controller clips them (clip-path: paint only, no layout during motion) */
+.tp562 .tp-field {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  outline: none;
+}
+.tp562 .tp-field-d {
+  background: var(--ocean);
+  clip-path: inset(0 50% 0 0);
+}
+.tp562 .tp-field-c {
+  background: var(--navy);
+  clip-path: inset(0 0 0 50%);
+}
+.tp562 .tp-field-c .tp-inner {
+  transform: translateX(50cqw);
+}
+/* the content frame is always half the scene wide; it slides inside its field and is clipped by it */
+.tp562 .tp-inner {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 50cqw;
+  will-change: transform;
+}
+/* the 960 × 1080 design box of each half, centred in its frame */
+.tp562 .tp-box {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(960 * var(--u));
+  height: calc(1080 * var(--u));
+  transform: translate(-50%, -50%);
+}
+
+.tp562 .tp-duo {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.tp562 .tp-duo img {
+  position: absolute;
+  width: 118cqw;
+  height: auto;
+  left: -6cqw;
+  top: -4cqh;
+  max-width: none;
+}
+.tp562 .tp-duo-d img {
+  filter: invert(1) brightness(1.4);
+}
+.tp562 .tp-duo-c img {
+  width: 82cqw;
+  left: 14cqw;
+  top: -2cqh;
+}
+
+/* ---------- copy ---------- */
+.tp562 .tp-copy {
+  position: absolute;
+  left: calc(150 * var(--u));
+  top: calc(340 * var(--u));
+  width: max(calc(595 * var(--u)), 360px);
+  color: #fff;
+}
+.tp562 .tp-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: calc(12 * var(--u));
+  font: 600 max(calc(15 * var(--u)), 12px) / 1 var(--body);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--aqua);
+}
+.tp562 .tp-eyebrow .tp-num {
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #fff;
+  opacity: 0.75;
+}
+.tp562 .tp-eyebrow .tp-dot {
+  width: max(calc(7 * var(--u)), 6px);
+  height: max(calc(7 * var(--u)), 6px);
+  border-radius: 50%;
+  background: var(--coral);
+}
+.tp562 .tp-headline {
+  margin-top: calc(26 * var(--u));
+  font: 600 max(calc(84 * var(--u)), 40px) / 0.98 var(--display);
+  letter-spacing: -0.035em;
+  color: #fff;
+}
+.tp562 .tp-ln {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+}
+.tp562 .tp-ln > span {
+  display: inline-block;
+  will-change: transform;
+}
+.tp562 .tp-identity {
+  margin-top: calc(22 * var(--u));
+  font: 500 max(calc(27 * var(--u)), 19px) / 1.2 var(--display);
+  letter-spacing: -0.01em;
+  color: var(--aqua);
+}
+.tp562 .tp-desc {
+  margin-top: calc(16 * var(--u));
+  max-width: max(calc(430 * var(--u)), 330px);
+  font: 400 max(calc(17 * var(--u)), 14px) / 1.6 var(--body);
+  color: var(--ice);
+  opacity: 0.92;
+}
+.tp562 .tp-countries {
+  margin-top: calc(16 * var(--u));
+  font: 600 max(calc(14 * var(--u)), 12px) / 1.4 var(--body);
+  letter-spacing: 0.02em;
+  color: var(--aqua);
+}
+.tp562 .tp-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(8 * var(--u));
+  margin-top: calc(16 * var(--u));
+  list-style: none;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+}
+.tp562 .tp-list li {
+  font: 600 max(calc(13 * var(--u)), 12px) / 1 var(--body);
+  padding: calc(9 * var(--u)) calc(14 * var(--u));
+  border-radius: 999px;
+  background: rgba(202, 240, 248, 0.14);
+  color: #fff;
+  border: 1px solid rgba(202, 240, 248, 0.28);
+}
+.tp562 .tp-cta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(14 * var(--u));
+  margin-top: calc(30 * var(--u));
+  height: max(calc(58 * var(--u)), 46px);
+  padding: 0 max(calc(28 * var(--u)), 22px);
+  border-radius: 999px;
+  border: max(calc(1.5 * var(--u)), 1.5px) solid rgba(255, 255, 255, 0.85);
+  font: 600 max(calc(17 * var(--u)), 14px) / 1 var(--body);
+  color: #fff;
+  overflow: hidden;
+  isolation: isolate;
+  -webkit-tap-highlight-color: transparent;
+}
+.tp562 .tp-cta-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--coral);
+  border-radius: inherit;
+  transform-origin: left center;
+  transform: scaleX(0);
+  z-index: -1;
+}
+.tp562 .tp-cta-arrow {
+  display: inline-flex;
+}
+.tp562 .tp-cta-arrow svg {
+  width: 0.95em;
+  height: 0.95em;
+  display: block;
+}
+.tp562 .tp-cta:focus-visible,
+.tp562 .tp-strip:focus-visible,
+.tp562 .tp-back:focus-visible {
+  outline: 3px solid var(--aqua);
+  outline-offset: 4px;
+}
+
+/* ---------- objects (decorative, never intercept input) ---------- */
+.tp562 .tp-obj {
+  position: absolute;
+  pointer-events: none;
+  will-change: transform, opacity;
+  translate: var(--tp-ox, 0px) var(--tp-oy, 0px);
+  scale: var(--tp-os, 1);
+}
+
+/* Discovery: Dreamscape Binoculars */
+.tp562 .tp-disc {
+  left: calc(441.6 * var(--u));
+  top: calc(410.4 * var(--u));
+  width: calc(691.2 * var(--u));
+  height: calc(496.8 * var(--u));
+  transform-origin: 30% 80%;
+}
+.tp562 .tp-binoc {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 58%;
+  aspect-ratio: 2332 / 1265;
+  transform-origin: 50% 60%;
+  will-change: transform;
+}
+.tp562 .tp-binoc picture,
+.tp562 .tp-binoc-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.tp562 .tp-binoc-img {
+  filter: drop-shadow(0 calc(34 * var(--u)) calc(40 * var(--u)) rgba(1, 20, 80, 0.35));
+}
+.tp562 .tp-lens {
+  position: absolute;
+  clip-path: ellipse(50% 50% at 50% 50%);
+  transform-origin: 50% 50%;
+  overflow: hidden;
+}
+.tp562 .tp-lens .r {
+  stroke-dashoffset: var(--tp-flow, 0);
+}
+.tp562 .tp-trails {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.tp562 .tp-trail {
+  fill: none;
+  stroke: var(--aqua);
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0.9;
+  vector-effect: non-scaling-stroke;
+}
+.tp562 .tp-tnode {
+  fill: var(--ice);
+}
+.tp562 .tp-chips-d {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.tp562 .tp-pchip {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(8 * var(--u));
+  padding: calc(9 * var(--u)) calc(14 * var(--u)) calc(9 * var(--u)) calc(10 * var(--u));
+  border-radius: 999px;
+  white-space: nowrap;
+  font: 600 max(calc(14 * var(--u)), 11px) / 1 var(--body);
+  color: #fff;
+  background: rgba(3, 4, 95, 0.28);
+  border: 1px solid rgba(144, 224, 239, 0.45);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 calc(10 * var(--u)) calc(24 * var(--u)) rgba(1, 20, 80, 0.18);
+  will-change: transform, opacity;
+  opacity: 0;
+}
+.tp562 .tp-pchip svg {
+  width: calc(18 * var(--u));
+  height: calc(18 * var(--u));
+  min-width: 13px;
+  min-height: 13px;
+  fill: none;
+  stroke: var(--aqua);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tp562[data-tp-lowfx="true"] .tp-pchip {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: rgba(3, 4, 95, 0.42);
+}
+
+/* Clarity: Journey Ticket — route cards + ticket */
+.tp562 .tp-jt {
+  left: calc(491.5 * var(--u));
+  top: calc(793.8 * var(--u));
+  width: calc(432 * var(--u));
+  aspect-ratio: 2.35 / 1;
+  transform-origin: 30% 60%;
+}
+.tp562 .tp-jt-card {
+  position: absolute;
+  left: 4%;
+  top: 22%;
+  width: 56%;
+  height: 50%;
+  border-radius: calc(16 * var(--u));
+  background: linear-gradient(160deg, #f4fafc, #ddeff6);
+  box-shadow: 0 calc(18 * var(--u)) calc(36 * var(--u)) rgba(1, 5, 60, 0.32), inset 0 1px 0 #fff;
+  padding: 4.5% 5%;
+  transform-origin: 20% 100%;
+  will-change: transform, opacity;
+  transition: background 0.4s;
+  opacity: 0;
+}
+.tp562 .tp-jt-card b {
+  display: block;
+  height: 7%;
+  width: 62%;
+  margin-top: 7%;
+  border-radius: calc(6 * var(--u));
+  background: #c7e2ec;
+}
+.tp562 .tp-jt-card b.s {
+  width: 40%;
+  margin-top: 4%;
+}
+.tp562 .tp-jt-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(8 * var(--u));
+  font: 700 calc(12 * var(--u)) / 1 var(--body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ocean);
+}
+.tp562 .tp-jt-n {
+  position: absolute;
+  right: 6%;
+  top: 9%;
+  font: 600 calc(13 * var(--u)) / 1 var(--display);
+  color: #90a9c4;
+}
+.tp562 .tp-jt-card.on {
+  background: linear-gradient(160deg, #ffffff, #e9f6fb);
+}
+.tp562 .tp-jt-card.on .tp-jt-n {
+  color: var(--coral);
+}
+.tp562 .tp-ic {
+  display: inline-block;
+  width: calc(14 * var(--u));
+  height: calc(14 * var(--u));
+  border-radius: 50%;
+  border: calc(2 * var(--u)) solid var(--ocean);
+}
+.tp562 .tp-ic-book {
+  border-radius: calc(3 * var(--u));
+}
+.tp562 .tp-ic-uni {
+  border-radius: calc(3 * var(--u)) calc(3 * var(--u)) 0 0;
+}
+.tp562 .tp-jt-ticket {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 78%;
+  display: flex;
+  border-radius: calc(18 * var(--u));
+  filter: drop-shadow(0 calc(26 * var(--u)) calc(34 * var(--u)) rgba(1, 5, 60, 0.42));
+  will-change: transform;
+  transform-origin: 30% 100%;
+}
+.tp562 .tp-jt-head {
+  position: absolute;
+  left: 5%;
+  top: 9%;
+  font: 700 calc(12 * var(--u)) / 1 var(--display);
+  letter-spacing: 0.16em;
+  color: var(--navy);
+}
+.tp562 .tp-jt-head em {
+  font: 600 calc(12 * var(--u)) / 1 var(--body);
+  font-style: normal;
+  letter-spacing: 0.12em;
+  color: var(--ocean);
+  margin-left: calc(6 * var(--u));
+}
+.tp562 .tp-jt-main {
+  --notch: calc(12 * var(--u));
+  position: relative;
+  flex: 1;
+  background: #fbfdfe;
+  border-radius: calc(18 * var(--u)) 0 0 calc(18 * var(--u));
+  padding: 0 5%;
+  -webkit-mask: radial-gradient(circle var(--notch) at 100% 0, #0000 98%, #000) top/100% 51% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 100%, #0000 98%, #000) bottom/100% 51% no-repeat;
+  mask: radial-gradient(circle var(--notch) at 100% 0, #0000 98%, #000) top/100% 51% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 100%, #0000 98%, #000) bottom/100% 51% no-repeat;
+}
+.tp562 .tp-jt-main::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: calc(14 * var(--u));
+  bottom: calc(14 * var(--u));
+  border-right: max(calc(2 * var(--u)), 1px) dashed #bfe3ee;
+}
+.tp562 .tp-jt-you {
+  position: absolute;
+  left: 5%;
+  top: 23%;
+  font: 700 calc(20 * var(--u)) / 1 var(--display);
+  color: var(--navy);
+  letter-spacing: -0.01em;
+}
+.tp562 .tp-jt-arrow {
+  color: var(--coral);
+  margin-left: calc(6 * var(--u));
+}
+.tp562 .tp-jt-dest {
+  position: absolute;
+  left: 5%;
+  top: 39%;
+  font: 700 calc(24 * var(--u)) / 1.02 var(--display);
+  color: var(--navy);
+  letter-spacing: -0.015em;
+}
+.tp562 .tp-jt-route {
+  position: absolute;
+  left: 5%;
+  right: 7%;
+  top: 76%;
+  width: 88%;
+  height: 14%;
+  overflow: visible;
+}
+.tp562 .tp-jt-track,
+.tp562 .tp-jt-prog {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.tp562 .tp-jt-track {
+  stroke: #d5eaf2;
+}
+.tp562 .tp-jt-prog {
+  stroke: var(--ocean);
+}
+.tp562 .tp-jt-o {
+  fill: var(--navy);
+}
+.tp562 .tp-jt-s {
+  fill: #d5eaf2;
+  transition: fill 0.3s;
+}
+.tp562 .tp-jt-s.on {
+  fill: var(--ocean);
+}
+.tp562 .tp-jt-d circle {
+  fill: #c9dce5;
+  transition: fill 0.3s, stroke 0.3s;
+}
+.tp562 .tp-jt-d .ring {
+  fill: none;
+  stroke: #c9dce5;
+  stroke-width: 2;
+  opacity: 0.8;
+}
+.tp562 .tp-jt-d.on circle {
+  fill: var(--coral);
+}
+.tp562 .tp-jt-d.on .ring {
+  fill: none;
+  stroke: var(--coral);
+}
+.tp562 .tp-jt-dot {
+  fill: var(--coral);
+}
+.tp562 .tp-jt-legend {
+  position: absolute;
+  left: 56%;
+  right: 7%;
+  top: 28%;
+  display: flex;
+  flex-direction: column;
+  gap: calc(7 * var(--u));
+  align-items: flex-end;
+  font: 600 calc(11 * var(--u)) / 1 var(--body);
+  letter-spacing: 0.06em;
+  color: #5e7ba0;
+  text-transform: uppercase;
+}
+.tp562 .tp-jt-stub {
+  --notch: calc(12 * var(--u));
+  width: 24%;
+  background: linear-gradient(170deg, #0a86c8, #0077b6);
+  border-radius: 0 calc(18 * var(--u)) calc(18 * var(--u)) 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12% 8%;
+  color: var(--ice);
+  -webkit-mask: radial-gradient(circle var(--notch) at 0 0, #0000 98%, #000) top/100% 51% no-repeat,
+    radial-gradient(circle var(--notch) at 0 100%, #0000 98%, #000) bottom/100% 51% no-repeat;
+  mask: radial-gradient(circle var(--notch) at 0 0, #0000 98%, #000) top/100% 51% no-repeat,
+    radial-gradient(circle var(--notch) at 0 100%, #0000 98%, #000) bottom/100% 51% no-repeat;
+}
+.tp562 .tp-jt-stub span {
+  font: 700 calc(11 * var(--u)) / 1.35 var(--body);
+  letter-spacing: 0.12em;
+}
+.tp562 .tp-jt-stub svg {
+  width: 42%;
+  align-self: flex-end;
+}
+
+/* ---------- collapsed-field strip, label, seam, counter, hint, back ---------- */
+.tp562 .tp-strip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 7cqw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(18 * var(--u));
+  color: #fff;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+.tp562 .tp-strip span {
+  font: 500 max(calc(28 * var(--u)), 20px) / 1 var(--display);
+}
+.tp562 .tp-strip em {
+  font: 600 max(calc(13 * var(--u)), 11px) / 1 var(--body);
+  font-style: normal;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+.tp562 .tp-field-c .tp-strip {
+  left: 0;
+}
+.tp562 .tp-field-d .tp-strip {
+  right: 0;
+}
+
+.tp562 .tp-label {
+  position: absolute;
+  z-index: 5;
+  top: var(--tp-label-top, calc(128 * var(--u)));
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  color: #fff;
+  width: min(calc(900 * var(--u)), 92cqw);
+  pointer-events: none;
+}
+.tp562 .tp-kicker {
+  font: 600 max(calc(14 * var(--u)), 11px) / 1 var(--body);
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--aqua);
+}
+.tp562 .tp-title {
+  margin-top: calc(14 * var(--u));
+  font: 600 max(calc(40 * var(--u)), 28px) / 1.05 var(--display);
+  letter-spacing: -0.02em;
+}
+.tp562 .tp-seam {
+  position: absolute;
+  z-index: 4;
+  top: 50%;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.tp562 .tp-chev {
+  position: absolute;
+  top: calc(-18 * var(--u));
+  font: 500 max(calc(26 * var(--u)), 18px) / 1 var(--display);
+  color: #fff;
+  opacity: 0.9;
+}
+.tp562 .tp-chev.l {
+  left: calc(-34 * var(--u));
+}
+.tp562 .tp-chev.r {
+  left: calc(14 * var(--u));
+}
+.tp562 .tp-counter {
+  position: absolute;
+  z-index: 5;
+  right: 5.2cqw;
+  bottom: 5.4cqh;
+  display: flex;
+  align-items: center;
+  gap: calc(14 * var(--u));
+  color: #fff;
+  font: 600 max(calc(14 * var(--u)), 12px) / 1 var(--display);
+  letter-spacing: 0.06em;
+}
+.tp562 .tp-counter .tp-bar {
+  position: relative;
+  width: calc(120 * var(--u));
+  height: max(calc(2 * var(--u)), 2px);
+  background: rgba(255, 255, 255, 0.3);
+  overflow: hidden;
+}
+.tp562 .tp-counter .tp-bar i {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  transform-origin: left;
+  transform: scaleX(0.5);
+}
+.tp562 .tp-counter .tp-clabel {
+  margin-left: calc(10 * var(--u));
+  font: 600 max(calc(12 * var(--u)), 11px) / 1 var(--body);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--aqua);
+  min-width: calc(96 * var(--u));
+}
+.tp562 .tp-hint {
+  position: absolute;
+  z-index: 5;
+  left: 5.2cqw;
+  bottom: 5.4cqh;
+  font: 500 max(calc(14 * var(--u)), 12px) / 1 var(--body);
+  color: var(--ice);
+  opacity: 0.8;
+}
+.tp562 .tp-back {
+  position: absolute;
+  z-index: 6;
+  left: 5.2cqw;
+  top: calc(var(--tp-label-top, calc(128 * var(--u))) - 16px);
+  font: 600 max(calc(14 * var(--u)), 13px) / 1 var(--body);
+  letter-spacing: 0.04em;
+  color: #fff;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  padding: 12px 0;
+  min-height: 44px;
+}
+
+/* entrance: hidden until the story settles on this chapter (JS only — no-JS keeps everything visible) */
+.tp562[data-tp-phase="pre"] .tp-label,
+.tp562[data-tp-phase="pre"] .tp-eyebrow,
+.tp562[data-tp-phase="pre"] .tp-identity,
+.tp562[data-tp-phase="pre"] .tp-desc,
+.tp562[data-tp-phase="pre"] .tp-countries,
+.tp562[data-tp-phase="pre"] .tp-cta,
+.tp562[data-tp-phase="pre"] .tp-counter,
+.tp562[data-tp-phase="pre"] .tp-hint,
+.tp562[data-tp-phase="pre"] .tp-obj {
+  opacity: 0;
+}
+.tp562[data-tp-phase="pre"] .tp-ln > span {
+  transform: translateY(110%);
+}
+
+/* ---------- stacked: phones and portrait screens (V5.4 stage mode "m") ---------- */
+.tp562[data-tp-layout="stacked"] .tp-inner {
+  width: 100cqw;
+  top: 0;
+  bottom: auto;
+  height: calc((100cqh - 150 * var(--m)) / 2);
+}
+.tp562[data-tp-layout="stacked"] .tp-box {
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  transform: none;
+}
+.tp562[data-tp-layout="stacked"] .tp-label {
+  top: var(--tp-label-top, calc(74 * var(--m)));
+  width: 100%;
+  padding: 0 calc(22 * var(--m));
+}
+.tp562[data-tp-layout="stacked"] .tp-kicker {
+  font-size: max(calc(11 * var(--m)), 10px);
+  letter-spacing: 0.22em;
+}
+.tp562[data-tp-layout="stacked"] .tp-title {
+  /* one line on phones: the site header is taller than the prototype's, so the title gives back the space */
+  font-size: min(calc(25 * var(--m)), calc((100cqw - 44 * var(--m)) / 15.6));
+  margin-top: calc(8 * var(--m));
+}
+.tp562[data-tp-layout="stacked"] .tp-copy {
+  left: calc(22 * var(--m));
+  top: calc(22 * var(--m));
+  width: calc(100cqw - 44 * var(--m));
+}
+.tp562[data-tp-layout="stacked"] .tp-eyebrow {
+  font-size: max(calc(11 * var(--m)), 10px);
+  gap: calc(9 * var(--m));
+}
+.tp562[data-tp-layout="stacked"] .tp-eyebrow .tp-dot {
+  width: 6px;
+  height: 6px;
+}
+.tp562[data-tp-layout="stacked"] .tp-headline {
+  font-size: calc(35 * var(--m));
+  margin-top: calc(12 * var(--m));
+}
+.tp562[data-tp-layout="stacked"] .tp-identity {
+  font-size: calc(18 * var(--m));
+  margin-top: calc(10 * var(--m));
+}
+.tp562[data-tp-layout="stacked"] .tp-desc {
+  font-size: max(calc(13 * var(--m)), 13px);
+  line-height: 1.42;
+  margin-top: calc(8 * var(--m));
+  max-width: max(calc(100cqw - 190 * var(--m)), 168px);
+}
+.tp562[data-tp-layout="stacked"] .tp-countries {
+  font-size: max(calc(11 * var(--m)), 11px);
+  margin-top: calc(8 * var(--m));
+  max-width: max(calc(100cqw - 190 * var(--m)), 168px);
+}
+/* Clarity on phones: the text flows around the ticket (beside it, then full width below it) instead of a narrow column */
+.tp562 .tp-float {
+  display: none;
+}
+.tp562[data-tp-layout="stacked"] .tp-field-c .tp-copy::before {
+  content: "";
+  float: right;
+  width: 0;
+  height: calc(146 * var(--m));
+}
+.tp562[data-tp-layout="stacked"] .tp-field-c .tp-float {
+  display: block;
+  float: right;
+  clear: right;
+  width: calc(158 * var(--m));
+  height: calc(96 * var(--m));
+}
+.tp562[data-tp-layout="stacked"] .tp-field-c .tp-desc,
+.tp562[data-tp-layout="stacked"] .tp-field-c .tp-countries {
+  max-width: none;
+}
+.tp562[data-tp-layout="stacked"] .tp-list {
+  display: none;
+}
+.tp562[data-tp-layout="stacked"] .tp-cta {
+  height: max(calc(46 * var(--m)), 44px);
+  padding: 0 calc(20 * var(--m));
+  margin-top: calc(14 * var(--m));
+  font-size: max(calc(15 * var(--m)), 14px);
+  gap: calc(12 * var(--m));
+}
+.tp562[data-tp-layout="stacked"] .tp-disc {
+  width: calc(250 * var(--m));
+  left: calc(100cqw - 168 * var(--m));
+  top: calc(150 * var(--m));
+  height: calc(146 * var(--m));
+}
+.tp562[data-tp-layout="stacked"] .tp-trails,
+.tp562[data-tp-layout="stacked"] .tp-chips-d {
+  display: none;
+}
+.tp562[data-tp-layout="stacked"] .tp-binoc {
+  width: 62%;
+}
+.tp562[data-tp-layout="stacked"] .tp-binoc-img {
+  filter: drop-shadow(0 calc(20 * var(--m)) calc(24 * var(--m)) rgba(1, 20, 80, 0.35));
+}
+.tp562[data-tp-layout="stacked"] .tp-jt {
+  width: calc(156 * var(--m));
+  left: calc(100cqw - 162 * var(--m));
+  top: calc(178 * var(--m));
+}
+.tp562[data-tp-layout="stacked"] .tp-jt-card,
+.tp562[data-tp-layout="stacked"] .tp-jt-legend,
+.tp562[data-tp-layout="stacked"] .tp-jt-stub span {
+  display: none;
+}
+.tp562[data-tp-layout="stacked"] .tp-jt-ticket {
+  height: 100%;
+  border-radius: calc(10 * var(--m));
+  filter: drop-shadow(0 calc(14 * var(--m)) calc(18 * var(--m)) rgba(1, 5, 60, 0.42));
+}
+.tp562[data-tp-layout="stacked"] .tp-jt-stub {
+  width: 22%;
+  border-radius: 0 calc(10 * var(--m)) calc(10 * var(--m)) 0;
+  --notch: calc(7 * var(--m));
+}
+.tp562[data-tp-layout="stacked"] .tp-jt-main {
+  border-radius: calc(10 * var(--m)) 0 0 calc(10 * var(--m));
+  --notch: calc(7 * var(--m));
+}
+.tp562[data-tp-layout="stacked"] .tp-jt-main::after {
+  top: calc(8 * var(--m));
+  bottom: calc(8 * var(--m));
+  border-right-width: 1px;
+}
+.tp562[data-tp-layout="stacked"] .tp-jt-you {
+  font-size: calc(11 * var(--m));
+  top: 26%;
+}
+.tp562[data-tp-layout="stacked"] .tp-jt-arrow {
+  margin-left: calc(4 * var(--m));
+}
+.tp562[data-tp-layout="stacked"] .tp-jt-dest {
+  font-size: calc(12 * var(--m));
+  top: 44%;
+}
+.tp562[data-tp-layout="stacked"] .tp-jt-head,
+.tp562[data-tp-layout="stacked"] .tp-jt-head em {
+  font-size: calc(7 * var(--m));
+}
+.tp562[data-tp-layout="stacked"] .tp-strip,
+.tp562[data-tp-layout="stacked"] .tp-seam,
+.tp562[data-tp-layout="stacked"] .tp-hint,
+.tp562[data-tp-layout="stacked"] .tp-back,
+.tp562[data-tp-layout="stacked"] .tp-counter {
+  display: none;
+}
+.tp562[data-tp-layout="stacked"] .tp-duo img {
+  width: 220cqw;
+  left: -40cqw;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tp562 .tp-obj,
+  .tp562 .tp-inner,
+  .tp562 .tp-binoc,
+  .tp562 .tp-pchip,
+  .tp562 .tp-jt-card,
+  .tp562 .tp-jt-ticket,
+  .tp562 .tp-ln > span {
+    will-change: auto;
+  }
+  .nw4.nw54[data-v54-chapter="pathways"]:not([data-v54-moving]) .nmark,
+  .nw4.nw54[data-v54-chapter="pathways"][data-v54-moving]:not([data-v54-moving="pathways"]) .nmark {
+    animation-duration: 0.01s;
+  }
+}
+
+/* ---------- the coral destination transition (lives on <body>, survives the route change) ---------- */
+.tp562-route {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: auto;
+  background: #ff4d6d;
+  clip-path: circle(0px at 50% 50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: clip-path, opacity;
+  cursor: progress;
+}
+.tp562-route-inner {
+  text-align: center;
+  color: #fff;
+  opacity: 0;
+  font-family: var(--font-v54-grotesk, "Space Grotesk"), var(--font-jakarta, "Plus Jakarta Sans"), system-ui, sans-serif;
+}
+.tp562-route-k {
+  font: 600 14px/1 var(--font-jakarta, "Plus Jakarta Sans"), system-ui, sans-serif;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  opacity: 0.9;
+  margin: 0;
+}
+.tp562-route-t {
+  margin: 16px 0 0;
+  font-weight: 600;
+  font-size: clamp(40px, 3.4vw, 120px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}

@@ -21,7 +21,7 @@
   "src/app/(site)/page.tsx": "081c47cceb4fdbdabc8b32e2925f1d4a9f7b73bc4aaa9954ef5a34568c062bef",
   "src/components/brand/NextwiseBrandLogo.tsx": "f0af5f644911eb14fae5b5244d022dec3b93424c734cf263aefdd0ce68f21821",
   "src/components/sections/home/v54/NextwiseV54Hero.tsx": "b65defc15278510ac08d44e25f842a8c901713f67c5a25808f86f73a7bb990d0",
-  "src/components/sections/home/v54/NextwiseV54Home.tsx": "f9a83c2bd522e4c175dc50dbea1aa33fed53286c68ee923a410e1768d89f867c",
+  "src/components/sections/home/v54/NextwiseV54Home.tsx": "ad37f802dce74940ddde2cf8ecf37363adc500112612f1914921abaf19a564df",
   "src/components/sections/home/v54/ThoughtCard.tsx": "d178908ae3bc2fa849cfec126325222568dc33829f70d6010cb90bd54b7d6de7",
   "src/components/sections/home/v54/V54Account.tsx": "00eed38c83d979cbb71e3609afeb69bc4a2d5ca28730a01f900a9fe95f70e7c7",
   "src/components/sections/home/v54/V54Icons.tsx": "ac3f0c3ea45982a50cc1a0ec3ecba48dc06f638409e967209e63b2b16e8cacc7",

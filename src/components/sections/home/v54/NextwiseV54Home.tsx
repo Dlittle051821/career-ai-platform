@@ -15,8 +15,6 @@ import {
   desktopSizes,
   finalBg,
   mobileSizes,
-  pathwayAbroad,
-  pathwayCareer,
 } from "@/lib/home/v4/images";
 import { V4Picture } from "@/components/sections/home/v4/V4Picture";
 import "@/components/sections/home/v4/v4-home.css";
@@ -26,6 +24,9 @@ import { V54AccountProvider } from "./V54Account";
 import { SiteHeader } from "@/components/navigation/Header";
 import { V54Motion } from "./V54Motion";
 import "./v54.css";
+import { TwoPathways } from "../v562/TwoPathways";
+import { TwoPathwaysMotion } from "../v562/TwoPathwaysMotion";
+import "../v562/two-pathways.css";
 
 const Arrow = () => (
   <span className="ar" aria-hidden="true">
@@ -34,7 +35,7 @@ const Arrow = () => (
 );
 
 const SCENE_LINKS = [
-  { go: V4_SCENES.pathways, label: "One platform, two pathways" },
+  { go: V4_SCENES.pathways, label: "Where are you in your journey?" },
   { go: V4_SCENES.careers, label: "Career Intelligence" },
   { go: V4_SCENES.abroad, label: "Study Abroad destination explorer" },
   { go: V4_SCENES.studio, label: "Student Studio" },
@@ -46,6 +47,9 @@ const ROOT_ID = "nw54";
 
 /**
  * NW-V5.4 — the approved V5.3 landing page as a full-screen experience.
+ * Scene 2 is the approved V5.6.2 "Where are you in your journey?" (Two
+ * Pathways, object-only), rendered in backdrop panel 1; every other scene,
+ * the hero, the N, the header and the engine are V5.4's, unchanged.
  *
  * Server-rendered markup on the V4 stage contract. V54Motion starts the
  * approved engine (V5.4 fork: stage rule + delegated navigation only), the
@@ -60,6 +64,7 @@ export function NextwiseV54Home() {
   return (
     <div id={ROOT_ID} className={`nw4 nw54 ${v54Grotesk.variable} ${v54Sora.variable}`} data-nw4-root="" data-nw54-root="" data-v54-state="intro" data-v54-type="a" data-v54-chapter="hero">
       <V54Motion rootId={ROOT_ID} />
+      <TwoPathwaysMotion rootId={ROOT_ID} />
       <V54AccountProvider>
       {/* CIUX-01B: the global Nextwise header (the same component as every other page). */}
       <SiteHeader context="home" rootId={ROOT_ID} />
@@ -79,10 +84,11 @@ export function NextwiseV54Home() {
       <div className="nw4-scroller" data-nw4-scroller="">
         <div className="nw4-sticky" data-nw4-sticky="">
           {/* V5.4: every scene's background, edge to edge behind the stage (driven by src/lib/home/v54/backdrop.ts) */}
-          <div className="v54-backdrop" data-v54-backdrop="" aria-hidden="true">
+          <div className="v54-backdrop" data-v54-backdrop="">
             {[0, 1, 2, 3, 4, 5, 6].map((j) => (
-              <div key={j} className={`v54-panel v54-p${j}`} data-v54-panel={j}>
+              <div key={j} className={`v54-panel v54-p${j}`} data-v54-panel={j} aria-hidden={j === 1 ? undefined : true}>
                 {j === 0 ? <HorizonScene /> : null}
+                {j === 1 ? <TwoPathways /> : null}
               </div>
             ))}
           </div>
@@ -90,64 +96,8 @@ export function NextwiseV54Home() {
             {/* 01 THE APPROVED V5 HERO */}
             <NextwiseV54Hero />
 
-            {/* 02 TWO PATHWAYS */}
-            <section className="nw4-layer L1" id="nw4-scene-1" aria-label="One platform, two pathways">
-              <div className="a eb p-eb" data-sec="1" data-i="0">
-                One platform
-              </div>
-              <h2 className="a serif h2 p-h2 center" data-sec="1" data-i="0">
-                <span className="ln">
-                  <span>
-                    One platform. <em style={{ color: "var(--p4)" }}>Two pathways.</em>
-                  </span>
-                </span>
-              </h2>
-              <p className="a p-sub center" data-sec="1" data-i="1">
-                Start with a career, a country, or both — everything you save lives in one Student Studio.
-              </p>
-              <a className="a pcard c p-c" href={V4_ROUTES.careers} data-go={V4_SCENES.careers} data-sec="1" data-i="2">
-                <div className="ph">
-                  <i>
-                    <V4Picture
-                      image={pathwayCareer}
-                      sizes={desktopSizes(coverWidth(668, 445, pathwayCareer))}
-                      mobileSizes={mobileSizes(coverWidth(371, 282, pathwayCareer))}
-                      alt=""
-                      objectPosition="50% 30%"
-                    />
-                  </i>
-                </div>
-                <div className="tx">
-                  <span className="tag">Career Intelligence</span>
-                  <h3>Discover careers that suit you.</h3>
-                  <p>Reflect on your interests and strengths, then explore what each career involves and the routes into it.</p>
-                  <span className="tl">
-                    Explore Careers <Arrow />
-                  </span>
-                </div>
-              </a>
-              <a className="a pcard s p-s" href={V4_ROUTES.abroad} data-go={V4_SCENES.abroad} data-sec="1" data-i="3">
-                <div className="ph">
-                  <i>
-                    <V4Picture
-                      image={pathwayAbroad}
-                      sizes={desktopSizes(coverWidth(668, 445, pathwayAbroad))}
-                      mobileSizes={mobileSizes(coverWidth(371, 282, pathwayAbroad))}
-                      alt=""
-                      objectPosition="50% 45%"
-                    />
-                  </i>
-                </div>
-                <div className="tx">
-                  <span className="tag">Study Abroad</span>
-                  <h3>Study in Europe with clarity.</h3>
-                  <p>Compare six destinations, find programmes, check requirements and plan your application with guidance.</p>
-                  <span className="tl">
-                    Explore Study Abroad <Arrow />
-                  </span>
-                </div>
-              </a>
-            </section>
+            {/* 02 TWO PATHWAYS — V5.6.2: the scene lives in backdrop panel 1 (screen space, see v562/TwoPathways.tsx); this layer keeps the engine's scene slot */}
+            <section className="nw4-layer L1" id="nw4-scene-1" aria-labelledby="tp562-title" />
 
             {/* 03 CAREER INTELLIGENCE */}
             <section className="nw4-layer L2" id="nw4-scene-2" aria-label="Career Intelligence">

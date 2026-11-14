@@ -29,6 +29,10 @@ import baseline from "./cc24-v54-baseline-hashes.json";
  * guarantees where the header now lives (v54.test.ts, v54-ux.test.ts). The
  * homepage is pixel-identical to CIUX-01 b15c162 in 16 of 16 reduced-motion
  * frames, header included (docs/ciux/CIUX-01B-TESTING.md).
+ *
+ * NW-V5.6.2 (approved 13 Nov 2026) re-pins NextwiseV54Home.tsx only: scene 2
+ * renders v562/TwoPathways in backdrop panel 1. The CIUX-01B SiteHeader
+ * (with Home), the hero, the N, the engine and every other pin are unchanged.
  */
 
 const ROOT = path.resolve(import.meta.dirname, "../../..");
