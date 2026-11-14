@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "./client";
+import { useLaunchMode } from "@/components/launch/LaunchModeContext";
+import { PUBLIC_MARKETING } from "@/lib/launch/launch-mode";
 
 export interface AuthProfile {
   id: string;
@@ -41,11 +43,15 @@ export interface AuthProfileState {
  * src/lib/navigation/account-menu.ts for the full explanation.
  */
 export function useAuthProfile(): AuthProfileState {
+  // V5.6.2 public launch: in public-marketing mode there are no accounts, so the
+  // browser never creates a Supabase client or calls Auth from public pages.
+  const accountsOpen = useLaunchMode() !== PUBLIC_MARKETING;
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<AuthProfile | null>(null);
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(!accountsOpen);
 
   useEffect(() => {
+    if (!accountsOpen) return;
     let cancelled = false;
     // Tracks which signed-in user's profile we last fetched, so
     // onAuthStateChange events that don't actually change *who* is signed
@@ -98,7 +104,7 @@ export function useAuthProfile(): AuthProfileState {
       cancelled = true;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [accountsOpen]);
 
   return { user, profile, accountType: profile?.accountType ?? null, ready };
 }

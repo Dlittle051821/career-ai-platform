@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
 import { PageHero } from "@/components/sections/PageHero";
 import { CTASection } from "@/components/sections/CTASection";
-import { DemoNotice } from "@/components/ui/DemoNotice";
 import { STUDY_OPTIONS_FAQS } from "@/data/faqs";
 import { FaqAccordion } from "@/components/sections/FaqAccordion";
 import {
@@ -127,24 +126,6 @@ export default function StudyOptionsPage() {
       </Section>
 
       <Section tone="surface">
-        <SectionHeading eyebrow="Illustrative UI" title="What a personalised comparison could look like" />
-        <DemoNotice className="mt-4">
-          This is a sample layout only. Your actual comparison would be calculated from your specific shortlist
-          during counselling — no figures are fabricated here.
-        </DemoNotice>
-        <Card className="mt-6">
-          <div className="grid gap-4 sm:grid-cols-3">
-            {["Career fit", "Total cost", "Work exposure"].map((label) => (
-              <div key={label} className="rounded-[var(--radius-control)] bg-surface-alt p-4 text-center">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
-                <p className="mt-2 text-sm font-medium text-text-soft">Calculated from selected pathway</p>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </Section>
-
-      <Section tone="muted">
         <SectionHeading eyebrow="Questions" title="Study options FAQ" align="center" className="mx-auto" />
         <div className="mx-auto mt-10 max-w-2xl">
           <FaqAccordion items={STUDY_OPTIONS_FAQS} />

@@ -9,6 +9,8 @@ import { fontVariables } from "@/lib/fonts";
 import { getOrganizationJsonLd, getWebsiteJsonLd, toSafeJsonLdString } from "@/lib/seo/structured-data";
 import { HomepageFailsafe } from "@/components/sections/home/launch/HomepageFailsafe";
 import { HEADER_GEOMETRY_SCRIPT } from "@/lib/navigation/header-geometry";
+import { LaunchModeProvider } from "@/components/launch/LaunchModeContext";
+import { FULL_PLATFORM, resolveLaunchMode } from "@/lib/launch/launch-mode";
 import "../globals.css";
 import "@/styles/cc22b-launch-overrides.css";
 import "@/styles/site-header.css";
@@ -78,6 +80,8 @@ export const metadata: Metadata = {
  * — each one defines its own `<html>`/`<body>`.
  */
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
+  // V5.6.2 public launch: see src/lib/launch/launch-mode.ts.
+  const launchMode = resolveLaunchMode();
   return (
     // CIUX-01B: suppressHydrationWarning covers only <html>'s own attributes — the header geometry script sets
     // --nwh-* and data-nwh-mode there before hydration, by design (src/lib/navigation/header-geometry.ts).
@@ -97,6 +101,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
+        <LaunchModeProvider mode={launchMode}>
         <Header />
         <main id="main-content">{children}</main>
         <AppMobileTabBarSlot />
@@ -105,7 +110,8 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
             see RegistrationPrompt.tsx's own docblock. Renders nothing
             (a closed <dialog>) until its own timer/contextual-trigger
             logic decides to open. */}
-        <RegistrationPrompt />
+        {launchMode === FULL_PLATFORM ? <RegistrationPrompt /> : null}
+        </LaunchModeProvider>
         <HomepageFailsafe />
       </body>
     </html>

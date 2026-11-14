@@ -1,30 +1,10 @@
 import type { Metadata } from "next";
 import { publicPageMetadata } from "@/config/seo";
-import { LegalPlaceholder } from "@/components/sections/legal/LegalPlaceholder";
+import { LegalDocumentPage } from "@/components/sections/legal/LegalDocumentPage";
+import { REFUND_POLICY } from "@/config/legal";
 
-export const metadata: Metadata = publicPageMetadata(
-  "/refund-policy",
-  "Refund Policy",
-  "What our future Refund Policy will cover — pending professional legal review before launch.",
-);
+export const metadata: Metadata = publicPageMetadata("/refund-policy", "Refund Policy", "How refunds work for Nextwise services.");
 
-const CATEGORIES = [
-  { title: "Refund eligibility", description: "The circumstances under which a refund may apply, stage by stage." },
-  { title: "How to request a refund", description: "The intended process: request, acknowledgement, review, written decision." },
-  { title: "Timelines", description: "How quickly requests will be acknowledged and resolved." },
-  { title: "Non-refundable items", description: "Any third-party costs (for example, application or visa fees) that would not be refundable." },
-  { title: "Cancellation terms", description: "What happens if you cancel a package partway through." },
-  { title: "Dispute process", description: "What to do if you disagree with a refund decision." },
-];
-
-export default function RefundPolicyPage() {
-  return (
-    <LegalPlaceholder
-      eyebrow="Legal"
-      title="Refund Policy"
-      intro="This page outlines what our Refund Policy will cover. The final policy, including exact conditions and timelines, will be published after professional legal review."
-      categories={CATEGORIES}
-      breadcrumbLabel="Refund Policy"
-    />
-  );
+export default function Page() {
+  return <LegalDocumentPage doc={REFUND_POLICY} />;
 }

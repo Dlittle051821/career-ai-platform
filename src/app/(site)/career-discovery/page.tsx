@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { publicPageMetadata } from "@/config/seo";
 import Link from "next/link";
-import { GitBranch, Lock, TrendingUp } from "lucide-react";
+import { GitBranch, Lock, Mail, TrendingUp } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Card } from "@/components/ui/Card";
@@ -12,7 +12,8 @@ import { CTASection } from "@/components/sections/CTASection";
 import { FaqAccordion } from "@/components/sections/FaqAccordion";
 import { DemoNotice } from "@/components/ui/DemoNotice";
 import { GuidedDiscoveryFlow } from "@/components/sections/career-discovery/GuidedDiscoveryFlow";
-import { WaitlistForm } from "@/components/sections/career-discovery/WaitlistForm";
+import { buttonClasses } from "@/components/ui/Button";
+import { OFFICIAL_CONTACT } from "@/config/contact";
 import { DISCOVERY_FACTORS } from "@/data/career-discovery";
 import { CAREER_DISCOVERY_FAQS } from "@/data/faqs";
 
@@ -21,6 +22,11 @@ export const metadata: Metadata = publicPageMetadata(
   "Career Discovery for Students",
   "Explore your interests and possible career directions with guided career discovery. Learn what to research next and when counselling may help.",
 );
+
+/** V5.6.2 public launch: replaces the demo waitlist form, which sent nothing. Opens the visitor's own email app. */
+const ASSESSMENT_UPDATES_EMAIL_HREF = `${OFFICIAL_CONTACT.founder.mailto}?subject=${encodeURIComponent(
+  "Notify me when the career assessment opens — Nextwise",
+)}`;
 
 export default function CareerDiscoveryPage() {
   return (
@@ -123,10 +129,12 @@ export default function CareerDiscoveryPage() {
               A growing career library
             </h3>
 
-            <p className="mt-2 text-sm leading-relaxed text-muted">
-              We&apos;re building a broad library covering many Indian and
-              international career paths. It isn&apos;t live yet — this
-              milestone previews the structure it will use.
+            <p className="mt-2 text-sm leading-relaxed text-text-soft">
+              Browse Indian and international career paths in the{" "}
+              <Link href="/careers" className="text-secondary-dark underline underline-offset-2">
+                career library
+              </Link>{" "}
+              while the full assessment is being built.
             </p>
           </Card>
         </div>
@@ -160,17 +168,20 @@ export default function CareerDiscoveryPage() {
           <div>
             <SectionHeading
               eyebrow="Get notified"
-              title="Join the assessment waitlist"
+              title="Hear when the assessment opens"
               className="max-w-none"
             />
 
             <p className="mt-3 text-sm text-muted">
-              We&apos;ll let you know when the full discovery experience is
-              ready. This form is a demo — see the note after submitting.
+              Write to us and we&apos;ll let you know when the full discovery experience is ready. The link opens your
+              own email app; nothing is sent from this page.
             </p>
 
             <div className="mt-6">
-              <WaitlistForm />
+              <a href={ASSESSMENT_UPDATES_EMAIL_HREF} className={buttonClasses("secondary")}>
+                <Mail aria-hidden="true" className="h-4 w-4" />
+                Email to be notified
+              </a>
             </div>
           </div>
 

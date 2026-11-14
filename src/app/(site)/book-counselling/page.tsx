@@ -3,6 +3,7 @@ import { publicPageMetadata } from "@/config/seo";
 import { DiscoveryEntryHero } from "@/components/sections/book-counselling/DiscoveryEntryHero";
 import { DiscoveryEntryExplainerCards } from "@/components/sections/book-counselling/DiscoveryEntryExplainerCards";
 import { createClient } from "@/lib/supabase/server";
+import { isPublicMarketingMode } from "@/lib/launch/launch-mode";
 
 export const metadata: Metadata = publicPageMetadata(
   "/book-counselling",
@@ -42,6 +43,15 @@ export const metadata: Metadata = publicPageMetadata(
  * fetched (only the boolean fact of whether a user session exists).
  */
 export default async function BookCounsellingPage() {
+  // V5.6.2 public launch: no accounts and no auth call in public-marketing mode.
+  if (isPublicMarketingMode()) {
+    return (
+      <>
+        <DiscoveryEntryHero isAuthenticated={false} accountsOpen={false} />
+        <DiscoveryEntryExplainerCards />
+      </>
+    );
+  }
   const supabase = await createClient();
   const {
     data: { user },

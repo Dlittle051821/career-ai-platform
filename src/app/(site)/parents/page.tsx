@@ -8,10 +8,8 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { PageHero } from "@/components/sections/PageHero";
 import { CTASection } from "@/components/sections/CTASection";
-import { ComingSoon } from "@/components/ui/ComingSoon";
 import { FaqAccordion } from "@/components/sections/FaqAccordion";
 import { PARENTS_FAQS } from "@/data/faqs";
-import { APPLICATION_STATUS_PREVIEW } from "@/data/trust";
 import { COST_PLANNING_FRAMEWORK, FAMILY_QUESTIONS, FRAUD_WARNING_SIGNS, PARENT_PARTICIPATION } from "@/data/parents";
 import { BRAND_NAME } from "@/config/site";
 
@@ -112,23 +110,6 @@ export default function ParentsPage() {
       </Section>
 
       <Section tone="surface">
-        <SectionHeading eyebrow="Coming later" title="Visibility into your child's progress" />
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1.2fr_1fr] lg:items-start">
-          <ComingSoon
-            title="Parent progress dashboard"
-            description="A future feature will let parents see where an application stands — for example: planned, documents pending, submitted, institution response, decision. This is a product preview, not a live feature."
-          />
-          <ul className="flex flex-wrap gap-2">
-            {APPLICATION_STATUS_PREVIEW.map((status) => (
-              <li key={status}>
-                <Badge tone="info">{status}</Badge>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </Section>
-
-      <Section tone="muted">
         <Card className="flex items-start gap-4 border-error/20 bg-error-light">
           <ShieldOff aria-hidden="true" className="mt-0.5 h-6 w-6 shrink-0 text-error" />
           <div>
@@ -145,7 +126,7 @@ export default function ParentsPage() {
         </Card>
       </Section>
 
-      <Section tone="surface">
+      <Section tone="muted">
         <SectionHeading eyebrow="Questions" title="Parent FAQ" align="center" className="mx-auto" />
         <div className="mx-auto mt-10 max-w-2xl">
           <FaqAccordion items={PARENTS_FAQS} />

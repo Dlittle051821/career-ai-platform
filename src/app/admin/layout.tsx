@@ -7,6 +7,7 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { logout } from "@/lib/supabase/actions";
 import { BRAND_NAME } from "@/config/site";
 import "../globals.css";
+import { notFoundInPublicMarketingMode } from "@/lib/launch/server-gate";
 
 export const metadata: Metadata = {
   title: {
@@ -35,6 +36,7 @@ export const metadata: Metadata = {
  * single child page renders.
  */
 export default async function AdminRootLayout({ children }: { children: React.ReactNode }) {
+  notFoundInPublicMarketingMode(); // V5.6.2 public launch (src/lib/launch/launch-mode.ts)
   const admin = await getCurrentAdmin();
 
   if (!admin) {

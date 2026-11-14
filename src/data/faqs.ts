@@ -25,12 +25,12 @@ export const HOME_FAQS: FaqItem[] = [
   {
     question: "How will paid services and refunds be documented?",
     answer:
-      "Before any payment, you'll receive a written scope of what is included, itemised fees, and refund conditions. See the Trust Center for the planned protection framework and the Refund Policy for details.",
+      "Before any payment, you'll receive a written scope of what is included, itemised fees, and refund conditions. See the Trust Center and the Refund Policy for details.",
   },
   {
     question: "Is Odia-language support available?",
     answer:
-      "The website is in English today and the full Odia experience is coming soon. Spoken Odia support during counselling calls can be requested in the meantime.",
+      "The website is in English. You can ask for a counselling conversation in Odia when you book.",
   },
 ];
 
@@ -84,7 +84,7 @@ export const PARENTS_FAQS: FaqItem[] = [
   {
     question: "What happens if we're unhappy with the service?",
     answer:
-      "See the Trust Center's complaint and escalation path, and our Refund Policy placeholder for the intended structure. Final legal terms will be published after professional review.",
+      "Write to either founder or call — the details are in the Trust Center. For a paid service, the refund terms are in its written agreement; see the Refund Policy.",
   },
   {
     question: "Do you push students toward studying abroad for commission?",
@@ -100,11 +100,6 @@ export const PARENTS_FAQS: FaqItem[] = [
 
 export const TRUST_FAQS: FaqItem[] = [
   {
-    question: "What does 'Pending verification' mean?",
-    answer:
-      "It means the item — for example, a registration number — has not yet been confirmed with supporting documentation. We show this status rather than presenting an unverified claim as fact.",
-  },
-  {
     question: "Will you ever guarantee an outcome?",
     answer:
       "No. We will never guarantee admission, scholarship, visa, or job outcomes, because none of these are within any consultancy's control.",
@@ -115,19 +110,19 @@ export const TRUST_FAQS: FaqItem[] = [
       "Our intended policy is that any commercial relationship relevant to a recommendation is disclosed to the family. This policy is not yet finalised or independently audited.",
   },
   {
-    question: "What is a 'sample agreement'?",
+    question: "Can I pay on the website?",
     answer:
-      "It is a placeholder showing the structure a future service agreement will follow. It is not a binding legal document and is not available for download until legal review is complete.",
+      "No. Online payment isn't open. Before you pay for any service, you receive a written agreement with the service, the fee and the refund terms.",
   },
   {
     question: "How do refunds work?",
     answer:
-      "Refund conditions will be shared before payment and documented in writing. See the Refund Policy placeholder for the categories the final policy will cover.",
+      "The refund terms for a paid service are set out in its written agreement, before you pay. See the Refund Policy.",
   },
   {
-    question: "Who do I contact with a complaint?",
+    question: "Who do I contact with a concern?",
     answer:
-      "The escalation path is counsellor, then service manager, then a formal grievance contact. Until a grievance officer is appointed, write to the founders directly — the addresses and phone number are on the Contact page.",
+      "Write to the founder or co-founder, or call. The addresses and phone number are on the Contact page.",
   },
 ];
 

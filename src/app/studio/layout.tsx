@@ -4,6 +4,7 @@ import { BRAND_NAME } from "@/config/site";
 import { getCurrentProfile } from "@/lib/supabase/profile";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import "../globals.css";
+import { notFoundInPublicMarketingMode } from "@/lib/launch/server-gate";
 
 export const metadata: Metadata = {
   title: {
@@ -42,6 +43,7 @@ export const metadata: Metadata = {
  * docs/milestones/NW03/NW03_03_STUDENT_JOURNEYS.md.
  */
 export default async function StudioRootLayout({ children }: { children: React.ReactNode }) {
+  notFoundInPublicMarketingMode(); // V5.6.2 public launch (src/lib/launch/launch-mode.ts)
   // Defense in depth only — middleware already redirects a logged-out
   // visitor to /login before this layout ever renders. Only the fields the
   // shell's own header (UserMenu) needs are fetched here.

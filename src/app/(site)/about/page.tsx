@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import { publicPageMetadata } from "@/config/seo";
 import Link from "next/link";
-import { Compass, Globe2, ScaleIcon, Users } from "lucide-react";
+import { Compass, Globe2, Mail, Phone, ScaleIcon, Users } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Card } from "@/components/ui/Card";
 import { PageHero } from "@/components/sections/PageHero";
 import { CTASection } from "@/components/sections/CTASection";
-import { TrustBadge } from "@/components/ui/TrustBadge";
-import { TEAM_PLACEHOLDERS } from "@/data/trust";
+import { CONTACT_PEOPLE, OFFICIAL_CONTACT } from "@/config/contact";
+import { isPublicMarketingMode } from "@/lib/launch/launch-mode";
 import { BRAND_NAME } from "@/config/site";
 
 export const metadata: Metadata = publicPageMetadata(
@@ -24,6 +24,7 @@ const PRINCIPLES = [
 ];
 
 export default function AboutPage() {
+  const publicLaunch = isPublicMarketingMode();
   return (
     <>
       <PageHero
@@ -70,48 +71,52 @@ export default function AboutPage() {
       </Section>
 
       <Section tone="surface">
-        <SectionHeading eyebrow="Who's behind this" title="Our team" />
+        {/* V5.6.2 public launch: the unverified team cards are replaced by the
+            people who can be reached today. No names, photographs or credentials are published until the owner
+            approves them (docs/release/V562-LEGAL-REVIEW.md). */}
+        <SectionHeading eyebrow="Who's behind this" title="Talk to the founders" />
         <p className="mt-3 max-w-2xl text-sm text-muted">
-          We won&apos;t invent founder biographies or credentials. Verified team information will appear here as
-          it&apos;s confirmed.
+          {BRAND_NAME} is founder-led. Write to either founder or call, and you&apos;ll speak with the people
+          responsible for the service.
         </p>
         <div className="mt-8 grid gap-5 sm:grid-cols-3">
-          {TEAM_PLACEHOLDERS.map((member) => (
-            <Card key={member.roleTitle}>
-              <p className="text-base font-semibold text-primary">{member.roleTitle}</p>
-              <div className="mt-3">
-                <TrustBadge status={member.status} />
-              </div>
-              <p className="mt-3 text-sm text-muted">{member.note}</p>
+          {CONTACT_PEOPLE.map((person) => (
+            <Card key={person.email}>
+              <p className="text-base font-semibold text-primary">{person.role}</p>
+              <a href={person.mailto} className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-link underline underline-offset-2">
+                <Mail aria-hidden="true" className="h-4 w-4" />
+                {person.email}
+              </a>
             </Card>
           ))}
+          <Card>
+            <p className="text-base font-semibold text-primary">Phone</p>
+            <a href={OFFICIAL_CONTACT.phone.tel} className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-link underline underline-offset-2">
+              <Phone aria-hidden="true" className="h-4 w-4" />
+              {OFFICIAL_CONTACT.phone.display}
+            </a>
+          </Card>
         </div>
       </Section>
 
       <Section tone="muted">
         <Card>
-          {/* NW08.5 — this section's copy previously said "This website
-              reflects our Milestone 1 build... frontend-only interactions,"
-              which was accurate when first written but became stale as
-              real accounts, applications, payments, counselling, and an
-              admin system shipped in later milestones (confirmed against
-              this page's own now-functional "/applications", "/dashboard",
-              "/saved" routes and the real Supabase-backed auth this site
-              runs on). Understating what already works is still a content-
-              accuracy problem the brief's audit explicitly asks to fix —
-              not as risky as overclaiming, but still not honest. Updated to
-              describe what is actually true right now, while keeping the
-              one disclosure that is still accurate and still the real
-              constraint: a student-facing AI recommendation engine is not
-              yet live (that is NW09's own, separate, not-yet-started
-              milestone — see docs/milestones/NW08.5/NW085_04_DISCOVERY_PAGE_REDESIGN.md). */}
           <h2 className="text-lg font-semibold text-primary">Mission versus what&apos;s live today</h2>
-          <p className="mt-2 text-sm leading-relaxed text-text-soft">
-            Account creation, student applications, discovery sessions, counselling, and payments on this site are
-            real, not a mock-up. What is not yet live is a student-facing AI recommendation engine — the career
-            discovery preview on this site today reflects your own answers back to you; it does not run a scored,
-            personalised AI assessment yet. We&apos;d rather be clear about that than let the site imply otherwise.
-          </p>
+          {publicLaunch ? (
+            <p className="mt-2 text-sm leading-relaxed text-text-soft">
+              Today this website shares career and education information, and we arrange the free Discovery Session by
+              email or phone. Online accounts, booking, applications and payments are not open on the website yet. The
+              career discovery questions reflect your own answers back to you; they don&apos;t run a scored,
+              personalised AI assessment. We&apos;d rather be clear about that than let the site imply otherwise.
+            </p>
+          ) : (
+            <p className="mt-2 text-sm leading-relaxed text-text-soft">
+              Account creation, student applications, discovery sessions, counselling, and payments on this site are
+              real, not a mock-up. What is not yet live is a student-facing AI recommendation engine — the career
+              discovery preview on this site today reflects your own answers back to you; it does not run a scored,
+              personalised AI assessment yet. We&apos;d rather be clear about that than let the site imply otherwise.
+            </p>
+          )}
           <p className="mt-4 text-sm text-text-soft">
             Read more about how we intend to earn trust on our{" "}
             <Link href="/trust" className="text-secondary-dark underline underline-offset-2">

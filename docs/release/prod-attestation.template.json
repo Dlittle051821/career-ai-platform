@@ -1,0 +1,9 @@
+{
+  "_read_me": "Fill in from the Supabase dashboard of the PRODUCTION project. Answer only what you have checked. Contains no secrets.",
+  "inspected_project_ref": "",
+  "auth_allow_new_signups": null,
+  "auth_allow_anonymous_signins": null,
+  "active_counsellor_accounts_reviewed": null,
+  "all_active_staff_accounts_trusted": null,
+  "backup_confirmed_at": ""
+}

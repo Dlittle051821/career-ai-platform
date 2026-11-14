@@ -1,31 +1,12 @@
-import type { TeamPlaceholder, TrustItem } from "@/types";
 
-export const COMPANY_VERIFICATION_ITEMS: TrustItem[] = [
-  { label: "Legal entity name", value: "To be published after verification", status: "pending" },
-  { label: "Registration number", value: "To be published after verification", status: "pending" },
-  { label: "GST number", value: "To be published after verification", status: "pending" },
-  { label: "Registered address", value: "To be published after verification", status: "pending" },
-  { label: "Authorised representatives", value: "To be published after verification", status: "pending" },
-];
-
-export const TEAM_PLACEHOLDERS: TeamPlaceholder[] = [
-  {
-    roleTitle: "Founder / Director",
-    status: "planned",
-    note: "Verified name, photograph, and credentials will be published once confirmed by the business owner.",
-  },
-  {
-    roleTitle: "Lead Career Counsellor",
-    status: "planned",
-    note: "Counsellor credentials will be listed here after verification, including qualifications and experience.",
-  },
-  {
-    roleTitle: "Admissions & Visa Advisor",
-    status: "planned",
-    note: "Role scope and verified background will be added once the position is filled and confirmed.",
-  },
-];
-
+/**
+ * V5.6.2 public launch: the "to be published after verification" company rows,
+ * the unfilled team roles, the "planned" payment provider, the application
+ * status preview and the counsellor/service-manager escalation chain were
+ * removed from the public pages. None of them described something that exists
+ * today. Company registration details and named team members go back on the
+ * Trust Center only once the owner confirms them (docs/release/V562-LEGAL-REVIEW.md).
+ */
 export const PAYMENT_PROTECTION_STEPS = [
   {
     title: "Written service scope before payment",
@@ -38,10 +19,6 @@ export const PAYMENT_PROTECTION_STEPS = [
   {
     title: "Refund and cancellation conditions shared upfront",
     description: "Conditions are shared and confirmed before payment, not discovered afterward.",
-  },
-  {
-    title: "Secure payment provider (planned)",
-    description: "A recognised, secure payment gateway is planned for future milestones; none is active yet.",
   },
 ];
 
@@ -61,26 +38,9 @@ export const WE_NEVER_PROMISE = [
   "Fabricated rankings, statistics, or outcome claims.",
 ];
 
-export const APPLICATION_STATUS_PREVIEW = [
-  "Planned",
-  "Documents pending",
-  "Submitted",
-  "Institution response",
-  "Decision",
-];
-
-export const ESCALATION_STEPS = [
-  { step: "1. Counsellor", description: "Raise the concern directly with your assigned counsellor first." },
-  { step: "2. Service manager", description: "If unresolved, the service manager reviews and responds in writing." },
-  {
-    step: "3. Formal grievance contact",
-    description: "Until a dedicated grievance officer is appointed, write to the founders directly — details on the Contact page.",
-  },
-];
-
 export const DATA_PROTECTION_PRINCIPLES = [
-  "Data minimisation — we intend to collect only what is needed for the purpose explained to you.",
-  "Consent — clear consent is requested before any follow-up contact.",
-  "Controlled access — only relevant team members would access student records.",
-  "Deletion on request — a process for requesting data deletion is planned; contact us to ask about your data.",
+  "The website has no accounts or forms, sets no cookies and uses no third-party analytics or advertising trackers.",
+  "We use what you send us by email or phone only to reply and to arrange what you ask for.",
+  "We don't sell personal information or share it with institutions unless you ask us to.",
+  "You can ask what we hold about you, and ask us to correct or delete it.",
 ];

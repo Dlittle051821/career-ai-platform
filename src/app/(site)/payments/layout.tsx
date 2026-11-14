@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFoundInPublicMarketingMode } from "@/lib/launch/server-gate";
 
 /**
  * M17A Step 2 — permanent, page-level noindex protection for the entire
@@ -22,5 +23,6 @@ export const metadata: Metadata = {
 };
 
 export default function PaymentsLayout({ children }: { children: React.ReactNode }) {
+  notFoundInPublicMarketingMode(); // V5.6.2 public launch (src/lib/launch/launch-mode.ts)
   return children;
 }

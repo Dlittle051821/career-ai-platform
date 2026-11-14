@@ -400,6 +400,8 @@ export default defineConfig({
       // dependency-injected, no network, no Supabase, no API keys.
       "src/lib/ai/**/*.test.ts",
       "src/lib/career-intelligence/**/*.test.ts",
+      // V5.6.2 public launch
+      "src/lib/launch/**/*.test.ts",
     ],
   },
 });
