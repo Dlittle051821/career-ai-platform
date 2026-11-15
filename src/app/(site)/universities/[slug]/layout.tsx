@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
+import { hasUniversityDirectoryAccess } from "@/lib/supabase/education/university-access";
 import { lookupPublicUniversityBySlugCached } from "@/lib/supabase/education/detail-lookups";
 
 /**
@@ -10,6 +11,8 @@ import { lookupPublicUniversityBySlugCached } from "@/lib/supabase/education/det
  */
 export default async function UniversityDetailLayout({ children, params }: { children: ReactNode; params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  // University Discovery V3 — without directory access no record is looked up; the page renders the locked preview.
+  if (!(await hasUniversityDirectoryAccess())) return children;
   const lookup = await lookupPublicUniversityBySlugCached(slug);
   if (lookup.status === "not_found") notFound();
   return children;
