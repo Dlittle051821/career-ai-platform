@@ -19,6 +19,13 @@ import { LaunchCountryDiscovery } from "@/components/sections/education/LaunchCo
 import { resolveListEmptyState } from "@/lib/ui/list-state";
 import { GeometricBackdrop } from "@/components/graphics/GeometricBackdrop";
 import UniversitiesLoading from "./list-skeleton";
+import { LockOpen } from "lucide-react";
+import { getUniversityAccess } from "@/lib/supabase/education/university-access";
+import { canUseUniversityDirectory } from "@/lib/education/university-discovery/access";
+import { getUniversityDestination } from "@/lib/education/university-discovery/destinations";
+import { getVerifiedOffer } from "@/lib/education/university-discovery/offer";
+import { FreeDiscovery } from "@/components/sections/university-discovery/FreeDiscovery";
+import "@/styles/university-discovery.css";
 
 // M17A Step 5 — canonical is deliberately static and points at the clean
 // list URL regardless of the q/country/city/studyMode/page query params
@@ -35,7 +42,7 @@ function toStringArray(value: string | string[] | undefined): string[] {
 }
 
 interface UniversitiesPageProps {
-  searchParams: Promise<{ q?: string; country?: string | string[]; city?: string; studyMode?: string | string[]; page?: string }>;
+  searchParams: Promise<{ q?: string; country?: string | string[]; city?: string; studyMode?: string | string[]; page?: string; destination?: string }>;
 }
 
 /**
@@ -62,6 +69,34 @@ export default function UniversitiesPage(props: UniversitiesPageProps) {
 
 async function UniversitiesPageContent({ searchParams }: UniversitiesPageProps) {
   const params = await searchParams;
+
+  // University Discovery V3 — the access tier is decided on the server, from
+  // the session and the live entitlement, before any directory query runs. A
+  // visitor without directory access gets the public discovery experience
+  // (destinations and official portals) and this function returns before
+  // `searchUniversities` is ever called for them.
+  const access = await getUniversityAccess();
+  if (!canUseUniversityDirectory(access)) {
+    const destination = getUniversityDestination(params.destination);
+    const trusted = destination
+      ? await getTrustedSearchResults({ destinationCountryCode: destination.code, canonicalSubjectId: null, canonicalSubjectLabel: null, degreeLevel: null })
+      : null;
+    return (
+      <div className="ud">
+        {destination ? null : (
+          <PageHero
+            size="compact"
+            eyebrow="University Explorer"
+            title="Explore universities around the world."
+            description="Choose your destination and explore trusted official resources to discover higher education opportunities."
+          />
+        )}
+        <div className={destination ? "ud-wrap ud-section pt-28" : "ud-wrap ud-section"}>
+          <FreeDiscovery kind="universities" destination={destination} resources={trusted?.results ?? []} accessState={access} offer={getVerifiedOffer()} />
+        </div>
+      </div>
+    );
+  }
   const query = params.q?.trim() ?? "";
   const countryIds = toStringArray(params.country);
   const city = params.city?.trim() ?? "";
@@ -143,7 +178,18 @@ async function UniversitiesPageContent({ searchParams }: UniversitiesPageProps) 
 
   return (
     <>
-    <PageHero size="compact" fadeTo="muted" eyebrow="University Explorer" title="Browse universities" description="Search and filter a starter dataset of universities — location, institution type, study levels and modes, and a link through to each university's own detail page." />
+    <PageHero
+      size="compact"
+      fadeTo="muted"
+      eyebrow="Nextwise University Directory"
+      title="Your university discovery starts here."
+      description="Explore universities across your preferred destinations and build your personal university shortlist."
+    >
+      <span className="ud ud-unlocked" style={{ background: "#fff" }}>
+        <i aria-hidden="true"><LockOpen /></i>
+        <span><b>Directory unlocked</b>{access === "admin" ? "Staff access" : "Nextwise Verified · entitlement active"}</span>
+      </span>
+    </PageHero>
     <Section tone="muted" className="relative overflow-hidden pt-6 sm:pt-6 lg:pt-8">
       <GeometricBackdrop variant="grid" />
 

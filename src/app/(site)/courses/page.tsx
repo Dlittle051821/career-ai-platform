@@ -1,4 +1,10 @@
 import { Suspense } from "react";
+import { getUniversityAccess } from "@/lib/supabase/education/university-access";
+import { canUseInternalCourseDatabase } from "@/lib/education/university-discovery/access";
+import { getUniversityDestination } from "@/lib/education/university-discovery/destinations";
+import { getVerifiedOffer } from "@/lib/education/university-discovery/offer";
+import { FreeDiscovery } from "@/components/sections/university-discovery/FreeDiscovery";
+import "@/styles/university-discovery.css";
 import type { Metadata } from "next";
 import { publicPageMetadata } from "@/config/seo";
 import Link from "next/link";
@@ -92,6 +98,33 @@ export default function CoursesPage(props: CoursesPageProps) {
 
 async function CoursesPageContent({ searchParams }: CoursesPageProps) {
   const params = await searchParams;
+
+  // University Discovery V3 — the internal course database is staff-only.
+  // Every student account, free or Verified, gets country selection and the
+  // official public programme portals, and this function returns before
+  // `searchCourses` is ever called for them.
+  const access = await getUniversityAccess();
+  if (!canUseInternalCourseDatabase(access)) {
+    const destination = getUniversityDestination(params.destination);
+    const trusted = destination
+      ? await getTrustedSearchResults({ destinationCountryCode: destination.code, canonicalSubjectId: null, canonicalSubjectLabel: null, degreeLevel: null })
+      : null;
+    return (
+      <div className="ud">
+        {destination ? null : (
+          <PageHero
+            size="compact"
+            eyebrow="Course Explorer"
+            title="Find courses through official sources."
+            description="Choose a destination and continue on trusted official programme portals."
+          />
+        )}
+        <div className={destination ? "ud-wrap ud-section pt-28" : "ud-wrap ud-section"}>
+          <FreeDiscovery kind="courses" destination={destination} resources={trusted?.results ?? []} accessState={access} offer={getVerifiedOffer()} />
+        </div>
+      </div>
+    );
+  }
   const query = params.q?.trim() ?? "";
   const countryIds = toStringArray(params.country);
   const universityId = params.universityId?.trim() ?? "";

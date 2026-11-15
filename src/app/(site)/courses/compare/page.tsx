@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { hasInternalCourseAccess } from "@/lib/supabase/education/university-access";
 import { Scale } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { PageHero } from "@/components/sections/PageHero";
@@ -53,6 +55,8 @@ interface CompareCoursesPageProps {
  * this page never asks for more than that cap can return.
  */
 export default async function CompareCoursesPage({ searchParams }: CompareCoursesPageProps) {
+  // University Discovery V3 — course comparison reads internal programme records, so it is staff-only.
+  if (!(await hasInternalCourseAccess())) redirect("/courses");
   const { ids } = await searchParams;
   const rawIds = (ids ?? "")
     .split(",")

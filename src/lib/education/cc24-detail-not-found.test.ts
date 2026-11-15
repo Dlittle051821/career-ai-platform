@@ -23,6 +23,12 @@ function chain(): Record<string, unknown> {
   return c;
 }
 
+// University Discovery V3 (15 Nov 2026): the university and course readers now check access first
+// (src/lib/supabase/education/university-access.ts). These CC-24 cases describe a caller who HAS access,
+// so access is granted here and every original assertion below is unchanged. The no-access behaviour is
+// covered by src/lib/education/university-discovery/data-layer-access.test.ts.
+vi.mock("@/lib/supabase/education/university-access", () => ({ hasUniversityDirectoryAccess: async () => true, hasInternalCourseAccess: async () => true }));
+
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ from: () => chain(), rpc: async () => ({ data: null, error: null }) }) }));
 
 import { lookupCareerBySlug, getCareerBySlug } from "@/lib/supabase/careers";

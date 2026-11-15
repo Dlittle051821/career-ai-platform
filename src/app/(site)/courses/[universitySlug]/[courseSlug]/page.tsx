@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
+import { hasInternalCourseAccess } from "@/lib/supabase/education/university-access";
 import { ExternalLink, MapPin, Send, TriangleAlert } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { DetailRecordNotice } from "@/components/sections/DetailRecordNotice";
@@ -56,6 +58,8 @@ interface CourseDetailPageProps {
 // facts about the course.
 export async function generateMetadata({ params }: CourseDetailPageProps): Promise<Metadata> {
   const { universitySlug, courseSlug } = await params;
+  // University Discovery V3 — programme records are staff-only; no course name or requirement reaches page metadata for a student.
+  if (!(await hasInternalCourseAccess())) return { title: "Course Explorer", robots: { index: false, follow: false } };
   const lookup = await lookupPublicCourseBySlugPairCached(universitySlug, courseSlug);
   const course = lookup.status === "found" ? lookup.value : null;
   if (!course) return { title: "Course not found", robots: { index: false, follow: false } };
@@ -159,6 +163,8 @@ function groupAdmissionRequirements(requirements: CourseAdmissionRequirement[]):
  */
 export default async function CourseDetailPage({ params, searchParams }: CourseDetailPageProps) {
   const { universitySlug, courseSlug } = await params;
+  // University Discovery V3 — checked on the server before any programme lookup.
+  if (!(await hasInternalCourseAccess())) redirect("/courses");
   const { applyError } = await searchParams;
   const courseLookup = await lookupPublicCourseBySlugPairCached(universitySlug, courseSlug);
   // CC-24 — a missing record is a genuine 404 (checked first in ./layout.tsx; card in ../not-found.tsx); a failed lookup is not.

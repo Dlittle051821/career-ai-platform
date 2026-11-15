@@ -1,4 +1,5 @@
 import "server-only";
+import { hasUniversityDirectoryAccess } from "./university-access";
 import { createClient } from "../server";
 import { lookupValue, type DetailLookup } from "../detail-lookup";
 import { calculateFreshnessBand } from "@/lib/education/data-quality";
@@ -104,6 +105,8 @@ export async function searchUniversities(filters: UniversitySearchFilters = {}):
   const page = parsePageParam(filters.page ? String(filters.page) : undefined);
   const pageSize = clampPublicPageSize(filters.pageSize);
   const empty: EducationListResult<PublicUniversitySummary> = { items: [], total: 0, page, pageSize };
+  // University Discovery V3 — access is enforced here, in the data layer, so no page, action or sitemap can read past it.
+  if (!(await hasUniversityDirectoryAccess())) return empty;
 
   const supabase = await createClient();
   let query = supabase
@@ -172,6 +175,8 @@ export async function getPublicUniversityBySlug(slug: string): Promise<PublicUni
 
 /** CC-24 — like getPublicUniversityBySlug, but tells "no such published university" (a real 404) apart from "the lookup failed". */
 export async function lookupPublicUniversityBySlug(slug: string): Promise<DetailLookup<PublicUniversityDetail>> {
+  // University Discovery V3 — access is enforced here, in the data layer, so no page, action or sitemap can read past it.
+  if (!(await hasUniversityDirectoryAccess())) return { status: "not_found" };
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("universities")
@@ -217,6 +222,8 @@ const MAX_BATCH_UNIVERSITIES = 60;
 
 /** Fetches published+active universities by id — used by the student "saved universities" list. Caps the id list defensively (a saved-items list is expected to be small; this is not a pagination mechanism) and silently drops any id that is missing or unpublished, matching getPublicUniversityBySlug's not-found-is-null convention. */
 export async function getUniversitiesByIds(ids: string[]): Promise<PublicUniversitySummary[]> {
+  // University Discovery V3 — access is enforced here, in the data layer, so no page, action or sitemap can read past it.
+  if (!(await hasUniversityDirectoryAccess())) return [];
   const uniqueIds = Array.from(new Set(ids)).slice(0, MAX_BATCH_UNIVERSITIES);
   if (uniqueIds.length === 0) return [];
 
@@ -261,6 +268,8 @@ export interface PublicUniversitySitemapEntry {
  * truncating unnoticed.
  */
 export async function getPublishedUniversitySlugsForSitemap(): Promise<PublicUniversitySitemapEntry[]> {
+  // University Discovery V3 — access is enforced here, in the data layer, so no page, action or sitemap can read past it.
+  if (!(await hasUniversityDirectoryAccess())) return [];
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("universities")
@@ -288,6 +297,8 @@ export interface PublicCampusSummary {
 
 /** Published university's active campuses — the university's own publication gate already applies (see getPublicUniversityBySlug); campuses have no separate publication_status column, only is_active. */
 export async function listPublicCampusesForUniversity(universityId: string): Promise<PublicCampusSummary[]> {
+  // University Discovery V3 — access is enforced here, in the data layer, so no page, action or sitemap can read past it.
+  if (!(await hasUniversityDirectoryAccess())) return [];
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("campuses")
@@ -343,6 +354,8 @@ function toPublicScholarship(row: {
 }
 
 export async function listPublicScholarshipsForUniversity(universityId: string): Promise<PublicScholarshipSummary[]> {
+  // University Discovery V3 — access is enforced here, in the data layer, so no page, action or sitemap can read past it.
+  if (!(await hasUniversityDirectoryAccess())) return [];
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("scholarships")

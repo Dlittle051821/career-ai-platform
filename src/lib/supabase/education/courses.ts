@@ -1,4 +1,5 @@
 import "server-only";
+import { hasInternalCourseAccess } from "./university-access";
 import { createClient } from "../server";
 import { lookupValue, type DetailLookup } from "../detail-lookup";
 import { calculateFreshnessBand } from "@/lib/education/data-quality";
@@ -310,6 +311,8 @@ export async function searchCourses(filters: CourseSearchFilters = {}): Promise<
   const page = parsePageParam(filters.page ? String(filters.page) : undefined);
   const pageSize = clampPublicPageSize(filters.pageSize);
   const empty: EducationListResult<PublicCourseSummary> = { items: [], total: 0, page, pageSize };
+  // University Discovery V3 — access is enforced here, in the data layer, so no page, action or sitemap can read past it.
+  if (!(await hasInternalCourseAccess())) return empty;
 
   const supabase = await createClient();
 
@@ -394,6 +397,8 @@ export async function getPublicCourseBySlugPair(universitySlug: string, courseSl
 
 /** CC-24 — like getPublicCourseBySlugPair, but tells "no such published course" (a real 404) apart from "the lookup failed". */
 export async function lookupPublicCourseBySlugPair(universitySlug: string, courseSlug: string): Promise<DetailLookup<PublicCourseDetail>> {
+  // University Discovery V3 — access is enforced here, in the data layer, so no page, action or sitemap can read past it.
+  if (!(await hasInternalCourseAccess())) return { status: "not_found" };
   const supabase = await createClient();
 
   const { data: university, error: universityError } = await supabase
@@ -435,6 +440,8 @@ export async function lookupPublicCourseBySlugPair(universitySlug: string, cours
 
 /** Fetches up to `limit` published+active courses by id — defaults to MAX_COMPARE_COURSES for the course comparison page's use (preserves the caller's requested order; comparison tables read left-to-right in selection order); pass a higher `limit` for other batch-lookup uses (e.g. resolving course names for a student's own application list, src/lib/supabase/education/applications.ts). Silently drops any id that is missing, unpublished, or beyond the cap. */
 export async function getCoursesByIds(ids: string[], limit: number = MAX_COMPARE_COURSES): Promise<PublicCourseDetail[]> {
+  // University Discovery V3 — access is enforced here, in the data layer, so no page, action or sitemap can read past it.
+  if (!(await hasInternalCourseAccess())) return [];
   const uniqueIds = Array.from(new Set(ids)).slice(0, limit);
   if (uniqueIds.length === 0) return [];
 
@@ -486,6 +493,8 @@ export interface PublicCourseSitemapEntry {
  * "unresolved risks" section.
  */
 export async function getPublishedCourseSlugPairsForSitemap(): Promise<PublicCourseSitemapEntry[]> {
+  // University Discovery V3 — access is enforced here, in the data layer, so no page, action or sitemap can read past it.
+  if (!(await hasInternalCourseAccess())) return [];
   const supabase = await createClient();
 
   const [coursesRes, universitiesRes] = await Promise.all([
@@ -573,6 +582,8 @@ function toPublicIntake(row: PublicCourseIntakeRow): CourseIntake {
 }
 
 export async function listPublicIntakesForCourse(courseId: string): Promise<CourseIntake[]> {
+  // University Discovery V3 — access is enforced here, in the data layer, so no page, action or sitemap can read past it.
+  if (!(await hasInternalCourseAccess())) return [];
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("course_intakes")
@@ -627,6 +638,8 @@ function toPublicTuitionFee(row: PublicTuitionFeeRow): CourseTuitionFee {
 
 /** currencyCode is returned exactly as stored — never converted (spec: "do not convert or compare currencies as though they were equivalent"). */
 export async function listPublicTuitionFeesForCourse(courseId: string): Promise<CourseTuitionFee[]> {
+  // University Discovery V3 — access is enforced here, in the data layer, so no page, action or sitemap can read past it.
+  if (!(await hasInternalCourseAccess())) return [];
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("course_tuition_fees")
@@ -690,6 +703,8 @@ function toPublicAdmissionRequirement(row: PublicAdmissionRequirementRow, countr
 }
 
 export async function listPublicAdmissionRequirementsForCourse(courseId: string): Promise<CourseAdmissionRequirement[]> {
+  // University Discovery V3 — access is enforced here, in the data layer, so no page, action or sitemap can read past it.
+  if (!(await hasInternalCourseAccess())) return [];
   const supabase = await createClient();
   const { data, error } = await supabase.from("course_admission_requirements").select("*").eq("course_id", courseId);
   if (error) {
@@ -714,6 +729,8 @@ export interface PublicCourseScholarshipSummary {
 }
 
 export async function listPublicScholarshipsForCourse(courseId: string): Promise<PublicCourseScholarshipSummary[]> {
+  // University Discovery V3 — access is enforced here, in the data layer, so no page, action or sitemap can read past it.
+  if (!(await hasInternalCourseAccess())) return [];
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("scholarships")

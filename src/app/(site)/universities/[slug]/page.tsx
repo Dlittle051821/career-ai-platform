@@ -1,4 +1,9 @@
 import type { Metadata } from "next";
+import { getUniversityAccess } from "@/lib/supabase/education/university-access";
+import { canUseUniversityDirectory } from "@/lib/education/university-discovery/access";
+import { getVerifiedOffer } from "@/lib/education/university-discovery/offer";
+import { LockedUniversityPreview } from "@/components/sections/university-discovery/LockedUniversityPreview";
+import "@/styles/university-discovery.css";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ExternalLink, MapPin } from "lucide-react";
@@ -44,6 +49,11 @@ interface UniversityDetailPageProps {
 // institution.
 export async function generateMetadata({ params }: UniversityDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
+  // University Discovery V3 — institution records (including their name and
+  // summary in page metadata) are for visitors with directory access only.
+  if (!canUseUniversityDirectory(await getUniversityAccess())) {
+    return { title: "University profile", robots: { index: false, follow: false } };
+  }
   const lookup = await lookupPublicUniversityBySlugCached(slug);
   const university = lookup.status === "found" ? lookup.value : null;
   if (!university) return { title: "University not found", robots: { index: false, follow: false } };
@@ -95,6 +105,11 @@ function verificationLabel(status: string): string {
  */
 export default async function UniversityDetailPage({ params }: UniversityDetailPageProps) {
   const { slug } = await params;
+  // University Discovery V3 — checked on the server before any record lookup.
+  const access = await getUniversityAccess();
+  if (!canUseUniversityDirectory(access)) {
+    return <LockedUniversityPreview accessState={access} offer={getVerifiedOffer()} returnTo={`/universities/${slug}`} />;
+  }
   const universityLookup = await lookupPublicUniversityBySlugCached(slug);
   // CC-24 — a missing record is a genuine 404 (checked first in ./layout.tsx; card in ../not-found.tsx); a failed lookup is not.
   if (universityLookup.status === "not_found") notFound();
