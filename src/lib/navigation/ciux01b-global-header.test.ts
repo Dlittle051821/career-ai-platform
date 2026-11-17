@@ -60,15 +60,15 @@ describe("CIUX-01B one global header", () => {
     for (const rel of ["components/navigation/NavMenus.tsx", "components/navigation/MobileNavGroups.tsx"]) {
       const code = strip(read(rel));
       expect(code.indexOf("HEADER_LEADING_LINKS.map"), rel).toBeGreaterThan(-1);
-      expect(code.indexOf("HEADER_LEADING_LINKS.map"), rel).toBeLessThan(code.indexOf("NAV_GROUPS.map"));
+      expect(code.indexOf("HEADER_LEADING_LINKS.map"), rel).toBeLessThan(code.indexOf("HEADER_NAV.map"));
     }
     expect(strip(read("components/navigation/NavMenus.tsx"))).toMatch(/HEADER_LEADING_LINKS\.map[\s\S]*?className="nwh-pill"/);
     expect(strip(read("components/navigation/Header.tsx"))).toMatch(/<Link href="\/"[^>]*aria-label="Nextwise home"/);
   });
 
   it("navigation destinations are defined once (NAV_GROUPS) and used by both desktop and phone menus", () => {
-    expect(strip(read("components/navigation/NavMenus.tsx"))).toContain("NAV_GROUPS.map");
-    expect(strip(read("components/navigation/MobileNavGroups.tsx"))).toContain("NAV_GROUPS.map");
+    expect(strip(read("components/navigation/NavMenus.tsx"))).toContain("HEADER_NAV.map");
+    expect(strip(read("components/navigation/MobileNavGroups.tsx"))).toContain("HEADER_NAV.map");
     expect(strip(read("components/navigation/MobileNav.tsx"))).toContain("<MobileNavGroups");
     expect(strip(read("components/navigation/Header.tsx"))).toMatch(/<NavMenus \/>[\s\S]*<MobileNav /);
   });

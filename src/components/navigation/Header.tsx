@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AUTH_LINKS } from "@/config/site";
+import { Bookmark } from "lucide-react";
+import { AUTH_LINKS, SAVED_CAREERS_EVENT, SAVED_NAV_LINK } from "@/config/site";
 import { NextwiseBrandLogo } from "@/components/brand/NextwiseBrandLogo";
 import { useAuthProfile } from "@/lib/supabase/use-auth-profile";
 import { AccountMenu } from "./AccountMenu";
@@ -67,12 +68,14 @@ function HeaderActions() {
   if (ready && user)
     return (
       <div className="nwh-actions">
+        <SavedLink />
         <WorkspaceEntryLink bare forceLabel className="nwh-signup" />
         <AccountMenu />
       </div>
     );
   return (
     <div className="nwh-actions">
+      <SavedLink />
       <Link href={AUTH_LINKS.login.href} className="v54-login nwh-login" data-v54-account="login">
         {AUTH_LINKS.login.label}
       </Link>
@@ -94,4 +97,31 @@ function useScrolled(enabled: boolean) {
     return () => window.removeEventListener("scroll", onScroll);
   }, [enabled]);
   return scrolled;
+}
+
+/**
+ * Career Explorer V5 — the bookmark in the header. Opens /saved (which asks a
+ * signed-out visitor to log in). The small count appears after a career is
+ * saved in this tab; it is a convenience only and is never treated as data.
+ */
+function SavedLink() {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    const onSaved = (e: Event) => {
+      const total = (e as CustomEvent<{ total?: number }>).detail?.total;
+      if (typeof total === "number" && total >= 0) setCount(total);
+    };
+    window.addEventListener(SAVED_CAREERS_EVENT, onSaved);
+    return () => window.removeEventListener(SAVED_CAREERS_EVENT, onSaved);
+  }, []);
+  return (
+    <Link href={SAVED_NAV_LINK.href} className="nwh-saved" aria-label={count > 0 ? `Saved (${count})` : "Saved"}>
+      <Bookmark aria-hidden="true" />
+      {count > 0 ? (
+        <span className="nwh-saved-count" aria-hidden="true">
+          {count}
+        </span>
+      ) : null}
+    </Link>
+  );
 }

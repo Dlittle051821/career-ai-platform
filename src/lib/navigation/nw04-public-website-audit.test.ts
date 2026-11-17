@@ -128,7 +128,7 @@ describe("NW08.5 — nav-IA consolidation: one flat six-item primary nav, no hre
     const code = stripComments(read("components/navigation/Header.tsx"));
     expect(code).toContain("<NavMenus");
     expect(code).not.toMatch(/NavDropdown|ExploreMenu/);
-    expect(stripComments(read("components/navigation/NavMenus.tsx"))).toContain("NAV_GROUPS.map");
+    expect(stripComments(read("components/navigation/NavMenus.tsx"))).toContain("HEADER_NAV.map");
   });
 
   it("MAIN_NAV in site.ts is the exact six-item brief order: Home, Explore Careers, Career Intelligence, Study Abroad, Universities, Courses", () => {
@@ -150,7 +150,7 @@ describe("NW08.5 — nav-IA consolidation: one flat six-item primary nav, no hre
     const content = read("components/navigation/MobileNav.tsx");
     expect(content).toContain("<MobileNavGroups");
     expect(content).not.toMatch(/PRODUCT_NAV|EXPLORE_NAV|PRIMARY_NAV/);
-    expect(stripComments(read("components/navigation/MobileNavGroups.tsx"))).toContain("NAV_GROUPS.map");
+    expect(stripComments(read("components/navigation/MobileNavGroups.tsx"))).toContain("HEADER_NAV.map");
   });
 
   it("the role-aware workspace entry (My Studio / Counsellor Workspace / Admin Studio) is rendered on both desktop and mobile from the one WorkspaceEntryLink component", () => {

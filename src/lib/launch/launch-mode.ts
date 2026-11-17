@@ -86,6 +86,7 @@ export const PUBLIC_EXACT_PATHS: readonly string[] = [
   "/",
   "/how-it-works",
   "/career",
+  "/career/access", // Career Explorer V5: the Nextwise Verified access screen (explains and routes; sells nothing itself)
   "/careers",
   "/career-discovery",
   "/compare",

@@ -14,6 +14,7 @@ import { UniversityDirectoryCard } from "@/components/sections/university-discov
 import { VerifiedAccessDialog } from "@/components/sections/university-discovery/VerifiedAccessDialog";
 import { removeSavedItemAction } from "./actions";
 import { RemoveSavedButton } from "./RemoveSavedButton";
+import { SavedCareersSection } from "@/components/career-explorer/SavedCareersSection";
 import "@/styles/university-discovery.css";
 
 export const metadata: Metadata = {
@@ -183,6 +184,11 @@ export default async function SavedPage({ searchParams }: SavedPageProps) {
         <GuidanceNotice className="mt-8">
           Always confirm programmes, fees, deadlines and admission requirements on the institution&apos;s own website before you decide or apply.
         </GuidanceNotice>
+        {/* Career Explorer V5: saved careers, a self-contained block that reads only career_saved_items and
+            renders nothing when no career is saved. The V3 tabs and shortlist above are unchanged. */}
+        <div style={{ marginTop: "3rem" }}>
+          <SavedCareersSection />
+        </div>
       </div>
     </div>
   );

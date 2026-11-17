@@ -1,21 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { resolveActiveNavHref } from "./active-nav";
-import { HEADER_NAV_HREFS, NAV_GROUPS } from "@/config/site";
+import { HEADER_NAV_HREFS, NAV_GROUPS, navHrefPath } from "@/config/site";
 
 const ALL = HEADER_NAV_HREFS;
-const groupOf = (href: string | null) => NAV_GROUPS.find((g) => g.links.some((l) => l.href === href))?.id ?? (href ? "direct" : null);
+const groupOf = (href: string | null) => NAV_GROUPS.find((g) => g.links.some((l) => navHrefPath(l.href) === href))?.id ?? (href ? "direct" : null);
 
 describe("CIUX-01B resolveActiveNavHref — one active place in the header", () => {
   it.each([
+    // Career Explorer V5 header: Home | Career Options | Universities | Free Tools | Destination
     ["/courses/compare", "/courses/compare", "tools"],
-    ["/courses", "/courses", "explore"],
-    ["/courses/tu-munich/msc-informatics", "/courses", "explore"],
-    ["/careers/ai-engineer", "/careers", "explore"],
-    ["/career", "/career", "explore"],
+    ["/courses", null, null],
+    ["/careers/ai-engineer", "/careers", "careers"],
+    ["/career", "/career", "careers"],
+    ["/career/access", "/career", "careers"],
     ["/career-discovery", "/career-discovery", "tools"],
-    ["/how-it-works", "/how-it-works", "nextwise"],
-    ["/pricing", "/pricing", "direct"],
-    ["/pricing/checkout/explore", "/pricing", "direct"],
+    ["/universities/tu-munich", "/universities", "direct"],
+    ["/study-europe", "/study-europe", "destination"],
+    ["/how-it-works", null, null],
+    ["/pricing", null, null],
     ["/privacy", null, null],
     ["/", "/", "direct"],
   ])("%s → %s (%s)", (path, href, group) => {

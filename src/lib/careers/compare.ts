@@ -23,7 +23,7 @@ import { deriveCareerCharacteristics } from "./characteristics";
  * of the app doesn't already treat as safe to show.
  */
 
-export const MAX_COMPARE_CAREERS = 3;
+export const MAX_COMPARE_CAREERS = 4;
 export const MIN_COMPARE_CAREERS = 2;
 
 /**

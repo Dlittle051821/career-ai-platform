@@ -2687,6 +2687,14 @@ export interface Database {
         Relationships: [];
       };
 
+      /** Career Explorer V5 — a student's own saved careers (supabase/migrations-proposed/CE_V5_career_saved_items.sql). */
+      career_saved_items: {
+        Row: { id: string; student_user_id: string; career_id: string; created_at: string };
+        Insert: { id?: string; student_user_id: string; career_id: string; created_at?: string };
+        Update: { created_at?: string };
+        Relationships: [];
+      };
+
       education_intake_interests: {
         Row: EducationIntakeInterestsRow;
         Insert: Omit<EducationIntakeInterestsRow, "id" | "created_at"> & { id?: string; created_at?: string };

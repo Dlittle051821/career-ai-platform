@@ -97,8 +97,9 @@ describe("CIUX-01 navigation (NAV_GROUPS)", () => {
   const groupHrefs = NAV_GROUPS.flatMap((g) => g.links.map((l) => l.href));
   const headerHrefs = [...HEADER_LEADING_LINKS.map((l) => l.href), ...groupHrefs, ...HEADER_DIRECT_LINKS.map((l) => l.href), DISCOVERY_SESSION_CTA.href];
 
-  it("has the three groups in order: Explore, Free tools, How it works", () => {
-    expect(NAV_GROUPS.map((g) => g.id)).toEqual(["explore", "tools", "nextwise"]);
+  it("has the three V5 groups in order: Career Options, Free Tools, Destination", () => {
+    // Career Explorer V5 (approved): Home | Career Options | Universities | Free Tools | Destination.
+    expect(NAV_GROUPS.map((g) => g.id)).toEqual(["careers", "tools", "destination"]);
   });
 
   it("every header and footer link points at a page that exists", () => {
@@ -107,14 +108,17 @@ describe("CIUX-01 navigation (NAV_GROUPS)", () => {
     expect(missing).toEqual([]);
   });
 
-  it("reaches every destination the brief requires", () => {
-    for (const href of ["/careers", "/universities", "/courses", "/abroad", "/how-it-works", "/pricing", "/parents", "/about", "/contact", "/trust", "/book-counselling"]) {
-      expect(headerHrefs, href).toContain(href);
+  it("reaches every destination: the V5 header holds the five approved items, the footer keeps the rest", () => {
+    const footerHrefs = Object.values(FOOTER_NAV).flat().map((l) => l.href);
+    for (const href of ["/careers", "/career", "/universities", "/book-counselling"]) expect(headerHrefs, href).toContain(href);
+    for (const href of ["/courses", "/abroad", "/how-it-works", "/pricing", "/parents", "/about", "/contact", "/trust"]) {
+      expect(footerHrefs, href).toContain(href);
     }
   });
 
-  it("loses no link from the NW08.5 primary nav", () => {
-    for (const item of MAIN_NAV_ITEMS) expect(headerHrefs, item.href).toContain(item.href);
+  it("loses no link from the NW08.5 primary nav (header or footer)", () => {
+    const reachable = [...headerHrefs, ...Object.values(FOOTER_NAV).flat().map((l) => l.href)];
+    for (const item of MAIN_NAV_ITEMS) expect(reachable, item.href).toContain(item.href);
   });
 
   it("never links to a resume builder, which does not exist yet (CIUX-06)", () => {

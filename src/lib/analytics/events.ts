@@ -147,8 +147,8 @@ export const PRODUCT_EVENTS = {
   career_saved: {
     name: "career_saved",
     category: "career",
-    status: "reserved",
-    reason: "education_saved_items.entity_type only supports 'university' and 'course' — there is no saved-career feature in this codebase yet.",
+    status: "implemented",
+    reason: "Fired from setCareerSaved() (src/lib/supabase/career-explorer.ts) on a genuinely new save into career_saved_items — Career Explorer V5.",
   },
 
   // ---------------------------------------------------------------------

@@ -80,9 +80,13 @@ describe("UX10-C01 — CareerInsightsPanel is an honest substitute, never fabric
     expect(source).toContain('href="/recommendations"');
   });
 
-  it("page.tsx passes the panel its real, already-fetched counts rather than constructing new ones", () => {
+  it("page.tsx shows only real, already-fetched counts rather than constructing new ones", () => {
+    // Career Explorer V5: the catalogue no longer renders CareerInsightsPanel; its numbers are the
+    // search total and the per-family counts read from the database — still never invented.
     const source = stripComments(PAGE_SOURCE);
-    expect(source).toMatch(/<CareerInsightsPanel\s+total=\{results\.total\}\s+familyCount=\{families\.length\}\s+industryCount=\{industries\.length\}/);
+    expect(source).toMatch(/<b>\{results\.total\}<\/b>/);
+    expect(source).toContain("familyCounts.get(f.id)");
+    expect(source).not.toMatch(/\b\d{2,} careers\b/);
   });
 });
 

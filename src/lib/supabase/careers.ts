@@ -729,3 +729,25 @@ export async function getCareerOptionsForComparison(): Promise<CareerOption[]> {
     familyName: familyNameById.get(row.family_id) ?? "",
   }));
 }
+
+// ---------------------------------------------------------------------------
+// getCareersByIds — Career Explorer V5 (saved careers). The same summary
+// shape searchCareers returns, for an explicit id list, in the caller's order.
+// Ids that no longer resolve to a visible career are simply left out.
+// ---------------------------------------------------------------------------
+export async function getCareersByIds(careerIds: string[]): Promise<CareerSummary[]> {
+  const ids = [...new Set(careerIds)].slice(0, MAX_PAGE_SIZE * 4);
+  if (ids.length === 0) return [];
+  const supabase = await createClient();
+  const { data: rows, error } = await supabase
+    .from("careers")
+    .select("id, career_key, family_id, title, short_title, slug, summary, is_featured")
+    .in("id", ids);
+  if (error) {
+    logCareerDbError("getCareersByIds", error);
+    return [];
+  }
+  const summaries = await hydrateCareerSummaries(supabase, rows ?? []);
+  const byId = new Map(summaries.map((s) => [s.id, s]));
+  return ids.map((id) => byId.get(id)).filter((s): s is CareerSummary => s !== undefined);
+}

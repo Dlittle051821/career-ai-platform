@@ -509,3 +509,83 @@ body:has(.nw54) > header.nwh[data-nwh-context="page"] { display: none !important
   header.nwh .nwh-acct-panel { animation: none; }
   header.nwh .nwh-signup:hover { transform: none; }
 }
+
+/* ==========================================================================
+   Career Explorer V5 (approved) — header additions. Nothing above is changed.
+   - Career Options: two feature rows with an icon and an access badge.
+   - Destination: one column of country rows, each with its flag.
+   - Saved: the bookmark between the navigation and the account actions.
+   ========================================================================== */
+header.nwh .nwh-link { display: flex; align-items: flex-start; gap: 12px; }
+header.nwh .nwh-link-text { display: block; min-width: 0; }
+
+header.nwh .nwh-panel[data-layout="feature"] { width: 540px; }
+header.nwh .nwh-panel[data-layout="feature"] .nwh-summary { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; padding: 0; }
+header.nwh .nwh-panel[data-layout="feature"] .nwh-list { grid-template-columns: 1fr; gap: 4px; padding: 8px; }
+header.nwh .nwh-panel[data-layout="feature"] .nwh-link { padding: 14px 16px; border-radius: 16px; }
+header.nwh .nwh-panel[data-layout="feature"] .nwh-link:hover,
+header.nwh .nwh-panel[data-layout="feature"] .nwh-link:focus-visible { background: #F1F6FD; }
+header.nwh .nwh-panel[data-layout="feature"] .nwh-link-title { font-family: var(--font-sora), "Sora", sans-serif; font-size: 16px; font-weight: 600; }
+header.nwh .nwh-panel[data-layout="feature"] .nwh-link-desc { margin-top: 4px; font-size: 14px; line-height: 1.45; }
+
+header.nwh .nwh-link-icon {
+  flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px;
+  background: #EAF2FF; color: #096BFA;
+}
+header.nwh .nwh-link-icon svg { width: 18px; height: 18px; }
+
+header.nwh .nwh-badge {
+  display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 6px;
+  font-family: var(--font-jakarta), "Plus Jakarta Sans", sans-serif; font-size: 10.5px; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
+}
+header.nwh .nwh-badge[data-tone="free"] { background: #E3EEFF; color: #0B4FC4; }
+header.nwh .nwh-badge[data-tone="verified"] { background: var(--nwh-navy); color: #fff; }
+
+header.nwh .nwh-panel:has(.nwh-flag) { width: 240px; }
+header.nwh .nwh-panel:has(.nwh-flag) .nwh-list { grid-template-columns: 1fr; }
+header.nwh .nwh-panel:has(.nwh-flag) .nwh-link { align-items: center; padding: 10px 14px; }
+header.nwh .nwh-panel:has(.nwh-flag) .nwh-summary { font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+
+/* Country flags, drawn in CSS so they look the same on every platform (no emoji font needed). */
+header.nwh .nwh-flag {
+  flex: none; width: 24px; height: 16px; border-radius: 3px; box-shadow: 0 0 0 1px rgba(11, 16, 51, .12);
+  background-color: #fff; background-repeat: no-repeat;
+}
+header.nwh .nwh-flag[data-flag="de"] { background-image: linear-gradient(#000 0 33.4%, #DD0000 33.4% 66.7%, #FFCE00 66.7%); }
+header.nwh .nwh-flag[data-flag="nl"] { background-image: linear-gradient(#AE1C28 0 33.4%, #fff 33.4% 66.7%, #21468B 66.7%); }
+header.nwh .nwh-flag[data-flag="ie"] { background-image: linear-gradient(90deg, #169B62 0 33.4%, #fff 33.4% 66.7%, #FF883E 66.7%); }
+header.nwh .nwh-flag[data-flag="fr"] { background-image: linear-gradient(90deg, #0055A4 0 33.4%, #fff 33.4% 66.7%, #EF4135 66.7%); }
+header.nwh .nwh-flag[data-flag="se"] {
+  background-color: #006AA7;
+  background-image: linear-gradient(#FECC00, #FECC00), linear-gradient(#FECC00, #FECC00);
+  background-size: 100% 20%, 12.5% 100%; background-position: 0 50%, 31% 0;
+}
+header.nwh .nwh-flag[data-flag="dk"] {
+  background-color: #C8102E;
+  background-image: linear-gradient(#fff, #fff), linear-gradient(#fff, #fff);
+  background-size: 100% 14%, 11% 100%; background-position: 0 50%, 32% 0;
+}
+
+/* Saved (bookmark) */
+header.nwh .nwh-saved {
+  position: relative; display: grid; place-items: center; width: 44px; height: 44px; margin-right: 4px;
+  border-radius: 50%; color: var(--nwh-ink); transition: background-color .2s;
+}
+header.nwh .nwh-saved:hover { background: rgba(3, 4, 95, .06); }
+header.nwh .nwh-saved:focus-visible { outline: 2px solid var(--nwh-navy); outline-offset: 2px; }
+header.nwh .nwh-saved svg { width: 19px; height: 19px; }
+header.nwh .nwh-saved-count {
+  position: absolute; top: 4px; right: 2px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px;
+  display: grid; place-items: center; background: var(--nwh-coral); color: #fff;
+  font-size: 10.5px; font-weight: 700; line-height: 1;
+}
+
+/* phone menu: same rows inside the drawer */
+header.nwh .nwh-menu .ciux-mg-link { display: flex; align-items: center; gap: 12px; }
+header.nwh .nwh-menu .ciux-mg-list[data-layout="feature"] .ciux-mg-link { align-items: flex-start; padding-top: 12px; padding-bottom: 12px; }
+header.nwh .nwh-menu .nwh-link-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+header.nwh .nwh-menu .nwh-link-desc { display: block; margin-top: 3px; font-size: 13px; line-height: 1.4; font-weight: 400; color: #4A5068; }
+@media (max-width: 699.98px), (max-aspect-ratio: 86/100) {
+  header.nwh > .nwh-actions .nwh-saved { display: none; }
+}

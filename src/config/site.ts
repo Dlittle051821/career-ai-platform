@@ -175,69 +175,138 @@ function findNav(href: string): NavLink {
  * the navigation must never advertise a feature that does not work (CIUX-01
  * backlog: CIUX-06).
  */
+export type NavGroupId = "careers" | "tools" | "destination";
+
+/**
+ * Career Explorer V5 — a header link may carry an access badge ("Free",
+ * "Nextwise Verified"), a small leading icon, or a destination flag. All
+ * three are presentation only; none of them grants or checks access.
+ */
+export type HeaderNavLink = NavLink & {
+  badge?: { label: string; tone: "free" | "verified" };
+  icon?: "explorer" | "intelligence";
+  /** ISO 3166-1 alpha-2 code, lower case — draws the country flag (site-header.css). */
+  flag?: "de" | "ie" | "nl" | "fr" | "se" | "dk";
+};
+
 export type NavGroup = {
-  id: "explore" | "tools" | "nextwise";
+  id: NavGroupId;
   label: string;
   /** One line under the group title in the open menu. */
   summary: string;
-  links: NavLink[];
+  /** "feature" = two large rows with badges (Career Options); "list" = compact rows. */
+  layout: "feature" | "list";
+  /** Whether the trigger shows a chevron. V5 draws "Free Tools" without one; it still opens its menu. */
+  chevron: boolean;
+  links: HeaderNavLink[];
 };
 
-export const NAV_GROUPS: NavGroup[] = [
-  {
-    id: "explore",
-    label: "Explore",
-    summary: "Careers, universities, courses and study destinations.",
-    links: [
-      findNav("/careers"),
-      findNav("/career"),
-      findNav("/universities"),
-      findNav("/courses"),
-      findNav("/abroad"),
-      { label: "Study in Europe", href: "/study-europe", description: "Germany, Ireland, the Netherlands, France, Sweden and Denmark." },
-    ],
-  },
-  {
-    id: "tools",
-    label: "Free tools",
-    summary: "Free to use, no payment needed.",
-    links: [
-      { ...findNav("/career-discovery"), description: "A guided look at your interests and strengths." },
-      { ...findNav("/compare"), description: "Put two or more careers side by side." },
-      { label: "Compare Courses", href: "/courses/compare", description: "Compare courses on fees, duration and entry." },
-      { ...findNav("/study-options"), description: "India or abroad: an honest side-by-side." },
-    ],
-  },
-  {
-    id: "nextwise",
-    label: "How it works",
-    summary: "How Nextwise guides you, and who we are.",
-    links: [
-      { ...findNav("/how-it-works"), description: "From your goals to the right opportunity, step by step." },
-      { ...findNav("/parents"), description: "Cost, safety and how you stay involved." },
-      { label: "About Nextwise", href: "/about", description: "Why Nextwise exists and how we work." },
-      { ...findNav("/trust"), description: "How we handle data, money and advice." },
-      { label: "Contact & Support", href: "/contact", description: "Reach the founders directly." },
-    ],
-  },
-];
+/**
+ * Career Explorer V5 (approved, locked) — the primary navigation is exactly
+ *
+ *   Home | Career Options ▾ | Universities | Free Tools | Destination ▾
+ *
+ * CAREER_OPTIONS_GROUP keeps the two career products apart: Career Explorer
+ * (/careers) is the free public catalogue; Career Intelligence (/career) is
+ * the separate personalised assessment that belongs to Nextwise Verified.
+ */
+export const CAREER_OPTIONS_GROUP: NavGroup = {
+  id: "careers",
+  label: "Career Options",
+  summary: "Explore careers freely, or get guidance tailored to you.",
+  layout: "feature",
+  chevron: true,
+  links: [
+    {
+      label: "Career Explorer",
+      href: "/careers",
+      description: "Browse careers, explore pathways, save options and compare opportunities.",
+      badge: { label: "Free", tone: "free" },
+      icon: "explorer",
+    },
+    {
+      label: "Career Intelligence",
+      href: "/career",
+      description: "Discover your strengths through a personalized career assessment.",
+      badge: { label: "Nextwise Verified", tone: "verified" },
+      icon: "intelligence",
+    },
+  ],
+};
+
+/** The existing free tools, unchanged — every route already exists. */
+export const FREE_TOOLS_GROUP: NavGroup = {
+  id: "tools",
+  label: "Free Tools",
+  summary: "Free to use, no payment needed.",
+  layout: "list",
+  chevron: false,
+  links: [
+    { ...findNav("/career-discovery"), description: "A guided look at your interests and strengths." },
+    { ...findNav("/compare"), description: "Put two or more careers side by side." },
+    { label: "Compare Courses", href: "/courses/compare", description: "Compare courses on fees, duration and entry." },
+    { ...findNav("/study-options"), description: "India or abroad: an honest side-by-side." },
+  ],
+};
 
 /**
- * CIUX-01B — direct (non-dropdown) header links before the groups: Home
- * first, so every page is one click from the homepage (the logo links there
- * too). Desktop menus and the phone menu both read this list.
+ * The six supported study destinations (src/data/europe-explorer.ts). Each
+ * link opens that country's section of the existing /study-europe page — no
+ * per-country page is invented here.
  */
+export const DESTINATION_GROUP: NavGroup = {
+  id: "destination",
+  label: "Destination",
+  summary: "Study destinations",
+  layout: "list",
+  chevron: true,
+  links: [
+    { label: "Germany", href: "/study-europe#germany", flag: "de" },
+    { label: "Ireland", href: "/study-europe#ireland", flag: "ie" },
+    { label: "Netherlands", href: "/study-europe#netherlands", flag: "nl" },
+    { label: "France", href: "/study-europe#france", flag: "fr" },
+    { label: "Sweden", href: "/study-europe#sweden", flag: "se" },
+    { label: "Denmark", href: "/study-europe#denmark", flag: "dk" },
+  ],
+};
+
+export const NAV_GROUPS: NavGroup[] = [CAREER_OPTIONS_GROUP, FREE_TOOLS_GROUP, DESTINATION_GROUP];
+
+/**
+ * The header, in order. The desktop menus and the phone menu both render
+ * this one list, so the two can never drift apart.
+ */
+export type HeaderNavItem = { kind: "link"; link: NavLink } | { kind: "group"; group: NavGroup };
+
+export const HEADER_NAV: HeaderNavItem[] = [
+  { kind: "link", link: HOME_NAV_LINK },
+  { kind: "group", group: CAREER_OPTIONS_GROUP },
+  { kind: "link", link: findNav("/universities") },
+  { kind: "group", group: FREE_TOOLS_GROUP },
+  { kind: "group", group: DESTINATION_GROUP },
+];
+
+/** A header href without its #section, for matching against the current pathname. */
+export function navHrefPath(href: string): string {
+  const i = href.indexOf("#");
+  return i === -1 ? href : href.slice(0, i);
+}
+
+/** Direct (non-dropdown) header links before the first group. */
 export const HEADER_LEADING_LINKS: NavLink[] = [HOME_NAV_LINK];
 
-/** CIUX-01 — a direct (non-dropdown) header link after the groups. */
-export const HEADER_DIRECT_LINKS: NavLink[] = [findNav("/pricing")];
+/** Direct (non-dropdown) header links other than Home. */
+export const HEADER_DIRECT_LINKS: NavLink[] = [findNav("/universities")];
 
-/** CIUX-01B — every header destination, in header order (for one active-place resolution). */
+/** Every header destination path, in header order (for one active-place resolution). */
 export const HEADER_NAV_HREFS: string[] = [
-  ...HEADER_LEADING_LINKS.map((l) => l.href),
-  ...NAV_GROUPS.flatMap((g) => g.links.map((l) => l.href)),
-  ...HEADER_DIRECT_LINKS.map((l) => l.href),
+  ...new Set(
+    HEADER_NAV.flatMap((item) => (item.kind === "link" ? [item.link.href] : item.group.links.map((l) => navHrefPath(l.href)))),
+  ),
 ];
+
+/** Saved items (signed-in students). Shown as the bookmark in the header. */
+export const SAVED_NAV_LINK: NavLink = { label: "Saved", href: "/saved" };
 
 /** CIUX-01 — the persistent free-session action (public booking page). */
 export const DISCOVERY_SESSION_CTA: NavLink = {
@@ -315,3 +384,6 @@ export const LANGUAGES: SupportedLanguage[] = [
   { code: "en", label: "English", nativeLabel: "English", available: true },
   { code: "or", label: "Odia", nativeLabel: "ଓଡ଼ିଆ", available: false },
 ];
+
+/** Window event fired by the Career Explorer save button with the student's new saved-career total (header bookmark count). */
+export const SAVED_CAREERS_EVENT = "nw:saved-careers";

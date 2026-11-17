@@ -1,38 +1,31 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Section } from "@/components/layout/Section";
+import { ArrowRight } from "lucide-react";
 import { DetailRecordNotice } from "@/components/sections/DetailRecordNotice";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
-import { LinkButton } from "@/components/ui/Button";
-import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
-import { CareerCard } from "@/components/sections/careers/CareerCard";
-import { getCareerBySlug, lookupCareerBySlug, getRelatedCareers } from "@/lib/supabase/careers";
-import { subjectLabel, interestLabel, skillLabel, educationLevelLabel, fieldLabel, educationLevelToCourseSearchDegree, SKILL_LEVEL_LABELS, RELEVANCE_LABELS } from "@/lib/careers/labels";
+import { CareerExplorerCard } from "@/components/career-explorer/CareerExplorerCard";
+import { CareerPhoto } from "@/components/career-explorer/CareerPhoto";
+import { CareerTabs, type CareerTab } from "@/components/career-explorer/CareerTabs";
+import { CompareToggle } from "@/components/career-explorer/CompareToggle";
+import { CompareTray } from "@/components/career-explorer/CompareTray";
+import { SalaryResearch } from "@/components/career-explorer/SalaryResearch";
+import { SaveCareerButton } from "@/components/career-explorer/SaveCareerButton";
+import { BRAND_NAME, DISCOVERY_SESSION_CTA } from "@/config/site";
+import { getCareerPhoto } from "@/lib/career-explorer/photos";
 import { deriveCareerCharacteristics } from "@/lib/careers/characteristics";
-import { trackEvent } from "@/lib/supabase/analytics/track";
-import { BRAND_NAME } from "@/config/site";
+import { RELEVANCE_LABELS, SKILL_LEVEL_LABELS, educationLevelLabel, educationLevelToCourseSearchDegree, fieldLabel, interestLabel, skillLabel, subjectLabel } from "@/lib/careers/labels";
 import { getBreadcrumbListJsonLd, toSafeJsonLdString } from "@/lib/seo/structured-data";
+import { trackEvent } from "@/lib/supabase/analytics/track";
+import { getCareerCardExtras, listSavedCareerIds } from "@/lib/supabase/career-explorer";
+import { getCareerBySlug, getRelatedCareers, lookupCareerBySlug } from "@/lib/supabase/careers";
+import "@/styles/career-explorer.css";
 
 interface CareerDetailPageProps {
   params: Promise<{ slug: string }>;
 }
 
-// M17A Step 5 — self-referencing canonical for real published careers,
-// using the actual slug already fetched (never a fabricated one). A
-// missing/unpublished slug gets a permanent noindex instead of a canonical
-// — there is no legitimate page at that URL to point search engines at,
-// and (since CC-24) the route answers with a genuine 404 via notFound()
-// and ./not-found.tsx; the noindex stays as a second signal.
-//
-// M17B FINAL — added an entity-specific `openGraph`/`twitter` block so
-// sharing a career URL shows that career's own title/summary instead of
-// silently falling back to the generic site-wide card from
-// src/app/(site)/layout.tsx. Uses only fields already fetched for this
-// same page (`career.title`, `career.summary`) — no new data source, no
-// invented copy.
+// Self-referencing canonical for a real published career; a missing slug is
+// noindex and (below) a genuine 404 (M17A Step 5, CC-24, M17B).
 export async function generateMetadata({ params }: CareerDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
   const career = await getCareerBySlug(slug);
@@ -42,30 +35,27 @@ export async function generateMetadata({ params }: CareerDetailPageProps): Promi
     title: career.title,
     description: career.summary,
     alternates: { canonical: canonicalPath },
-    openGraph: {
-      title: `${career.title} | ${BRAND_NAME}`,
-      description: career.summary,
-      url: canonicalPath,
-      type: "article",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: `${career.title} | ${BRAND_NAME}`,
-      description: career.summary,
-    },
+    openGraph: { title: `${career.title} | ${BRAND_NAME}`, description: career.summary, url: canonicalPath, type: "article" },
+    twitter: { card: "summary_large_image", title: `${career.title} | ${BRAND_NAME}`, description: career.summary },
   };
 }
 
+const RELATED_LIMIT = 3;
+
+/** How much a school subject matters, in words (the 1–5 importance is never shown as a number). */
+function importanceLabel(importance: number): string {
+  if (importance >= 5) return "Very important";
+  if (importance >= 4) return "Important";
+  return "Useful";
+}
+
 /**
- * Career detail route (Milestone 4 §24), e.g. `/careers/ev-systems-engineer`.
- * Public, like `/careers` itself. Shows exactly the sections listed in the
- * spec — title, family, summary, what-you-do, environment, subjects,
- * interests, skills, education routes, industries, characteristics, related
- * careers — and nothing that looks like a personalised match. The "Add to
- * careers I'm interested in" CTA from §24 is deferred: it would need a new
- * student-owned table + RLS policy, which is more schema than "browse a
- * detail page" needs and edges toward the personalisation Milestone 5 owns
- * — the spec explicitly allows deferring it if it can't be done cleanly.
+ * Career Explorer V5 (approved, locked) — one career profile, e.g.
+ * /careers/marine-engineer. Public and free. Every section is rendered from
+ * the career's own record: what they do, skills, education, progression,
+ * salary & opportunities, related careers. A section with no data says so
+ * instead of filling the gap. No salary figure is shown anywhere — salary
+ * research is the Gemini handoff (SalaryResearch).
  */
 export default async function CareerDetailPage({ params }: CareerDetailPageProps) {
   const { slug } = await params;
@@ -77,10 +67,10 @@ export default async function CareerDetailPage({ params }: CareerDetailPageProps
   }
   const career = careerLookup.value;
 
-  const [related, characteristics] = await Promise.all([
-    getRelatedCareers(career.id),
-    Promise.resolve(deriveCareerCharacteristics(career.scores)),
-  ]);
+  const [related, savedIdList] = await Promise.all([getRelatedCareers(career.id, RELATED_LIMIT), listSavedCareerIds()]);
+  const relatedExtras = await getCareerCardExtras(related.map((r) => r.id));
+  const savedIds = new Set(savedIdList);
+  const characteristics = deriveCareerCharacteristics(career.scores);
 
   void trackEvent({
     eventName: "career_viewed",
@@ -92,14 +82,23 @@ export default async function CareerDetailPage({ params }: CareerDetailPageProps
     properties: { slug: career.slug },
   });
 
-  const coreSubjects = career.subjects.filter((s) => s.importance >= 4);
-  const otherSubjects = career.subjects.filter((s) => s.importance < 4);
-  const coreInterests = career.interests.filter((i) => i.importance >= 4);
-  const otherInterests = career.interests.filter((i) => i.importance < 4);
+  const skills = [...career.skills].sort((a, b) => b.importance - a.importance);
+  const subjects = [...career.subjects].sort((a, b) => b.importance - a.importance);
+  const interests = [...career.interests].sort((a, b) => b.importance - a.importance);
+  const routeOrder = { primary: 0, common: 1, alternative: 2 } as const;
+  const routes = [...career.educationRoutes].sort((a, b) => routeOrder[a.relevance] - routeOrder[b.relevance]);
+
+  const tabs: CareerTab[] = [
+    { id: "what-they-do", label: "What they do" },
+    { id: "skills", label: "Skills" },
+    { id: "education", label: "Education" },
+    { id: "progression", label: "Progression" },
+    { id: "salary", label: "Salary & opportunities" },
+    ...(related.length > 0 ? [{ id: "related", label: "Related careers" }] : []),
+  ];
 
   return (
-    <Section tone="muted" className="pt-10 sm:pt-14">
-      {/* M17B FINAL — BreadcrumbList JSON-LD mirroring the visual trail below exactly. */}
+    <div className="ce">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -108,207 +107,276 @@ export default async function CareerDetailPage({ params }: CareerDetailPageProps
               { name: "Home", path: "/" },
               { name: "Career Explorer", path: "/careers" },
               { name: career.title, path: `/careers/${career.slug}` },
-            ])
+            ]),
           ),
         }}
       />
-      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Career Explorer", href: "/careers" }, { label: career.title }]} />
-
-      <div className="mt-6 mb-8">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge tone="info">{career.familyName}</Badge>
-          {career.isFeatured ? <Badge tone="accent">Featured</Badge> : null}
-        </div>
-        <h1 className="mt-3 text-3xl font-semibold text-primary balance sm:text-4xl">{career.title}</h1>
-        <p className="mt-3 max-w-2xl text-base text-muted">{career.summary}</p>
-        {career.aliases.length > 0 ? (
-          <p className="mt-2 text-sm text-muted">
-            Also known as: <span className="text-text-soft">{career.aliases.join(", ")}</span>
-          </p>
-        ) : null}
-        <LinkButton href={`/compare?a=${career.slug}`} size="sm" variant="outline" className="mt-4">
-          Compare with another career
-        </LinkButton>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <Card>
-            <h2 className="text-lg font-semibold text-primary">What you do</h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted">{career.whatYouDo}</p>
-          </Card>
-
-          <Card>
-            <h2 className="text-lg font-semibold text-primary">Typical work environment</h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted">{career.typicalEnvironment}</p>
-            <p className="mt-3 text-xs font-medium uppercase tracking-wide text-muted">Typical entry point</p>
-            <p className="mt-1 text-sm text-text-soft">{career.typicalEntryLevel}</p>
-          </Card>
-
-          {career.subjects.length > 0 ? (
-            <Card>
-              <h2 className="text-lg font-semibold text-primary">Relevant subjects</h2>
-              <ChipGroup label="Core" items={coreSubjects.map((s) => subjectLabel(s.subjectKey))} tone="accent" />
-              <ChipGroup label="Also relevant" items={otherSubjects.map((s) => subjectLabel(s.subjectKey))} tone="neutral" />
-            </Card>
-          ) : null}
-
-          {career.interests.length > 0 ? (
-            <Card>
-              <h2 className="text-lg font-semibold text-primary">Relevant interests</h2>
-              <ChipGroup label="Core" items={coreInterests.map((i) => interestLabel(i.interestKey))} tone="accent" />
-              <ChipGroup label="Also relevant" items={otherInterests.map((i) => interestLabel(i.interestKey))} tone="neutral" />
-            </Card>
-          ) : null}
-
-          {career.skills.length > 0 ? (
-            <Card>
-              <h2 className="text-lg font-semibold text-primary">Useful skills</h2>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {career.skills.map((s) => (
-                  <Badge key={s.skillKey} tone="neutral">
-                    {skillLabel(s.skillKey)}
-                    <span className="text-muted">· {SKILL_LEVEL_LABELS[s.recommendedLevel] ?? s.recommendedLevel}</span>
-                  </Badge>
-                ))}
+      <div className="ce-wrap">
+        <header className="ce-profile-head">
+          <div>
+            <nav aria-label="Breadcrumb">
+              <ol className="ce-crumbs">
+                <li>
+                  <Link href="/careers">Career Explorer</Link>
+                </li>
+                <li>
+                  <Link href={`/careers?family=${career.familyKey}#all-careers`}>{career.familyName}</Link>
+                </li>
+                <li aria-current="page">{career.title}</li>
+              </ol>
+            </nav>
+            <p className="ce-hero-top">
+              <span className="ce-kicker">{career.familyName}</span>
+              <span className="ce-pill">Free career profile</span>
+            </p>
+            <h1>{career.title}</h1>
+            <p className="ce-profile-lede">{career.summary}</p>
+            {career.aliases.length > 0 ? <p className="ce-note" style={{ marginTop: 10 }}>Also known as: {career.aliases.join(", ")}</p> : null}
+            <dl className="ce-facts">
+              {career.minimumEducationKey ? (
+                <div>
+                  <dt>Typical starting education</dt>
+                  <dd>{educationLevelLabel(career.minimumEducationKey)}</dd>
+                </div>
+              ) : null}
+              <div>
+                <dt>Field</dt>
+                <dd>{career.familyName}</dd>
               </div>
-              <p className="mt-3 text-xs text-muted">
-                These are useful, relevant skills to build over time — not a checklist you need to already have.
-              </p>
-            </Card>
-          ) : null}
-
-          {career.educationRoutes.length > 0 ? (
-            <Card>
-              <h2 className="text-lg font-semibold text-primary">Common education routes</h2>
-              <div className="mt-3 space-y-2">
-                {career.educationRoutes.map((route, i) => {
-                  // NW02 §7 — a direct, honest transition from this career's
-                  // own real education-route data into the Course Explorer's
-                  // existing destination/subject/degree search, reusing the
-                  // same `subject`/`degree` taxonomy params `/courses` already
-                  // soft-matches (an unrecognized subject simply falls back to
-                  // free-text search there — see taxonomy.ts's resolveSubject
-                  // — so this link can never claim a false exact match). Never
-                  // rendered for a route whose educationLevel has no confident
-                  // Course Explorer equivalent (see
-                  // educationLevelToCourseSearchDegree's own docblock).
-                  const canonicalDegree = educationLevelToCourseSearchDegree(route.educationLevel);
-                  const courseSearchHref = canonicalDegree
-                    ? `/courses?subject=${encodeURIComponent(fieldLabel(route.fieldKey))}&degree=${canonicalDegree}`
-                    : null;
-                  return (
-                    <div key={i} className="flex flex-wrap items-center gap-2 rounded-[var(--radius-control)] border border-border px-3 py-2 text-sm">
-                      <span className="font-medium text-text">{educationLevelLabel(route.educationLevel)}</span>
-                      <span className="text-muted">—</span>
-                      <span className="text-text-soft">{fieldLabel(route.fieldKey)}</span>
-                      <span className="ml-auto flex items-center gap-2">
-                        <Badge tone={route.relevance === "primary" ? "success" : route.relevance === "common" ? "info" : "neutral"} className="text-[11px]">
-                          {RELEVANCE_LABELS[route.relevance] ?? route.relevance}
-                        </Badge>
-                        {courseSearchHref ? (
-                          <Link href={courseSearchHref} className="text-xs font-semibold text-secondary-dark hover:text-primary">
-                            Search courses &rarr;
-                          </Link>
-                        ) : null}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-              <p className="mt-3 text-xs text-muted">
-                These are common routes in, not the only path — not a university or course recommendation, and not a
-                guarantee that any specific programme leads to this career. &ldquo;Search courses&rdquo; opens the
-                Course Explorer pre-filtered on this route&apos;s subject and degree level so you can continue
-                researching real programmes yourself.
-              </p>
-            </Card>
-          ) : null}
-        </div>
-
-        <div className="space-y-6">
-          {characteristics.length > 0 ? (
-            <Card>
-              <h2 className="text-lg font-semibold text-primary">Career characteristics</h2>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {characteristics.map((label) => (
-                  <Badge key={label} tone="accent">
-                    {label}
-                  </Badge>
-                ))}
-              </div>
-              <p className="mt-3 text-xs text-muted">
-                General tendencies for this career, not a guarantee — actual roles vary by employer and location.
-              </p>
-            </Card>
-          ) : null}
-
-          {career.industries.length > 0 ? (
-            <Card>
-              <h2 className="text-lg font-semibold text-primary">Industries</h2>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {career.industries.map((ind) => (
-                  <Badge key={ind.id} tone="neutral">
-                    {ind.name}
-                  </Badge>
-                ))}
-              </div>
-            </Card>
-          ) : null}
-
-          {career.tags.length > 0 ? (
-            <Card>
-              <h2 className="text-lg font-semibold text-primary">Tags</h2>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {career.tags.map((tag) => (
-                  <Badge key={tag.id} tone="neutral">
-                    {tag.label}
-                  </Badge>
-                ))}
-              </div>
-            </Card>
-          ) : null}
-        </div>
-      </div>
-
-      {related.length > 0 ? (
-        <div className="mt-10">
-          <h2 className="text-xl font-semibold text-primary">Related careers</h2>
-          <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {related.map((r) => (
-              <CareerCard key={r.id} career={r} />
-            ))}
+              {career.industries.length > 0 ? (
+                <div>
+                  <dt>Industries</dt>
+                  <dd>
+                    {career.industries
+                      .slice(0, 2)
+                      .map((i) => i.name)
+                      .join(" · ")}
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+            <div className="ce-profile-actions">
+              <SaveCareerButton careerId={career.id} slug={career.slug} title={career.title} initialSaved={savedIds.has(career.id)} inline />
+              <CompareToggle slug={career.slug} title={career.title} inline />
+              <Link href={DISCOVERY_SESSION_CTA.href} className="ce-textlink">
+                Book a Free Discovery Session
+                <ArrowRight aria-hidden="true" />
+              </Link>
+            </div>
           </div>
-        </div>
-      ) : null}
-
-      <GuidanceNotice className="mt-8">
-        This page describes the career itself — it isn&apos;t a personalised match for you. See how well it matches
-        your own Student Digital Profile at <Link href="/recommendations" className="font-medium underline underline-offset-2">/recommendations</Link>, or{" "}
-        <Link href={`/compare?a=${career.slug}`} className="font-medium underline underline-offset-2">compare it</Link> against another career.
-      </GuidanceNotice>
-
-      <div className="mt-6">
-        <Link href="/careers" className="text-sm font-semibold text-secondary-dark hover:text-primary">
-          ← Back to Career Explorer
-        </Link>
+          <CareerPhoto photo={getCareerPhoto(career.slug)} className="ce-profile-photo" sizes="(max-width: 900px) 100vw, 520px" priority />
+        </header>
       </div>
-    </Section>
-  );
-}
 
-function ChipGroup({ label, items, tone }: { label: string; items: string[]; tone: "accent" | "neutral" }) {
-  if (items.length === 0) return null;
-  return (
-    <div className="mt-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
-      <div className="mt-1.5 flex flex-wrap gap-2">
-        {items.map((item) => (
-          <Badge key={item} tone={tone}>
-            {item}
-          </Badge>
-        ))}
+      <CareerTabs tabs={tabs} />
+
+      <div className="ce-wrap" style={{ paddingBottom: 72 }}>
+        <section id="what-they-do" className="ce-block" aria-labelledby="what-they-do-h">
+          <h2 id="what-they-do-h">What they do</h2>
+          <div className="ce-cols">
+            <div className="ce-panel">
+              <p>{career.whatYouDo}</p>
+            </div>
+            <div className="ce-panel">
+              <p className="ce-label">Where the work happens</p>
+              <p>{career.typicalEnvironment}</p>
+              {characteristics.length > 0 ? (
+                <>
+                  <p className="ce-label">What this work tends to offer</p>
+                  <ul className="ce-chipset" style={{ listStyle: "none", padding: 0 }}>
+                    {characteristics.map((label) => (
+                      <li key={label} className="ce-chip">
+                        {label}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="ce-note" style={{ marginTop: 10 }}>General tendencies, not guarantees — real roles vary by employer and country.</p>
+                </>
+              ) : null}
+            </div>
+          </div>
+        </section>
+
+        <section id="skills" className="ce-block" aria-labelledby="skills-h">
+          <h2 id="skills-h">Skills you would build</h2>
+          {skills.length + subjects.length + interests.length > 0 ? (
+            <div className="ce-cols" data-cols="3">
+              {skills.length > 0 ? (
+                <div className="ce-panel">
+                  <p className="ce-label">Skills</p>
+                  <ul className="ce-rows">
+                    {skills.map((s) => (
+                      <li key={s.skillKey}>
+                        {skillLabel(s.skillKey)}
+                        <span>{SKILL_LEVEL_LABELS[s.recommendedLevel] ?? s.recommendedLevel}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {subjects.length > 0 ? (
+                <div className="ce-panel">
+                  <p className="ce-label">School subjects that help</p>
+                  <ul className="ce-rows">
+                    {subjects.map((s) => (
+                      <li key={s.subjectKey}>
+                        {subjectLabel(s.subjectKey)}
+                        <span>{importanceLabel(s.importance)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {interests.length > 0 ? (
+                <div className="ce-panel">
+                  <p className="ce-label">Interests it suits</p>
+                  <ul className="ce-rows">
+                    {interests.map((i) => (
+                      <li key={i.interestKey}>
+                        {interestLabel(i.interestKey)}
+                        <span>{i.importance >= 4 ? "Core" : "Also relevant"}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <p className="ce-missing">Skills for this career haven&rsquo;t been published yet.</p>
+          )}
+          <p className="ce-note" style={{ marginTop: 12 }}>Skills to build over time — not a checklist you need to have already.</p>
+        </section>
+
+        <section id="education" className="ce-block" aria-labelledby="education-h">
+          <h2 id="education-h">Education pathway</h2>
+          {routes.length > 0 ? (
+            <div className="ce-cols" data-cols="3">
+              {routes.map((route, i) => {
+                // NW02 §7 — only for a level with a confident Course Explorer equivalent; otherwise no link at all.
+                const canonicalDegree = educationLevelToCourseSearchDegree(route.educationLevel);
+                const courseSearchHref = canonicalDegree
+                  ? `/courses?subject=${encodeURIComponent(fieldLabel(route.fieldKey))}&degree=${canonicalDegree}`
+                  : null;
+                return (
+                  <div key={i} className="ce-panel ce-route">
+                    <p className="ce-label">{RELEVANCE_LABELS[route.relevance] ?? route.relevance}</p>
+                    <strong>
+                      {educationLevelLabel(route.educationLevel)} · {fieldLabel(route.fieldKey)}
+                    </strong>
+                    {route.notes ? <p>{route.notes}</p> : null}
+                    {courseSearchHref ? (
+                      <Link href={courseSearchHref} className="ce-textlink">
+                        Search courses
+                        <ArrowRight aria-hidden="true" />
+                      </Link>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="ce-missing">Education routes for this career haven&rsquo;t been published yet.</p>
+          )}
+          <p className="ce-note" style={{ marginTop: 12 }}>
+            These are common routes in, not the only path — not a university or course recommendation, and not a guarantee that any specific programme leads to this career. Check the official entry and
+            licensing rules for the country you plan to study or work in.
+          </p>
+        </section>
+
+        <section id="progression" className="ce-block" aria-labelledby="progression-h">
+          <h2 id="progression-h">Career progression</h2>
+          <div className="ce-cols">
+            <div className="ce-panel">
+              <p className="ce-label">Typical entry point</p>
+              <p>{career.typicalEntryLevel}</p>
+              {career.careerOutlookSummary ? (
+                <>
+                  <p className="ce-label">Outlook</p>
+                  <p>{career.careerOutlookSummary}</p>
+                </>
+              ) : null}
+            </div>
+            <p className="ce-missing">
+              A step-by-step progression ladder isn&rsquo;t published for this career yet. Titles and timelines vary by employer and country, so
+              Nextwise shows only what is on record rather than a typical-looking guess.
+            </p>
+          </div>
+        </section>
+
+        <section id="salary" className="ce-block" aria-labelledby="salary-h">
+          <h2 id="salary-h">Salary and opportunities</h2>
+          <div className="ce-cols">
+            <div className="ce-panel ce-salary">
+              <h3>What could you earn in this career?</h3>
+              <p className="ce-note" style={{ fontSize: 14.5 }}>Explore salary expectations across different countries, experience levels and professional pathways.</p>
+              <SalaryResearch careerTitle={career.title} />
+              <p className="ce-note">
+                Prepares a question about this career for Google Gemini, which you send yourself. Nextwise doesn&rsquo;t publish salary figures of its
+                own.
+              </p>
+            </div>
+            <div className="ce-panel">
+              {career.industries.length > 0 ? (
+                <>
+                  <p className="ce-label">Industries</p>
+                  <ul className="ce-chipset" style={{ listStyle: "none", padding: 0 }}>
+                    {career.industries.map((ind) => (
+                      <li key={ind.id} className="ce-chip">
+                        {ind.name}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+              {career.tags.length > 0 ? (
+                <>
+                  <p className="ce-label" style={{ marginTop: career.industries.length > 0 ? 18 : 0 }}>Themes</p>
+                  <ul className="ce-chipset" style={{ listStyle: "none", padding: 0 }}>
+                    {career.tags.map((tag) => (
+                      <li key={tag.id} className="ce-chip">
+                        {tag.label}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+              {career.industries.length + career.tags.length === 0 ? <p className="ce-note">No industries are recorded for this career yet.</p> : null}
+              <p className="ce-note" style={{ marginTop: 14 }}>Shown for exploration. They are not a promise of employment or pay.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="related" className="ce-block" aria-labelledby="related-h">
+          <h2 id="related-h">{related.length > 0 ? "Related careers" : "Next steps"}</h2>
+          <ul className="ce-related">
+            {related.map((r) => (
+              <li key={r.id}>
+                <CareerExplorerCard career={r} extras={relatedExtras.get(r.id)} saved={savedIds.has(r.id)} sizes="(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 290px" />
+              </li>
+            ))}
+            <li>
+              <div className="ce-next">
+                <p className="ce-label">Next steps · all free</p>
+                <h3>Keep this career in view.</h3>
+                <SaveCareerButton careerId={career.id} slug={career.slug} title={career.title} initialSaved={savedIds.has(career.id)} inline />
+                <CompareToggle slug={career.slug} title={career.title} inline />
+                <Link href={DISCOVERY_SESSION_CTA.href} className="ce-btn" data-ghost="">
+                  Book a Free Discovery Session
+                </Link>
+                <p>
+                  Want a personal assessment? <Link href="/career/access">Career Intelligence</Link> is part of Nextwise Verified.
+                </p>
+              </div>
+            </li>
+          </ul>
+        </section>
+
+        <p className="ce-guidance">
+          This page describes the career itself. It isn&rsquo;t a personalised match, and it isn&rsquo;t admissions, employment or salary advice.{" "}
+          <Link href="/careers">Back to Career Explorer</Link>
+        </p>
       </div>
+      <CompareTray />
     </div>
   );
 }

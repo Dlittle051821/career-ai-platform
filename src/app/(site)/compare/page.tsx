@@ -1,182 +1,317 @@
 import type { Metadata } from "next";
-import { Scale, TriangleAlert } from "lucide-react";
-import { Section } from "@/components/layout/Section";
-import { PageHero } from "@/components/sections/PageHero";
-import { Card } from "@/components/ui/Card";
-import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
-import { ComparePicker } from "@/components/sections/compare/ComparePicker";
-import { ComparisonTable } from "@/components/sections/compare/ComparisonTable";
-import { getCareerOptionsForComparison, getCareerBySlug } from "@/lib/supabase/careers";
-import { getStudentProfileSnapshot } from "@/lib/supabase/student-profile";
-import { buildComparisonMatrix, careerDetailToMatchProfile, MAX_COMPARE_CAREERS, MIN_COMPARE_CAREERS } from "@/lib/careers/compare";
-import { getRecommendations, hasMinimumProfileDataForRecommendations } from "@/lib/recommendations";
-import type { RecommendationResult } from "@/lib/recommendations";
+import Link from "next/link";
+import { ArrowLeft, Lock, Plus, X } from "lucide-react";
+import { CareerPhoto } from "@/components/career-explorer/CareerPhoto";
+import { DiffToggle } from "@/components/career-explorer/DiffToggle";
+import { SalaryResearch } from "@/components/career-explorer/SalaryResearch";
+import { deriveCareerBalance } from "@/lib/career-explorer/balance";
+import { COMPARE_PARAM_KEYS, buildCompareHref, readCompareSlugs } from "@/lib/career-explorer/compare-selection";
+import { getCareerPhoto } from "@/lib/career-explorer/photos";
+import { MAX_COMPARE_CAREERS, MIN_COMPARE_CAREERS, careerDetailToMatchProfile } from "@/lib/careers/compare";
+import { educationLevelLabel, fieldLabel, skillLabel } from "@/lib/careers/labels";
+import { getMyProductEntitlements } from "@/lib/products/entitlements";
+import { MATCH_BAND_LABELS, getRecommendations, hasMinimumProfileDataForRecommendations } from "@/lib/recommendations";
 import { trackEvent } from "@/lib/supabase/analytics/track";
+import { getCareerBySlug, getCareerOptionsForComparison } from "@/lib/supabase/careers";
+import { getStudentProfileSnapshot } from "@/lib/supabase/student-profile";
+import type { CareerDetail } from "@/types/career";
+import "@/styles/career-explorer.css";
 
 /**
- * M17A Step 5 — permanent noindex + clean self-referencing canonical.
- *
- * This page is selected via `?a=&b=&c=` (up to MAX_COMPARE_CAREERS slugs),
- * so the number of distinct URLs it can be requested at grows
- * combinatorially with the size of the career library — the audit
- * (M17A_SEO_AUDIT.md, Group B) flagged this as a crawl-trap-shaped public
- * page precisely because there is no natural upper bound on that count.
- * No individual combination has meaningful standalone search value over
- * the picker itself, so per this step's own instruction ("prefer noindex
- * ... rather than allowing unlimited combinations into Google's index"),
- * every request to this page — regardless of which slugs are selected —
- * is now permanently excluded from indexing, and canonicalizes to the
- * bare picker URL.
- *
- * This does NOT change crawlability: `src/app/robots.ts` (Step 4)
- * deliberately still allows crawling `/compare`, and that stays correct —
- * robots.txt controls crawling, this `robots` metadata field controls
- * indexing, and blocking crawl here would also hide this same noindex tag
- * from Googlebot. See M17A_STEP5_REPORT.md for the full reasoning.
+ * Permanent noindex + clean canonical (M17A Step 5): this page is selected by
+ * ?a=&b=&c=&d= and no combination has search value of its own.
  */
 export const metadata: Metadata = {
   title: "Compare Careers",
-  description: "Compare two or three careers side by side — subjects, skills, education routes, and characteristics.",
+  description: "Compare up to four careers side by side — responsibilities, skills, education routes, working life and a balanced view of each.",
   alternates: { canonical: "/compare" },
   robots: { index: false, follow: false },
 };
 
 interface ComparePageProps {
-  searchParams: Promise<{ a?: string; b?: string; c?: string }>;
+  searchParams: Promise<{ a?: string; b?: string; c?: string; d?: string }>;
+}
+
+type Row = {
+  label: string;
+  /** One cell per career; `text` is what is compared when highlighting differences. */
+  cells: { text: string; node: React.ReactNode }[];
+  minus?: boolean;
+  /** Rows that hold an action, not a fact, are never highlighted. */
+  comparable?: boolean;
+};
+
+const missing = (what: string) => ({ text: "", node: <span className="ce-missing-inline">{what} not published</span> });
+const plain = (text: string | null | undefined, what: string) => (text ? { text, node: text } : missing(what));
+const bullets = (items: string[], what: string) =>
+  items.length > 0
+    ? {
+        text: items.join("|"),
+        node: (
+          <ul>
+            {items.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        ),
+      }
+    : missing(what);
+
+function skillsCell(career: CareerDetail) {
+  const top = [...career.skills].sort((a, b) => b.importance - a.importance).slice(0, 4).map((s) => skillLabel(s.skillKey));
+  return top.length > 0 ? { text: top.join(" · "), node: top.join(" · ") } : missing("Skills");
+}
+
+function educationCell(career: CareerDetail) {
+  const primary = career.educationRoutes.find((r) => r.relevance === "primary") ?? career.educationRoutes[0];
+  if (!primary) return missing("Education routes");
+  const others = career.educationRoutes.filter((r) => r !== primary).length;
+  const text = `${educationLevelLabel(primary.educationLevel)} · ${fieldLabel(primary.fieldKey)}`;
+  return {
+    text,
+    node: (
+      <>
+        {text}
+        {others > 0 ? <small>{others === 1 ? "one other route is also on record" : `${others} other routes are also on record`}</small> : null}
+      </>
+    ),
+  };
 }
 
 /**
- * Milestone 6 — Career Comparison. Public, like `/careers` and
- * `/careers/[slug]` — no login required to compare careers factually. If
- * the viewer IS signed in with enough Student Digital Profile data, each
- * compared career additionally shows its own qualitative match band,
- * computed by re-running the (already fully tested) Milestone 5 engine
- * against just the 2-3 careers on screen — never a second scoring
- * implementation, and never another student's data (the snapshot fetch is
- * scoped to `auth.uid()` via RLS, same as `/recommendations`).
+ * Career Explorer V5 (approved, locked) — the free comparison, up to four
+ * careers. Public: no login and no plan. Every cell is the career's own
+ * record; nothing is scored or ranked and a gap is shown as a gap.
+ *
+ * Personal fit is the one part that is not free. It appears only when the
+ * server confirms a paid Career entitlement (getMyProductEntitlements —
+ * paid invoices only) and the student's own profile has enough data; then
+ * it shows the existing recommendation engine's band, never a new score.
+ * Everyone else sees the Nextwise Verified entry instead.
  */
 export default async function ComparePage({ searchParams }: ComparePageProps) {
   const params = await searchParams;
-  const options = await getCareerOptionsForComparison();
-  const selectedForPicker: (string | undefined)[] = [params.a, params.b, params.c];
-
-  const rawSlugs = [params.a, params.b, params.c].map((s) => s?.trim()).filter((s): s is string => Boolean(s));
-  const slugs = [...new Set(rawSlugs)].slice(0, MAX_COMPARE_CAREERS);
-
-  if (slugs.length < MIN_COMPARE_CAREERS) {
-    return (
-      <>
-      <PageIntro />
-      <Section tone="muted" className="pt-6 sm:pt-6 lg:pt-8">
-        <Card className="mt-6">
-          <ComparePicker options={options} selected={selectedForPicker} />
-        </Card>
-        <Card className="mt-6 flex flex-col items-center gap-3 py-14 text-center">
-          <Scale aria-hidden="true" className="h-10 w-10 text-muted" />
-          <h2 className="text-lg font-semibold text-primary">Pick at least two careers to compare</h2>
-          <p className="max-w-sm text-sm text-muted">
-            Choose two or three careers above to see them side by side — relevant subjects, skills, education
-            routes, and characteristics.
-          </p>
-        </Card>
-      </Section>
-      </>
-    );
-  }
-
-  const careerResults = await Promise.all(slugs.map((slug) => getCareerBySlug(slug)));
-  const careers = careerResults.filter((c): c is NonNullable<(typeof careerResults)[number]> => c !== null);
+  const slugs = readCompareSlugs(params);
+  const [options, found] = await Promise.all([getCareerOptionsForComparison(), Promise.all(slugs.map((slug) => getCareerBySlug(slug)))]);
+  const careers = found.filter((c): c is CareerDetail => c !== null);
   const missingCount = slugs.length - careers.length;
+  const chosen = careers.map((c) => c.slug);
+  const canAdd = careers.length < MAX_COMPARE_CAREERS;
+  const addable = options.filter((o) => !chosen.includes(o.slug));
+  const ready = careers.length >= MIN_COMPARE_CAREERS;
 
-  if (careers.length < MIN_COMPARE_CAREERS) {
-    return (
-      <>
-      <PageIntro />
-      <Section tone="muted" className="pt-6 sm:pt-6 lg:pt-8">
-        <Card className="mt-6">
-          <ComparePicker options={options} selected={selectedForPicker} />
-        </Card>
-        <Card className="mt-6 flex flex-col items-center gap-3 py-14 text-center">
-          <TriangleAlert aria-hidden="true" className="h-10 w-10 text-muted" />
-          <h2 className="text-lg font-semibold text-primary">One or more selected careers couldn&apos;t be found</h2>
-          <p className="max-w-sm text-sm text-muted">
-            A career may have been removed or renamed. Pick your careers again above.
-          </p>
-        </Card>
-      </Section>
-      </>
-    );
+  let fit: Map<string, string> | null = null;
+  if (ready) {
+    const entitlements = await getMyProductEntitlements();
+    if (entitlements.hasCareerEntitlement) {
+      const snapshot = await getStudentProfileSnapshot();
+      if (snapshot && hasMinimumProfileDataForRecommendations(snapshot)) {
+        const profiles = careers.map(careerDetailToMatchProfile);
+        const { results } = getRecommendations(snapshot, profiles, profiles.length);
+        fit = new Map(results.map((r) => [r.careerId, MATCH_BAND_LABELS[r.matchBand]]));
+      }
+    }
+    void trackEvent({
+      eventName: "career_compared",
+      source: "compare_page",
+      path: "/compare",
+      feature: "career_compare",
+      entityType: "career",
+      entityId: careers[0]?.id ?? null,
+      properties: { careerIds: careers.map((c) => c.id), count: careers.length },
+    });
   }
 
-  const snapshot = await getStudentProfileSnapshot();
-  let matches: Map<string, RecommendationResult> | null = null;
-  if (snapshot && hasMinimumProfileDataForRecommendations(snapshot)) {
-    const matchProfiles = careers.map(careerDetailToMatchProfile);
-    const { results } = getRecommendations(snapshot, matchProfiles, matchProfiles.length);
-    matches = new Map(results.map((r) => [r.careerId, r]));
-  }
+  const balances = careers.map((c) => deriveCareerBalance(c.scores));
+  const groups: { title: string; rows: Row[] }[] = [
+    { title: "About", rows: [{ label: "Primary responsibilities", cells: careers.map((c) => plain(c.whatYouDo, "Responsibilities")) }] },
+    {
+      title: "Skills and study",
+      rows: [
+        { label: "Key skills", cells: careers.map(skillsCell) },
+        { label: "Education routes", cells: careers.map(educationCell) },
+      ],
+    },
+    {
+      title: "Working life",
+      rows: [
+        { label: "Working environment", cells: careers.map((c) => plain(c.typicalEnvironment, "Working environment")) },
+        { label: "Career progression", cells: careers.map((c) => plain(c.typicalEntryLevel, "Progression")) },
+      ],
+    },
+    {
+      title: "A balanced view",
+      rows: [
+        { label: "What may appeal", cells: balances.map((b) => bullets(b.appeal, "Advantages")) },
+        { label: "Things to weigh up", cells: balances.map((b) => bullets(b.considerations, "Considerations")), minus: true },
+      ],
+    },
+    {
+      title: "Pay",
+      rows: [{ label: "Salary research", comparable: false, cells: careers.map((c) => ({ text: "", node: <SalaryResearch careerTitle={c.title} variant="link" /> })) }],
+    },
+    {
+      title: "Personal fit",
+      rows: [
+        {
+          label: "How well it fits you",
+          comparable: false,
+          cells: careers.map((c) => {
+            const band = fit?.get(c.id);
+            return {
+              text: "",
+              node: band ? (
+                band
+              ) : (
+                <Link href="/career/access" className="ce-locked">
+                  <Lock aria-hidden="true" />
+                  Career Intelligence · Nextwise Verified
+                </Link>
+              ),
+            };
+          }),
+        },
+      ],
+    },
+  ];
 
-  const matrix = buildComparisonMatrix(careers, matches);
-
-  void trackEvent({
-    eventName: "career_compared",
-    source: "compare_page",
-    path: "/compare",
-    feature: "career_compare",
-    entityType: "career",
-    entityId: careers[0]?.id ?? null,
-    properties: { careerIds: careers.map((c) => c.id), count: careers.length },
-  });
-
-  const removeHrefs = careers.map((career) => {
-    const remaining = slugs.filter((s) => s !== career.slug);
-    const p = new URLSearchParams();
-    if (remaining[0]) p.set("a", remaining[0]);
-    if (remaining[1]) p.set("b", remaining[1]);
-    return `/compare?${p.toString()}`;
-  });
+  const columns = Math.max(careers.length + (canAdd ? 1 : 0), 2);
+  const nextKey = COMPARE_PARAM_KEYS[careers.length];
 
   return (
-    <>
-    <PageIntro />
-    <Section tone="muted" className="pt-6 sm:pt-6 lg:pt-8">
+    <div className="ce">
+      <section className="ce-section">
+        <div className="ce-wrap">
+          <nav aria-label="Breadcrumb">
+            <ol className="ce-crumbs">
+              <li>
+                <Link href="/careers">Career Explorer</Link>
+              </li>
+              <li aria-current="page">Compare</li>
+            </ol>
+          </nav>
+          <div className="ce-compare-top">
+            <div>
+              <h1>Compare careers</h1>
+              <p className="ce-cat-sub">See how they differ. No career is ranked above another — and comparing is free.</p>
+            </div>
+            <Link href="/careers#all-careers" className="ce-btn" data-variant="outline" data-size="sm">
+              <ArrowLeft aria-hidden="true" />
+              Back to Career Explorer
+            </Link>
+          </div>
 
-      {missingCount > 0 ? (
-        <Card className="mt-6 border-warning/25 bg-warning-light text-sm text-warning">
-          {missingCount === 1 ? "One selected career" : `${missingCount} selected careers`} couldn&apos;t be found and
-          {missingCount === 1 ? " was" : " were"} left out below.
-        </Card>
-      ) : null}
+          {missingCount > 0 ? (
+            <p className="ce-missing" role="status" style={{ marginTop: 20 }}>
+              {missingCount === 1 ? "One selected career" : `${missingCount} selected careers`} couldn&rsquo;t be found and {missingCount === 1 ? "was" : "were"} left out.
+            </p>
+          ) : null}
 
-      <Card className="mt-6">
-        <ComparePicker options={options} selected={selectedForPicker} />
-      </Card>
+          <div className="ce-cmp-scroll">
+            <div id="ce-compare-grid" className="ce-cmp" style={{ "--cols": columns } as React.CSSProperties}>
+              <div className="ce-cmp-meta">
+                {ready ? <DiffToggle gridId="ce-compare-grid" /> : null}
+                {careers.length} of {MAX_COMPARE_CAREERS} careers · free comparison
+              </div>
+              {careers.map((career) => (
+                <div key={career.id} className="ce-cmp-headcell">
+                  <div className="ce-cmp-card">
+                    <CareerPhoto photo={getCareerPhoto(career.slug)} sizes="76px" decorative />
+                    <div>
+                      <strong>
+                        <Link href={`/careers/${career.slug}`}>{career.title}</Link>
+                      </strong>
+                      <span>{career.familyName}</span>
+                    </div>
+                    <Link href={buildCompareHref(chosen.filter((s) => s !== career.slug))} className="ce-cmp-remove" aria-label={`Remove ${career.title} from comparison`}>
+                      <X aria-hidden="true" />
+                    </Link>
+                  </div>
+                </div>
+              ))}
+              {canAdd && nextKey ? (
+                <div className="ce-cmp-headcell">
+                  <form className="ce-cmp-add" method="get" action="/compare">
+                    {chosen.map((slug, i) => (
+                      <input key={slug} type="hidden" name={COMPARE_PARAM_KEYS[i]} value={slug} />
+                    ))}
+                    <label htmlFor="ce-add-career">
+                      <Plus aria-hidden="true" style={{ width: 14, height: 14, verticalAlign: "-2px" }} /> Add a career
+                    </label>
+                    <select id="ce-add-career" name={nextKey} defaultValue="" required>
+                      <option value="" disabled>
+                        Choose…
+                      </option>
+                      {addable.map((o) => (
+                        <option key={o.slug} value={o.slug}>
+                          {o.title}
+                        </option>
+                      ))}
+                    </select>
+                    <button type="submit" className="ce-btn" data-variant="primary" data-size="sm">
+                      Add
+                    </button>
+                  </form>
+                </div>
+              ) : null}
+              {/* keep the grid's column count when fewer cells than columns */}
+              {Array.from({ length: columns - careers.length - (canAdd && nextKey ? 1 : 0) }, (_, i) => (
+                <div key={`pad-${i}`} />
+              ))}
 
-      <div className="mt-6">
-        <ComparisonTable matrix={matrix} removeHrefs={removeHrefs} />
-      </div>
+              {ready
+                ? groups.map((group) => (
+                    <GroupRows key={group.title} title={group.title} rows={group.rows} columns={columns} />
+                  ))
+                : null}
+            </div>
+          </div>
 
-      <GuidanceNotice className="mt-8">
-        {matrix.hasPersonalizedMatch
-          ? "“Your match” reuses the same deterministic, rules-based comparison as /recommendations — it's not a scientifically validated assessment or AI-generated, and a lower match isn't a verdict that a career is unsuitable for you. "
-          : null}
-        Career characteristics and education routes shown here are curated heuristics, not verified market data,
-        salary guarantees, or admissions advice. Sign in and complete your Student Digital Profile to see how each
-        of these careers matches your own profile.
-      </GuidanceNotice>
-    </Section>
-    </>
+          {!ready ? (
+            <div className="ce-empty" role="status">
+              <h3>Pick at least two careers to compare</h3>
+              <p>
+                Choose up to {MAX_COMPARE_CAREERS} careers above — or tick &ldquo;Compare&rdquo; on any career card — to see them side by side.
+              </p>
+              <Link href="/careers#all-careers" className="ce-btn" data-variant="outline" data-size="sm">
+                Browse careers
+              </Link>
+            </div>
+          ) : (
+            <p className="ce-guidance">
+              &ldquo;What may appeal&rdquo; and &ldquo;Things to weigh up&rdquo; are general tendencies drawn from each career&rsquo;s curated profile — not
+              verified market data, salary information or admissions advice.
+              {fit ? " “How well it fits you” reuses the same rules-based comparison as your recommendations; a lower band isn't a verdict that a career is unsuitable." : ""}
+            </p>
+          )}
+        </div>
+      </section>
+    </div>
   );
 }
 
-function PageIntro() {
+function GroupRows({ title, rows, columns }: { title: string; rows: Row[]; columns: number }) {
   return (
-    <PageHero
-      size="compact"
-      fadeTo="muted"
-      eyebrow="Compare careers"
-      title="Compare careers side by side"
-      description="See how two or three careers stack up on relevant subjects, skills, education routes, and characteristics — useful whether or not you're signed in."
-    />
+    <>
+      <h2 className="ce-cmp-group ce-kicker" style={{ color: "var(--ce-navy)" }}>
+        {title}
+      </h2>
+      {rows.map((row) => {
+        const differs = row.comparable !== false && new Set(row.cells.map((c) => c.text)).size > 1;
+        return (
+          <div key={row.label} style={{ display: "contents" }} role="group" aria-label={row.label}>
+            <div className="ce-cmp-rowlabel">{row.label}</div>
+            {row.cells.map((cell, i) => (
+              <div key={i} className="ce-cmp-cell" data-minus={row.minus ? "" : undefined} data-differs={differs ? "" : undefined}>
+                {cell.node}
+              </div>
+            ))}
+            {Array.from({ length: columns - row.cells.length }, (_, i) => (
+              <div key={`pad-${i}`} className="ce-cmp-cell" />
+            ))}
+          </div>
+        );
+      })}
+    </>
   );
 }

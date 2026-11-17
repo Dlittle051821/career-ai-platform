@@ -3,16 +3,16 @@
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, ChevronDown } from "lucide-react";
-import { DISCOVERY_SESSION_CTA, HEADER_DIRECT_LINKS, HEADER_LEADING_LINKS, HEADER_NAV_HREFS, NAV_GROUPS, type NavGroup } from "@/config/site";
+import { ArrowRight, ChevronDown, Compass, Sparkles } from "lucide-react";
+import { DISCOVERY_SESSION_CTA, HEADER_NAV, HEADER_NAV_HREFS, navHrefPath, type HeaderNavLink, type NavGroupId } from "@/config/site";
 import { resolveActiveNavHref } from "@/lib/navigation/active-nav";
 
 /**
- * The global desktop navigation (CIUX-01, unified in CIUX-01B): Home, three
- * disclosure menus (Explore, Free tools, How it works) and one direct link
- * (Pricing) inside the homepage's navigation capsule. The same component and
- * the same stylesheet (src/styles/site-header.css) render it on the homepage
- * and on every public page; only the active state changes with the route.
+ * The global desktop navigation (CIUX-01B header, Career Explorer V5
+ * structure): Home | Career Options | Universities | Free Tools |
+ * Destination, read in order from HEADER_NAV. The same component and the
+ * same stylesheet (src/styles/site-header.css) render it on the homepage and
+ * on every public page; only the active state changes with the route.
  *
  * Pattern: WAI-ARIA disclosure navigation (buttons with aria-expanded that
  * show a list of links) — not role="menu", which would remove normal Tab
@@ -31,7 +31,7 @@ const HOVER_CLICK_GRACE = 600;
 
 export function NavMenus() {
   const pathname = usePathname();
-  const [openId, setOpenId] = useState<NavGroup["id"] | null>(null);
+  const [openId, setOpenId] = useState<NavGroupId | null>(null);
   const [lastPath, setLastPath] = useState(pathname);
   const navRef = useRef<HTMLElement>(null);
   const closeTimer = useRef<number | undefined>(undefined);
@@ -100,19 +100,21 @@ export function NavMenus() {
       }}
     >
       <ul>
-        {HEADER_LEADING_LINKS.map((link) => {
-          const active = link.href === activeHref;
-          return (
-            <li key={link.href} className="nwh-item">
-              <Link href={link.href} aria-current={active ? "page" : undefined} className="nwh-pill">
-                <span>{link.label}</span>
-              </Link>
-            </li>
-          );
-        })}
-        {NAV_GROUPS.map((group) => {
+        {HEADER_NAV.map((item) => {
+          if (item.kind === "link") {
+            const { link } = item;
+            const active = link.href === activeHref;
+            return (
+              <li key={link.href} className="nwh-item">
+                <Link href={link.href} aria-current={active ? "page" : undefined} className="nwh-pill">
+                  <span>{link.label}</span>
+                </Link>
+              </li>
+            );
+          }
+          const { group } = item;
           const open = openId === group.id;
-          const active = group.links.some((l) => l.href === activeHref);
+          const active = group.links.some((l) => navHrefPath(l.href) === activeHref);
           const panelId = `${baseId}-${group.id}-panel`;
           return (
             <li
@@ -150,57 +152,68 @@ export function NavMenus() {
               >
                 <span>{group.label}</span>
                 {active ? <span className="sr-only">(current section)</span> : null}
-                <ChevronDown aria-hidden="true" />
+                {group.chevron ? <ChevronDown aria-hidden="true" /> : null}
               </button>
-              <div
-                id={panelId}
-                hidden={!open}
-                data-v54-free=""
-                data-wide={group.id === "nextwise" ? "" : undefined}
-                className="nwh-panel"
-                onKeyDown={onPanelKeyDown}
-              >
+              <div id={panelId} hidden={!open} data-v54-free="" data-layout={group.layout} className="nwh-panel" onKeyDown={onPanelKeyDown}>
                 <div className="nwh-card">
                   <p className="nwh-summary">{group.summary}</p>
                   <ul className="nwh-list">
                     {group.links.map((link) => {
+                      // a #section link is never "the current page" on its own: only the group lights up
                       const current = link.href === activeHref;
                       return (
                         <li key={link.href}>
                           <Link href={link.href} aria-current={current ? "page" : undefined} className="nwh-link" onClick={() => setOpenId(null)}>
-                            <span className="nwh-link-title">
-                              {link.label}
-                              {current ? <span className="sr-only">(current page)</span> : null}
-                            </span>
-                            {link.description ? <span className="nwh-link-desc">{link.description}</span> : null}
+                            <NavLinkBody link={link} current={current} />
                           </Link>
                         </li>
                       );
                     })}
                   </ul>
-                  <Link href={DISCOVERY_SESSION_CTA.href} className="nwh-book" onClick={() => setOpenId(null)}>
-                    <span>
-                      {DISCOVERY_SESSION_CTA.label}
-                      <span className="nwh-link-desc">{DISCOVERY_SESSION_CTA.description}</span>
-                    </span>
-                    <ArrowRight aria-hidden="true" />
-                  </Link>
+                  {group.layout === "list" && group.id === "tools" ? (
+                    <Link href={DISCOVERY_SESSION_CTA.href} className="nwh-book" onClick={() => setOpenId(null)}>
+                      <span>
+                        {DISCOVERY_SESSION_CTA.label}
+                        <span className="nwh-link-desc">{DISCOVERY_SESSION_CTA.description}</span>
+                      </span>
+                      <ArrowRight aria-hidden="true" />
+                    </Link>
+                  ) : null}
                 </div>
               </div>
             </li>
           );
         })}
-        {HEADER_DIRECT_LINKS.map((link) => {
-          const active = link.href === activeHref;
-          return (
-            <li key={link.href} className="nwh-item">
-              <Link href={link.href} aria-current={active ? "page" : undefined} className="nwh-pill">
-                <span>{link.label}</span>
-              </Link>
-            </li>
-          );
-        })}
       </ul>
     </nav>
+  );
+}
+
+const LINK_ICONS = { explorer: Compass, intelligence: Sparkles } as const;
+
+/** One menu row: optional icon or flag, title with an optional access badge, optional description. Shared with the phone menu. */
+export function NavLinkBody({ link, current }: { link: HeaderNavLink; current: boolean }) {
+  const Icon = link.icon ? LINK_ICONS[link.icon] : null;
+  return (
+    <>
+      {Icon ? (
+        <span className="nwh-link-icon" aria-hidden="true">
+          <Icon />
+        </span>
+      ) : null}
+      {link.flag ? <span className="nwh-flag" data-flag={link.flag} aria-hidden="true" /> : null}
+      <span className="nwh-link-text">
+        <span className="nwh-link-title">
+          {link.label}
+          {link.badge ? (
+            <span className="nwh-badge" data-tone={link.badge.tone}>
+              {link.badge.label}
+            </span>
+          ) : null}
+          {current ? <span className="sr-only">(current page)</span> : null}
+        </span>
+        {link.description ? <span className="nwh-link-desc">{link.description}</span> : null}
+      </span>
+    </>
   );
 }
