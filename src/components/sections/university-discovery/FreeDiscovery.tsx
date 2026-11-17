@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Lock, MessageCircle, Search, ShieldCheck } from "lucide-react";
+import { ArrowRight, Info, Lock, MessageCircle, Search, ShieldCheck } from "lucide-react";
 import type { AdapterResult } from "@/lib/education/external-search/provider-types";
 import type { UniversityAccessState } from "@/lib/education/university-discovery/access";
 import type { UniversityDestination } from "@/lib/education/university-discovery/destinations";
@@ -15,7 +15,20 @@ interface FreeDiscoveryProps {
   resources: AdapterResult[];
   accessState: UniversityAccessState;
   offer: VerifiedOfferData;
+  /** Set when the visitor was redirected here from a retired student course route; shows why. */
+  moved?: "course" | "compare" | null;
 }
+
+const MOVED_COPY = {
+  course: {
+    title: "Course pages have moved to official portals.",
+    body: "Nextwise no longer shows individual course pages to students. Choose a destination to open the official portals, where programme details, fees and deadlines are always current. Courses you saved earlier are still in your saved items, and your applications are unchanged.",
+  },
+  compare: {
+    title: "Course comparison now happens on official portals.",
+    body: "Nextwise no longer compares individual courses for students. Choose a destination to compare programmes on the official portals. Your saved items and applications are unchanged.",
+  },
+} as const;
 
 const COPY = {
   universities: {
@@ -41,18 +54,40 @@ const COPY = {
  * without directory access and by /courses for every student account.
  * Renders no internal university or course record.
  */
-export function FreeDiscovery({ kind, destination, resources, accessState, offer }: FreeDiscoveryProps) {
+export function FreeDiscovery({ kind, destination, resources, accessState, offer, moved = null }: FreeDiscoveryProps) {
   const copy = COPY[kind];
   const returnTo = destination ? `${copy.basePath}?destination=${destination.slug}` : copy.basePath;
+
+  // A Verified student never meets the upgrade panel, so this row is where they can open their access status.
+  const accessRow =
+    kind === "courses" && (accessState === "verified" || accessState === "verified_by_grant") ? (
+      <div className="ud-access-row">
+        <span>Your university directory is unlocked on this account.</span>
+        <VerifiedAccessDialog accessState={accessState} offer={offer} returnTo={returnTo} triggerLabel="View my Verified access" triggerVariant="navy" />
+      </div>
+    ) : null;
 
   if (!destination) {
     return (
       <>
+        {moved ? (
+          <div className="ud-moved" role="status">
+            <Info aria-hidden="true" />
+            <div>
+              <b>{MOVED_COPY[moved].title}</b>
+              <p>{MOVED_COPY[moved].body}</p>
+              <p>
+                <Link href="/saved?tab=courses">Your saved courses</Link> · <Link href="/applications">Your applications</Link>
+              </p>
+            </div>
+          </div>
+        ) : null}
         <DestinationGrid basePath={copy.basePath} ariaLabel={copy.gridLabel} />
         <p className="ud-note">
           <span><ShieldCheck aria-hidden="true" />Free to use · every link goes to a verified official source</span>
           <span>Destination photography: Pexels licence</span>
         </p>
+        {accessRow}
       </>
     );
   }
@@ -105,6 +140,7 @@ export function FreeDiscovery({ kind, destination, resources, accessState, offer
           </div>
         </div>
       )}
+      {accessRow}
     </>
   );
 }

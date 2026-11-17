@@ -5,6 +5,7 @@ import { updateStudentMeta, addStudentNote } from "@/lib/supabase/admin/students
 import { setSectionProvenance } from "@/lib/supabase/admin/profile-provenance";
 import { setRecommendationVerification, clearRecommendationVerification } from "@/lib/supabase/admin/recommendation-readiness";
 import { friendlyAdminError, type ActionState } from "@/lib/admin/form-state";
+import { grantUniversityAccess, revokeUniversityAccess } from "@/lib/supabase/admin/university-access-grants";
 import type { AdminStudentStatus } from "@/types/admin";
 
 export async function updateStudentStatusAction(studentUserId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -75,6 +76,33 @@ export async function setRecommendationVerificationAction(studentUserId: string,
 export async function clearRecommendationVerificationAction(studentUserId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
   try {
     await clearRecommendationVerification(studentUserId, formData);
+  } catch (error) {
+    return { error: friendlyAdminError(error) };
+  }
+  revalidatePath(`/admin/students/${studentUserId}`);
+  return { error: null };
+}
+
+/**
+ * UNI_V3 — grants Verified university-directory access to one student.
+ * Server-side only: grantUniversityAccess() re-checks the caller's admin role
+ * and the database function checks it again. The student id comes from the
+ * bound route parameter and must be confirmed by the submitted form.
+ */
+export async function grantUniversityAccessAction(studentUserId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    await grantUniversityAccess(studentUserId, formData);
+  } catch (error) {
+    return { error: friendlyAdminError(error) };
+  }
+  revalidatePath(`/admin/students/${studentUserId}`);
+  return { error: null };
+}
+
+/** UNI_V3 — revokes one grant. Same three-layer authorisation as granting. */
+export async function revokeUniversityAccessAction(studentUserId: string, grantId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    await revokeUniversityAccess(grantId, formData);
   } catch (error) {
     return { error: friendlyAdminError(error) };
   }

@@ -1,8 +1,6 @@
 import "server-only";
 import { createClient } from "../server";
 import type { EducationActionResult } from "./saved-items";
-import { getUniversitiesByIds } from "./universities";
-import { getCoursesByIds } from "./courses";
 import { resolveApplicationDeadline, type ResolvedApplicationDeadline } from "@/lib/applications/application-lifecycle";
 import type { ApplicationDeadline, ApplicationStage, ApplicationStatusHistoryEntry, DecisionStatus, StudentApplicationAction } from "@/types/admin";
 import { trackEvent } from "../analytics/track";
@@ -254,6 +252,77 @@ function toMyApplicationSummary(
   };
 }
 
+interface ApplicationLabels {
+  universityById: Map<string, { name: string; countryName: string | null }>;
+  courseNameById: Map<string, string>;
+  deadlineByIntakeId: Map<string, ResolvedApplicationDeadline | null>;
+}
+
+interface ApplicationLabelRow {
+  university_id: string | null;
+  university_name: string | null;
+  country_name: string | null;
+  course_id: string | null;
+  course_name: string | null;
+  course_intake_id: string | null;
+  intake_name: string | null;
+  priority_deadline: string | null;
+  final_deadline: string | null;
+  international_deadline: string | null;
+}
+
+/**
+ * University Discovery V3 — names and intake deadlines for the student's OWN
+ * applications.
+ *
+ * The directory and the course database are no longer open to every student
+ * (see ./university-access.ts), but an application a student already made
+ * must keep showing what it is for. Preferred path: get_my_application_labels()
+ * (UNI_V3/0001), a SECURITY DEFINER function that returns names and dates for
+ * the caller's own applications and nothing else. Until that migration is
+ * applied the function does not exist; the reader then falls back to reading
+ * just the id/name of the rows these applications reference (the ids come
+ * from get_my_applications(), i.e. only the caller's own applications).
+ */
+async function loadApplicationLabels(supabase: ServerSupabase, rows: MyApplicationRow[]): Promise<ApplicationLabels> {
+  const labels: ApplicationLabels = { universityById: new Map(), courseNameById: new Map(), deadlineByIntakeId: new Map() };
+  if (rows.length === 0) return labels;
+
+  const { data, error } = await supabase.rpc("get_my_application_labels" as never);
+  if (!error) {
+    for (const raw of (data ?? []) as unknown as ApplicationLabelRow[]) {
+      if (raw.university_id && raw.university_name) labels.universityById.set(raw.university_id, { name: raw.university_name, countryName: raw.country_name });
+      if (raw.course_id && raw.course_name) labels.courseNameById.set(raw.course_id, raw.course_name);
+      if (raw.course_intake_id && raw.intake_name) {
+        labels.deadlineByIntakeId.set(
+          raw.course_intake_id,
+          resolveApplicationDeadline({ intakeName: raw.intake_name, priorityDeadline: raw.priority_deadline, finalDeadline: raw.final_deadline, internationalDeadline: raw.international_deadline })
+        );
+      }
+    }
+    return labels;
+  }
+  if (!["PGRST202", "42883"].includes((error as { code?: string }).code ?? "")) logDbError("loadApplicationLabels", error);
+
+  const universityIds = Array.from(new Set(rows.map((r) => r.university_id).filter((id): id is string => !!id)));
+  const courseIds = Array.from(new Set(rows.map((r) => r.course_id).filter((id): id is string => !!id)));
+  const [universities, courses, deadlines] = await Promise.all([
+    universityIds.length > 0 ? supabase.from("universities").select("id, name, countries ( name )").in("id", universityIds) : Promise.resolve({ data: [] }),
+    courseIds.length > 0 ? supabase.from("courses").select("id, name").in("id", courseIds) : Promise.resolve({ data: [] }),
+    buildIntakeDeadlineMap(supabase, rows.map((r) => r.course_intake_id)),
+  ]);
+  for (const raw of universities.data ?? []) {
+    const row = raw as unknown as { id: string; name: string; countries: { name: string } | null };
+    labels.universityById.set(row.id, { name: row.name, countryName: row.countries?.name ?? null });
+  }
+  for (const raw of courses.data ?? []) {
+    const row = raw as unknown as { id: string; name: string };
+    labels.courseNameById.set(row.id, row.name);
+  }
+  labels.deadlineByIntakeId = deadlines;
+  return labels;
+}
+
 /**
  * The logged-in student's own applications.
  *
@@ -293,17 +362,7 @@ export async function listMyApplications(): Promise<MyApplicationSummary[]> {
   }
 
   const rows = (data ?? []) as unknown as MyApplicationRow[];
-  const universityIds = rows.map((r) => r.university_id).filter((id): id is string => !!id);
-  const courseIds = rows.map((r) => r.course_id).filter((id): id is string => !!id);
-  const intakeIds = rows.map((r) => r.course_intake_id);
-  const MAX_APPLICATIONS_NAME_LOOKUP = 200;
-  const [universities, courses, deadlineByIntakeId] = await Promise.all([
-    getUniversitiesByIds(universityIds),
-    getCoursesByIds(courseIds, MAX_APPLICATIONS_NAME_LOOKUP),
-    buildIntakeDeadlineMap(supabase, intakeIds),
-  ]);
-  const universityById = new Map(universities.map((u) => [u.id, { name: u.name, countryName: u.countryName }]));
-  const courseNameById = new Map(courses.map((c) => [c.id, c.name]));
+  const { universityById, courseNameById, deadlineByIntakeId } = await loadApplicationLabels(supabase, rows);
 
   return rows.map((row) => toMyApplicationSummary(row, universityById, courseNameById, deadlineByIntakeId));
 }
@@ -342,13 +401,7 @@ export async function getMyApplicationById(id: string): Promise<MyApplicationSum
   if (!first) return null;
   const row = first as unknown as MyApplicationRow;
 
-  const [universities, courses, deadlineByIntakeId] = await Promise.all([
-    getUniversitiesByIds(row.university_id ? [row.university_id] : []),
-    getCoursesByIds(row.course_id ? [row.course_id] : [], 1),
-    buildIntakeDeadlineMap(supabase, [row.course_intake_id]),
-  ]);
-  const universityById = new Map(universities.map((u) => [u.id, { name: u.name, countryName: u.countryName }]));
-  const courseNameById = new Map(courses.map((c) => [c.id, c.name]));
+  const { universityById, courseNameById, deadlineByIntakeId } = await loadApplicationLabels(supabase, [row]);
 
   return toMyApplicationSummary(row, universityById, courseNameById, deadlineByIntakeId);
 }

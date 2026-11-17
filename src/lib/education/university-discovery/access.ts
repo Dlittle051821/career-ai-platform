@@ -1,7 +1,8 @@
 /**
  * University Discovery V3 — access model (pure; no I/O).
  *
- * Three student-facing tiers plus staff, exactly as approved:
+ * Three student-facing tiers plus staff, exactly as approved (a Verified student
+ * may hold the tier through a paid purchase or through an administrator's grant):
  *   - anonymous / signed-in free: country discovery + official public portals only;
  *   - verified: the Nextwise university directory, student-safe profiles and the shortlist;
  *   - admin: the directory, plus the internal course research workspace under /admin.
@@ -13,7 +14,15 @@
  * query strings or anything a browser could forge.
  */
 
-export type UniversityAccessState = "anonymous" | "signed_in_free" | "payment_pending" | "verified" | "admin";
+export type UniversityAccessState =
+  | "anonymous"
+  | "signed_in_free"
+  | "payment_pending"
+  | "payment_failed"
+  | "verified"
+  /** Verified access granted by an administrator (public.university_access_grants), not bought. */
+  | "verified_by_grant"
+  | "admin";
 
 /**
  * Plans whose PAID purchase unlocks the university directory. `nextwise-verified`
@@ -31,6 +40,10 @@ export interface UniversityAccessFacts {
   isAdmin: boolean;
   /** One entry per purchase of a qualifying plan: the live status of its invoice, or null when it has none. */
   qualifyingInvoiceStatuses: readonly (string | null)[];
+  /** True when the student holds an admin grant that is neither revoked nor expired. Decided by the database. */
+  hasActiveGrant?: boolean;
+  /** True when the most recent payment attempt on an unpaid qualifying invoice failed or was cancelled. */
+  latestAttemptFailed?: boolean;
 }
 
 /**
@@ -42,14 +55,15 @@ export function resolveUniversityAccess(facts: UniversityAccessFacts): Universit
   if (!facts.isSignedIn) return "anonymous";
   if (facts.isAdmin) return "admin";
   if (facts.qualifyingInvoiceStatuses.some((status) => status === "paid")) return "verified";
+  if (facts.hasActiveGrant === true) return "verified_by_grant";
   if (facts.qualifyingInvoiceStatuses.some((status) => status !== null && PENDING_INVOICE_STATUSES.includes(status))) {
-    return "payment_pending";
+    return facts.latestAttemptFailed === true ? "payment_failed" : "payment_pending";
   }
   return "signed_in_free";
 }
 
 export function canUseUniversityDirectory(state: UniversityAccessState): boolean {
-  return state === "verified" || state === "admin";
+  return state === "verified" || state === "verified_by_grant" || state === "admin";
 }
 
 /** The internal course database is staff-only. No student tier, paid or not, may read it. */

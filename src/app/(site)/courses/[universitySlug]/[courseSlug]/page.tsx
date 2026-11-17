@@ -164,7 +164,7 @@ function groupAdmissionRequirements(requirements: CourseAdmissionRequirement[]):
 export default async function CourseDetailPage({ params, searchParams }: CourseDetailPageProps) {
   const { universitySlug, courseSlug } = await params;
   // University Discovery V3 — checked on the server before any programme lookup.
-  if (!(await hasInternalCourseAccess())) redirect("/courses");
+  if (!(await hasInternalCourseAccess())) redirect("/courses?moved=course");
   const { applyError } = await searchParams;
   const courseLookup = await lookupPublicCourseBySlugPairCached(universitySlug, courseSlug);
   // CC-24 — a missing record is a genuine 404 (checked first in ./layout.tsx; card in ../not-found.tsx); a failed lookup is not.

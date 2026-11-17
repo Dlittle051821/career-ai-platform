@@ -69,6 +69,7 @@ interface CoursesPageProps {
     destination?: string;
     subject?: string;
     degree?: string;
+    moved?: string;
   }>;
 }
 
@@ -120,7 +121,7 @@ async function CoursesPageContent({ searchParams }: CoursesPageProps) {
           />
         )}
         <div className={destination ? "ud-wrap ud-section pt-28" : "ud-wrap ud-section"}>
-          <FreeDiscovery kind="courses" destination={destination} resources={trusted?.results ?? []} accessState={access} offer={getVerifiedOffer()} />
+          <FreeDiscovery kind="courses" destination={destination} resources={trusted?.results ?? []} accessState={access} offer={getVerifiedOffer()} moved={params.moved === "course" || params.moved === "compare" ? params.moved : null} />
         </div>
       </div>
     );

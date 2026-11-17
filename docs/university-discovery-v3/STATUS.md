@@ -1,42 +1,40 @@
-# University Discovery V3 — implementation status
+# University Discovery V3 — status
 
-Design reference: `Nextwise_University_Discovery_Concept_V3.mp4` (approved).
-Branch: `feature/university-discovery-v3-approved`, based on live production `acf9dff` (`hotfix/v5631-auth`,
-which contains the UI baseline tag `nextwise-ui-v563-approved`).
+Branch `feature/university-discovery-v3-approved`, based on live production `acf9dff`. Design reference:
+`Nextwise_University_Discovery_Concept_V3.mp4`. **Nothing has been pushed, deployed, or applied to any hosted
+database. Production is unchanged.** The branch is ready for a Vercel Preview and the owner's visual review.
 
-**This branch is increment 1 of the V3 implementation. It is not the complete V3 release and must not be
-promoted to production as "University Discovery V3". Nothing was pushed, deployed or applied to any database.**
+## What is in the branch
 
-## Done in increment 1 (built, tested locally)
-
-| Area | What works |
+| Area | State |
 |---|---|
-| Access tiers | `anonymous`, `signed_in_free`, `payment_pending`, `verified`, `admin`, decided on the server from the session, `admin_roles` and the live invoice status of a `nextwise-verified` / `nextwise-essential` purchase. Fail-closed. |
-| `/universities` (free) | Six destination cards (flag, approved photograph, name, descriptor) from the approved Europe configuration; selected country shows official portals from the trusted-source registry through the validated `/go/course-search` redirect; guidance; Verified panel; free discovery session. No directory query runs. |
-| Verified dialog | The one approved visual improvement: split panel, three benefits, and a right panel driven by the real account state (anonymous, signed in not Verified, payment pending, Verified). Native `<dialog>`: focus trap, Escape, focus return, reduced motion, mobile layout. No timed or fake status badges. |
-| `/universities/[slug]` | Without directory access: no record lookup, locked preview with upgrade path and official resources. |
-| `/courses`, course detail, course comparison | Every student account (including Verified) gets country selection and official public portals. Detail and comparison redirect to `/courses` before any programme lookup. Staff keep the existing pages. |
-| Data layer | Every reader in `src/lib/supabase/education/universities.ts` and `courses.ts` checks access first, so saved items, dashboard, recommendations, Studio and the sitemap cannot read past the rule. |
-| Price | ₹1,999 from the approved catalogue. No ₹199 plan. Purchase action follows the existing paid-checkout switch, which is off. |
+| Access tiers | anonymous, free, payment pending, payment failed, Verified (paid), Verified (granted by admin), staff. Decided on the server; fail-closed. |
+| `/universities` free | Six destinations, official portals from the trusted-source registry, Verified panel, free session. No directory query runs. |
+| `/universities` Verified | Photo-led cards (credit on every photograph, placeholder when there is none), category, public/private, location, study areas, sourced highlight, verification line. Filters: search, country, state/region, city, institution type, public/private, study area, sort. Server-side pagination, empty/error/loading states. |
+| `/universities/[slug]` | Hero photograph with credit, overview, facts, campus gallery, sourced highlights, focus areas, rankings (provider, year, subject vs overall, source), next steps, sticky actions (save, official website, guidance). Locked preview without access; no record is fetched for it. |
+| Verified dialog | Eight states: anonymous, free, payment pending, payment failed, Verified, granted by admin, session expired, network/server error (with retry). Price ₹1,999 from the catalogue; purchase action disabled. |
+| Admin grant | Student page → "Verified university access" card: grant with reason and optional expiry, revoke with reason, history. Only super_admin/admin. Written through audited database functions; nobody can write the table directly. |
+| Saved universities | `/saved` (Universities tab) and a panel in `/studio`: thumbnail, details, quick access, remove, empty state, locked state that keeps the shortlist when access ends. |
+| Course Explorer | Official portals for every student account. Old course URLs and comparison redirect to `/courses` with an explanation. Saved courses keep their title and an official link; existing applications are untouched. |
+| Trusted portals | Managed in Admin → Education → Sources (list, add, "I checked this address", show/hide). Hochschulkompass and Study in Germany are in a proposed seed, inserted switched off. |
+| Database | Three proposed migrations with rollbacks in `supabase/migrations-proposed/UNI_V3/`. See TEST-REPORT.md. |
+| Germany data | 239 public institutions prepared for review (`germany-import/`). See GERMANY-IMPORT-AUDIT.md. |
 
-## Not done yet (increment 2 and later)
+## Order of dependence
 
-1. **V3 paid directory visuals**: photo-led university cards, filter bar restyle, saved-count strip. Verified users currently see the existing directory layout behind the gate.
-2. **V3 university profile**: hero photograph, campus gallery, "What makes this university stand out?", academic strengths, rankings, sticky actions.
-3. **Student-safe enrichment data**: no table yet for highlights, subject strengths, rankings, photographs and credits, or the official course-catalogue URL. Needs a schema proposal.
-4. **Germany institution import for review**: not prepared yet.
-5. **Saved universities in the dashboard** in the V3 design (the existing `/saved` page still works for users with access).
-6. **Database enforcement**: `supabase/migrations-proposed/UNI_V3/0001_university_directory_access.sql` is written but has not been run against any database. Until it is reviewed and applied, published university and course rows remain readable through the REST API with the publishable key, exactly as before this branch.
-7. **Verified purchase**: stays off. The GST-inclusive ₹1,999 checkout has not been validated; the existing checkout would add tax on top.
-8. **Hochschulkompass and Study in Germany** must be added as trusted sources in Admin → Education → Sources (with their verified official URLs) before they appear; only sources in the registry are shown.
-9. **Staging and production**: not started. No release tag, no release record.
+The application code works against today's database: without migration 0002 the category and study-area filters
+hide themselves and photographs are not shown; without 0001 the admin grant card reports that it is not available.
+The database-level protection exists only after 0001 is applied.
 
-## Behaviour changes to review before release
+## Decisions still needed from the owner
 
-- Students can no longer open internal course pages, course comparison or saved courses. The student application-start flow began on the course page; it is now unreachable for students.
-- `/universities` and `/courses` no longer list internal records to the public, and the sitemap no longer lists university or course URLs.
-- `/universities/[slug]` answers 200 with a locked preview for visitors without access (it no longer reveals whether a record exists).
-
-## Checks run on this branch
-
-See the release notes in the kit for exact numbers. Not run: `npm run verify:visual` (Playwright reference run), database authorization tests, signed-in browser tests (no database in the build environment), Core Web Vitals.
+1. **Applying from a course page.** Students could start an application from an internal course page. Those pages are
+   now staff-only, so a student cannot start a new application by themselves; a counsellor/admin still can. Keep it
+   that way, or add a different student entry point?
+2. **Compare universities.** There was no university comparison before V3 and none was added; the profile offers
+   "Review your shortlist" instead.
+3. **GST-inclusive checkout.** Purchase stays off. The existing proposal `NW01_fix_purchase_pricing_plan_tax_handling.sql`
+   is untouched and needs its own review before the ₹1,999 purchase is enabled.
+4. **TU Berlin photograph** has licence status "pending review" (Commons "copyrighted free use"); it is stored but not
+   shown to students until someone clears it.
+5. **Publishing.** All 239 Germany records import as drafts marked "needs review". Publishing is a separate admin step.

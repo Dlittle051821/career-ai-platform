@@ -116,3 +116,40 @@ export async function removeSavedItem(entityType: SavedItemEntityType, entityId:
   }
   return { success: true };
 }
+
+export interface SavedCourseLabel {
+  courseId: string;
+  courseName: string;
+  universityName: string;
+  officialUrl: string | null;
+}
+
+/**
+ * University Discovery V3 — courses a student saved BEFORE the course database
+ * became staff-only. The rows are kept; this returns the title, the institution
+ * and one official link for each so the saved list can point the student to the
+ * official page instead of a dead internal one.
+ *
+ * Uses get_my_saved_course_labels() (UNI_V3/0001): the caller's own saved rows
+ * only, names and one public URL only. Returns null when that function is not
+ * installed yet, so the page can say how many courses are saved without
+ * pretending to list them.
+ */
+export async function listMySavedCourseLabels(): Promise<SavedCourseLabel[] | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data, error } = await supabase.rpc("get_my_saved_course_labels" as never);
+  if (error) {
+    if (!["PGRST202", "42883"].includes((error as { code?: string }).code ?? "")) logDbError("listMySavedCourseLabels", error);
+    return null;
+  }
+  return ((data ?? []) as unknown as { course_id: string; course_name: string; university_name: string; official_url: string | null }[]).map((row) => ({
+    courseId: row.course_id,
+    courseName: row.course_name,
+    universityName: row.university_name,
+    officialUrl: row.official_url && /^https:\/\//.test(row.official_url) ? row.official_url : null,
+  }));
+}

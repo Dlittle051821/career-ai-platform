@@ -1,0 +1,623 @@
+{
+ "ranAt": "2026-11-17T19:34:34.702Z",
+ "total": 88,
+ "failed": 0,
+ "results": [
+  {
+   "group": "before",
+   "name": "anonymous can read universities directly (the gap)",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "before",
+   "name": "anonymous can read courses directly (the gap)",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "before",
+   "name": "free student can read universities directly (the gap)",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: anonymous",
+   "name": "universities: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: anonymous",
+   "name": "campuses: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: anonymous",
+   "name": "scholarships: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: anonymous",
+   "name": "courses: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: anonymous",
+   "name": "course_intakes: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: anonymous",
+   "name": "course_tuition_fees: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: anonymous",
+   "name": "course_admission_requirements: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: anonymous",
+   "name": "university_media: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: anonymous",
+   "name": "university_access_grants: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: free student",
+   "name": "universities: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: free student",
+   "name": "campuses: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: free student",
+   "name": "scholarships: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: free student",
+   "name": "courses: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: free student",
+   "name": "course_intakes: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: free student",
+   "name": "course_tuition_fees: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: free student",
+   "name": "course_admission_requirements: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: free student",
+   "name": "university_media: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: pending student",
+   "name": "universities: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: pending student",
+   "name": "campuses: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: pending student",
+   "name": "scholarships: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: pending student",
+   "name": "courses: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: pending student",
+   "name": "course_intakes: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: pending student",
+   "name": "course_tuition_fees: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: pending student",
+   "name": "course_admission_requirements: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: pending student",
+   "name": "university_media: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: failed student",
+   "name": "universities: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: failed student",
+   "name": "campuses: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: failed student",
+   "name": "scholarships: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: failed student",
+   "name": "courses: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: failed student",
+   "name": "course_intakes: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: failed student",
+   "name": "course_tuition_fees: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: failed student",
+   "name": "course_admission_requirements: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: failed student",
+   "name": "university_media: no rows",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: anonymous",
+   "name": "nested read countries->universities returns no university",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: anonymous",
+   "name": "nested embed countries->universities leaks nothing",
+   "expected": 0,
+   "actual": 0,
+   "pass": true
+  },
+  {
+   "group": "after: free student",
+   "name": "nested embed countries->universities->courses leaks nothing",
+   "expected": 0,
+   "actual": 0,
+   "pass": true
+  },
+  {
+   "group": "after: verified (paid)",
+   "name": "reads published universities",
+   "expected": 239,
+   "actual": 239,
+   "pass": true
+  },
+  {
+   "group": "after: verified (paid)",
+   "name": "cannot read the draft university",
+   "expected": 0,
+   "actual": 0,
+   "pass": true
+  },
+  {
+   "group": "after: verified (paid)",
+   "name": "reads only licence-cleared media (12 of 13)",
+   "expected": 12,
+   "actual": 12,
+   "pass": true
+  },
+  {
+   "group": "after: verified (paid)",
+   "name": "courses: no rows (course database is staff-only)",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: verified (paid)",
+   "name": "course_intakes: no rows (course database is staff-only)",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: verified (paid)",
+   "name": "course_tuition_fees: no rows (course database is staff-only)",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: verified (paid)",
+   "name": "course_admission_requirements: no rows (course database is staff-only)",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: verified (paid)",
+   "name": "nested embed universities->courses leaks no course",
+   "expected": 0,
+   "actual": 0,
+   "pass": true
+  },
+  {
+   "group": "after: staff (admin)",
+   "name": "reads all universities incl. draft",
+   "expected": 240,
+   "actual": 240,
+   "pass": true
+  },
+  {
+   "group": "after: staff (admin)",
+   "name": "reads courses",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: staff (counsellor)",
+   "name": "reads all universities incl. draft",
+   "expected": 240,
+   "actual": 240,
+   "pass": true
+  },
+  {
+   "group": "after: staff (counsellor)",
+   "name": "reads courses",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: staff (editor)",
+   "name": "reads all universities incl. draft",
+   "expected": 240,
+   "actual": 240,
+   "pass": true
+  },
+  {
+   "group": "after: staff (editor)",
+   "name": "reads courses",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: granted student",
+   "name": "before any grant: no universities",
+   "expected": 0,
+   "actual": 0,
+   "pass": true
+  },
+  {
+   "group": "after: grant function",
+   "name": "anonymous cannot grant access (HTTP 401)",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: grant function",
+   "name": "free student cannot grant access (HTTP 403)",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: grant function",
+   "name": "verified student cannot grant access (HTTP 403)",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: grant function",
+   "name": "counsellor cannot grant access (HTTP 403)",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: grant function",
+   "name": "content_editor cannot grant access (HTTP 403)",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: grant function",
+   "name": "a student cannot grant themselves access",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: grants table",
+   "name": "a student cannot INSERT a grant row directly (HTTP 403)",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: grants table",
+   "name": "even an admin cannot INSERT directly, only through the audited function (HTTP 403)",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: free student",
+   "name": "still no universities after all attempts",
+   "expected": 0,
+   "actual": 0,
+   "pass": true
+  },
+  {
+   "group": "after: grant function",
+   "name": "admin grant without a real reason is refused",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: grant function",
+   "name": "a grant to a staff account is refused",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: grant function",
+   "name": "admin can grant with a reason",
+   "expected": 200,
+   "actual": 200,
+   "pass": true
+  },
+  {
+   "group": "after: granted student",
+   "name": "after the grant: reads published universities",
+   "expected": 239,
+   "actual": 239,
+   "pass": true
+  },
+  {
+   "group": "after: granted student",
+   "name": "after the grant: still no courses",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: granted student",
+   "name": "can see own active grant row",
+   "expected": 1,
+   "actual": 1,
+   "pass": true
+  },
+  {
+   "group": "after: verified (paid)",
+   "name": "cannot see another student's grant",
+   "expected": 0,
+   "actual": 0,
+   "pass": true
+  },
+  {
+   "group": "after: grant function",
+   "name": "a second active grant is refused",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: grants table",
+   "name": "a student cannot UPDATE their own grant (HTTP 403)",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: revoke function",
+   "name": "a student cannot call revoke",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: revoke function",
+   "name": "admin can revoke with a reason",
+   "expected": 204,
+   "actual": 204,
+   "pass": true
+  },
+  {
+   "group": "after: granted student",
+   "name": "after revocation: no universities",
+   "expected": 0,
+   "actual": 0,
+   "pass": true
+  },
+  {
+   "group": "after: audit",
+   "name": "grant and revoke are both in the audit log",
+   "expected": 2,
+   "actual": 2,
+   "pass": true
+  },
+  {
+   "group": "after: audit",
+   "name": "a student cannot read the audit log",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: expiry",
+   "name": "admin can grant with an expiry",
+   "expected": 200,
+   "actual": 200,
+   "pass": true
+  },
+  {
+   "group": "after: expiry",
+   "name": "before expiry: access",
+   "expected": 239,
+   "actual": 239,
+   "pass": true
+  },
+  {
+   "group": "after: expiry",
+   "name": "after expiry: no access, with no one revoking",
+   "expected": 0,
+   "actual": 0,
+   "pass": true
+  },
+  {
+   "group": "after: expiry",
+   "name": "an expiry in the past is refused",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: expiry",
+   "name": "a new grant can be issued after the old one expired",
+   "expected": 200,
+   "actual": 200,
+   "pass": true
+  },
+  {
+   "group": "after: own records",
+   "name": "free student gets the name of their own application's course",
+   "expected": "QA M.Sc. Test Programme",
+   "actual": "QA M.Sc. Test Programme",
+   "pass": true
+  },
+  {
+   "group": "after: own records",
+   "name": "another student gets none of them",
+   "expected": 0,
+   "actual": 0,
+   "pass": true
+  },
+  {
+   "group": "after: own records",
+   "name": "free student gets the title of the course they saved earlier",
+   "expected": "QA M.Sc. Test Programme",
+   "actual": "QA M.Sc. Test Programme",
+   "pass": true
+  },
+  {
+   "group": "after: own records",
+   "name": "anonymous cannot call the own-record functions",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  },
+  {
+   "group": "after: own records",
+   "name": "saved items: a student sees only their own rows",
+   "expected": 0,
+   "actual": 0,
+   "pass": true
+  },
+  {
+   "group": "after: anonymous",
+   "name": "cannot call has_university_directory_access",
+   "expected": true,
+   "actual": true,
+   "pass": true
+  }
+ ]
+}

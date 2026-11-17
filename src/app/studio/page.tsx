@@ -24,6 +24,10 @@ import { getNextBestAction } from "@/lib/dashboard/next-best-action";
 import { StudentJourneyOverview } from "@/components/dashboard/StudentJourneyOverview";
 import { NextBestActionCard } from "@/components/dashboard/NextBestActionCard";
 import { SavedShortlistCard, type SavedPreviewItem } from "@/components/dashboard/SavedShortlistCard";
+import { SavedUniversitiesPanel } from "@/components/sections/university-discovery/SavedUniversitiesPanel";
+import { getUniversityAccess } from "@/lib/supabase/education/university-access";
+import { getVerifiedOffer } from "@/lib/education/university-discovery/offer";
+import "@/styles/university-discovery.css";
 import { DiscoverySessionCard } from "@/components/dashboard/DiscoverySessionCard";
 
 export const metadata: Metadata = {
@@ -85,9 +89,10 @@ export default async function StudioHubPage() {
 
   const savedUniversityIds = savedItems.filter((i) => i.entityType === "university").map((i) => i.entityId);
   const savedCourseIds = savedItems.filter((i) => i.entityType === "course").map((i) => i.entityId);
-  const [savedUniversities, savedCourses] = await Promise.all([
+  const [savedUniversities, savedCourses, universityAccess] = await Promise.all([
     getUniversitiesByIds(savedUniversityIds),
     getCoursesByIds(savedCourseIds, savedCourseIds.length),
+    getUniversityAccess(),
   ]);
   const savedPreviews: SavedPreviewItem[] = [
     ...savedUniversities.map((u) => ({ key: `university-${u.id}`, label: u.name, logoUrl: u.logoUrl })),
@@ -181,6 +186,15 @@ export default async function StudioHubPage() {
         <SavedShortlistCard count={savedItems.length} previews={savedPreviews} />
         <DiscoverySessionCard session={activeDiscoverySession} />
       </div>
+
+      {/* University Discovery V3 — the student's own shortlist. Records are resolved only with Verified directory access. */}
+      <SavedUniversitiesPanel
+        accessState={universityAccess}
+        savedCount={savedUniversityIds.length}
+        universities={savedUniversities}
+        offer={getVerifiedOffer()}
+        returnTo="/studio"
+      />
 
       {/* NW07.6 — surfaced only once there's something to see: counsellor-authored, independently-reviewed guidance, distinct from the AI/engine-based career matches above. */}
       {recommendationReports.length > 0 ? (

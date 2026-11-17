@@ -6,29 +6,22 @@ import { LockedUniversityPreview } from "@/components/sections/university-discov
 import "@/styles/university-discovery.css";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ExternalLink, MapPin } from "lucide-react";
-import { Section } from "@/components/layout/Section";
+import { ArrowLeft, ArrowRight, BadgeCheck, ExternalLink, FileCheck2, Info, MapPin, Star } from "lucide-react";
 import { DetailRecordNotice } from "@/components/sections/DetailRecordNotice";
 import { lookupPublicUniversityBySlugCached } from "@/lib/supabase/education/detail-lookups";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
-import { LinkButton } from "@/components/ui/Button";
 import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
-import { humanizeEnumValue } from "@/components/sections/education/UniversityCard";
 import { DataStatusBadge } from "@/components/sections/education/DataStatusBadge";
 import { UnverifiedRecordNotice } from "@/components/sections/education/UnverifiedRecordNotice";
 import { isVerifiedEducationRecord, lastCheckedLabel, shouldShowRankings, UNVERIFIED_SCHOLARSHIP_NOTE } from "@/lib/education/verification-display";
-import { SaveUniversityButton } from "@/components/sections/education/SaveUniversityButton";
 import {
   listPublicCampusesForUniversity,
   listPublicScholarshipsForUniversity,
 } from "@/lib/supabase/education/universities";
+import { categoryLabel, ownershipLabel, studyAreaLabel, type UniversityRanking } from "@/lib/education/university-discovery/directory";
+import { SaveButton, SaveError, SaveUniversityProvider } from "@/components/sections/university-discovery/SaveUniversity";
+import { UniversityGallery } from "@/components/sections/university-discovery/UniversityGallery";
 import { listSavedEntityIds } from "@/lib/supabase/education/saved-items";
-import { getCurrentProfile } from "@/lib/supabase/profile";
 import { formatMoney } from "@/lib/admin/money";
-import { ACCREDITATION_STATUS_LABELS, type AccreditationStatus } from "@/types/admin";
-import { EDUCATION_VERIFICATION_STATUS_LABELS, type EducationVerificationStatus } from "@/types/education";
 import { trackEvent } from "@/lib/supabase/analytics/track";
 import { BRAND_NAME } from "@/config/site";
 import { getBreadcrumbListJsonLd, toSafeJsonLdString } from "@/lib/seo/structured-data";
@@ -84,20 +77,12 @@ function formatDate(value: string | null): string | null {
   return date.toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" });
 }
 
-function accreditationLabel(status: string): string {
-  return ACCREDITATION_STATUS_LABELS[status as AccreditationStatus] ?? humanizeEnumValue(status);
-}
-
-function verificationLabel(status: string): string {
-  return EDUCATION_VERIFICATION_STATUS_LABELS[status as EducationVerificationStatus] ?? humanizeEnumValue(status);
-}
-
 /**
- * Public university detail route (Milestone 9), e.g.
- * `/universities/iit-delhi`. Public like `/universities` itself — the
- * middleware doesn't gate this path (see PROTECTED_PATHS in
- * src/lib/supabase/middleware.ts). Only the Save button's write path needs
- * a logged-in user; the page itself renders for everyone.
+ * University profile (University Discovery V3), e.g.
+ * `/universities/universitaet-zu-koeln`. Access is decided on the server
+ * before any record is looked up: a visitor without Verified directory
+ * access gets the locked preview and no institution data is fetched,
+ * rendered or serialised for them.
  *
  * Never fills in a plausible-looking placeholder for a missing field — every
  * optional value either renders "Not available" or is omitted outright,
@@ -108,7 +93,7 @@ export default async function UniversityDetailPage({ params }: UniversityDetailP
   // University Discovery V3 — checked on the server before any record lookup.
   const access = await getUniversityAccess();
   if (!canUseUniversityDirectory(access)) {
-    return <LockedUniversityPreview accessState={access} offer={getVerifiedOffer()} returnTo={`/universities/${slug}`} />;
+    return <LockedUniversityPreview accessState={access} offer={getVerifiedOffer()} returnTo={`/universities/${encodeURIComponent(slug)}`} />;
   }
   const universityLookup = await lookupPublicUniversityBySlugCached(slug);
   // CC-24 — a missing record is a genuine 404 (checked first in ./layout.tsx; card in ../not-found.tsx); a failed lookup is not.
@@ -117,9 +102,6 @@ export default async function UniversityDetailPage({ params }: UniversityDetailP
     return <DetailRecordNotice kind="unavailable" noun="university" browseHref="/universities" browseLabel="Browse the University Explorer" />;
   }
   const university = universityLookup.value;
-
-  const profile = await getCurrentProfile();
-  const isLoggedIn = profile !== null;
 
   void trackEvent({
     eventName: "college_viewed",
@@ -131,17 +113,39 @@ export default async function UniversityDetailPage({ params }: UniversityDetailP
     properties: { slug: university.slug },
   });
 
+  const canSave = access !== "admin";
   const [campuses, scholarships, savedIds] = await Promise.all([
     listPublicCampusesForUniversity(university.id),
     listPublicScholarshipsForUniversity(university.id),
-    isLoggedIn ? listSavedEntityIds("university") : Promise.resolve<string[]>([]),
+    canSave ? listSavedEntityIds("university") : Promise.resolve<string[]>([]),
   ]);
 
-  const location = [university.stateRegion, university.countryName].filter(Boolean).join(", ");
+  const verified = isVerifiedEducationRecord(university.verificationStatus);
+  const location = [university.city, university.stateRegion, university.countryName].filter(Boolean).join(", ");
   const lastVerifiedLabel = formatDate(university.lastVerifiedAt);
+  const category = categoryLabel(university.institutionCategory);
+  const ownership = ownershipLabel(university.ownershipType);
+  const areas = university.studyAreas.map(studyAreaLabel).filter((label): label is string => Boolean(label));
+  const hero = university.photos.find((photo) => photo.kind === "hero") ?? university.photos[0] ?? null;
+  // Rankings are a factual claim: shown only for a verified record, and only entries that name their provider and year.
+  const rankings = shouldShowRankings(university.verificationStatus) ? university.ranking : [];
+  const overallRankings = rankings.filter((entry) => entry.scope === "overall");
+  const subjectRankings = rankings.filter((entry) => entry.scope === "subject");
+  const websiteHost = hostOf(university.websiteUrl);
+  const guidanceHref = "/book-counselling";
 
-  return (
-    <Section tone="muted" className="pt-10 sm:pt-14">
+  const facts: { label: string; value: React.ReactNode }[] = [];
+  if (category) facts.push({ label: "Institution type", value: category });
+  if (ownership) facts.push({ label: "Funding", value: `${ownership} institution` });
+  if (location) facts.push({ label: "Location", value: location });
+  if (university.foundingYear) facts.push({ label: "Founded", value: String(university.foundingYear) });
+  if (university.websiteUrl && websiteHost) {
+    facts.push({ label: "Official website", value: <a href={university.websiteUrl} target="_blank" rel="noopener noreferrer">{websiteHost}</a> });
+  }
+  if (lastVerifiedLabel) facts.push({ label: lastCheckedLabel(university.verificationStatus), value: lastVerifiedLabel });
+
+  const page = (
+    <div className="ud ud-pf-pad">
       {/* M17B FINAL — BreadcrumbList JSON-LD mirroring the visual trail below exactly. */}
       <script
         type="application/ld+json"
@@ -155,246 +159,278 @@ export default async function UniversityDetailPage({ params }: UniversityDetailP
           ),
         }}
       />
-      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "University Explorer", href: "/universities" }, { label: university.name }]} />
-
-      <div className="mt-6 mb-8 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            {university.institutionType ? <Badge tone="info">{humanizeEnumValue(university.institutionType)}</Badge> : null}
-            {university.ownershipType ? <Badge tone="neutral">{humanizeEnumValue(university.ownershipType)}</Badge> : null}
-            <DataStatusBadge verificationStatus={university.verificationStatus} freshnessBand={university.freshnessBand} />
-          </div>
-          <h1 className="mt-3 text-3xl font-semibold text-primary balance sm:text-4xl">{university.name}</h1>
-          {(location || university.city) ? (
-            <p className="mt-2 flex items-center gap-1.5 text-sm text-muted">
-              <MapPin aria-hidden="true" className="h-4 w-4 shrink-0" />
-              {[university.city, university.stateRegion, university.countryName].filter(Boolean).join(", ")}
-            </p>
+      <div className="ud-wrap ud-section" style={{ paddingTop: "6.5rem" }}>
+        <section className="ud-pf-hero" data-plain={hero ? undefined : ""} aria-labelledby="ud-pf-title">
+          {hero ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element -- licence-cleared campus photograph served from /public with its credit */}
+              <img src={hero.url} alt={hero.alt} fetchPriority="high" decoding="async" />
+              <a className="ud-credit" href={hero.creditSourceUrl} target="_blank" rel="noopener noreferrer">
+                Photo: {hero.creditAuthor} · {hero.licenceName}
+              </a>
+            </>
           ) : null}
-          {university.summary ? <p className="mt-3 max-w-2xl text-base text-muted">{university.summary}</p> : null}
-        </div>
-        <SaveUniversityButton universityId={university.id} slug={university.slug} isLoggedIn={isLoggedIn} initialSaved={savedIds.includes(university.id)} />
-      </div>
-
-      {!isVerifiedEducationRecord(university.verificationStatus) ? (
-        <UnverifiedRecordNotice officialUrl={university.websiteUrl} officialLabel={`Visit the official ${university.name} website`} />
-      ) : null}
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <Card>
-            <h2 className="text-lg font-semibold text-primary">Overview</h2>
-            {/* UX07 — "essential" fields always render (even as "Not available"
-                — a student deciding whether to consider this university
-                genuinely needs to know these are unknown); non-essential
-                ones are hidden outright when missing instead of adding to
-                the "Not available" litter. See
-                docs/ux07-university-discovery.md "Incomplete-data handling"
-                for the full essential/non-essential list and reasoning. */}
-            <dl className="mt-3 grid gap-4 sm:grid-cols-2">
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Accreditation</dt>
-                <dd className="mt-1 text-sm text-text-soft">
-                  {accreditationLabel(university.accreditationStatus)}
-                  {university.accreditationOrganization ? ` — ${university.accreditationOrganization}` : ""}
-                </dd>
+          <Link href="/universities" className="ud-pf-bc">
+            <ArrowLeft aria-hidden="true" />
+            University Explorer
+          </Link>
+          <div className="ud-pf-in">
+            <div>
+              <div className="ud-pf-chips">
+                {category ? <span data-pink>{category}</span> : null}
+                {ownership ? <span>{ownership}</span> : null}
+                {verified ? (
+                  <span><BadgeCheck aria-hidden="true" />Verified by Nextwise</span>
+                ) : (
+                  <span><FileCheck2 aria-hidden="true" />Official source recorded</span>
+                )}
               </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Study levels</dt>
-                <dd className="mt-1 text-sm text-text-soft">
-                  {university.studyLevels.length > 0 ? university.studyLevels.map(humanizeEnumValue).join(", ") : "Not available"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Study modes</dt>
-                <dd className="mt-1 text-sm text-text-soft">
-                  {university.studyModes.length > 0 ? university.studyModes.map(humanizeEnumValue).join(", ") : "Not available"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Scholarships available</dt>
-                <dd className="mt-1 text-sm text-text-soft">
-                  {university.scholarshipsAvailable == null ? "Not available" : university.scholarshipsAvailable ? "Yes" : "No"}
-                  {university.scholarshipsAvailable && !isVerifiedEducationRecord(university.verificationStatus) ? <span className="block text-xs text-muted">Not yet verified</span> : null}
-                </dd>
-              </div>
-              {university.foundingYear != null ? (
-                <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-muted">Founded</dt>
-                  <dd className="mt-1 text-sm text-text-soft">{university.foundingYear}</dd>
-                </div>
+              <h1 id="ud-pf-title">{university.name}</h1>
+              {location ? (
+                <p className="ud-pf-loc">
+                  <MapPin aria-hidden="true" />
+                  {location}
+                </p>
               ) : null}
-              {university.applicationFeeMinorUnits != null && university.applicationFeeCurrency ? (
-                <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-muted">Application fee</dt>
-                  <dd className="mt-1 text-sm text-text-soft">{formatMoney(university.applicationFeeMinorUnits, university.applicationFeeCurrency)}</dd>
-                </div>
-              ) : null}
-            </dl>
-
-            <div className="mt-5 flex flex-wrap gap-4">
+            </div>
+            <div className="ud-pf-acts">
+              {canSave ? <SaveButton tone="glass" /> : null}
               {university.websiteUrl ? (
-                <a href={university.websiteUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold text-secondary-dark hover:text-primary">
+                <a href={university.websiteUrl} target="_blank" rel="noopener noreferrer" className="ud-btn" data-variant="white">
                   Official website
-                  <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
-                </a>
-              ) : null}
-              {university.admissionsUrl ? (
-                <a href={university.admissionsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold text-secondary-dark hover:text-primary">
-                  Admissions
-                  <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
-                </a>
-              ) : null}
-              {university.internationalAdmissionsUrl ? (
-                <a href={university.internationalAdmissionsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold text-secondary-dark hover:text-primary">
-                  International admissions
-                  <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+                  <ExternalLink aria-hidden="true" />
                 </a>
               ) : null}
             </div>
-          </Card>
+          </div>
+        </section>
+        {canSave ? <span style={{ position: "relative", display: "block" }}><SaveError /></span> : null}
 
-          {university.ranking.length > 0 && shouldShowRankings(university.verificationStatus) ? (
-            <Card>
-              <h2 className="text-lg font-semibold text-primary">Rankings</h2>
-              <div className="mt-3 space-y-2">
-                {university.ranking.map((entry, i) => (
-                  <div key={i} className="flex flex-wrap items-center gap-2 rounded-[var(--radius-control)] border border-border px-3 py-2 text-sm">
-                    <span className="font-medium text-text">{entry.provider}</span>
-                    {entry.category ? <span className="text-muted">· {entry.category}</span> : null}
-                    <span className="text-muted">{entry.year}</span>
-                    <Badge tone="accent" className="ml-auto text-[11px]">
-                      Rank {entry.rank}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          ) : null}
-
-          {university.campusInfo ? (
-            <Card>
-              <h2 className="text-lg font-semibold text-primary">Campus</h2>
-              <p className="mt-2 text-sm leading-relaxed text-muted">{university.campusInfo}</p>
-            </Card>
-          ) : null}
-
-          {campuses.length > 0 ? (
-            <Card>
-              <h2 className="text-lg font-semibold text-primary">Campuses</h2>
-              <div className="mt-3 space-y-2">
-                {campuses.map((campus) => (
-                  <div key={campus.id} className="flex flex-wrap items-center gap-2 rounded-[var(--radius-control)] border border-border px-3 py-2 text-sm">
-                    <span className="font-medium text-text">{campus.name}</span>
-                    <span className="text-muted">
-                      {[campus.city, campus.stateRegion, campus.countryName].filter(Boolean).join(", ") || "Location not available"}
-                    </span>
-                    {campus.isMain ? (
-                      <Badge tone="info" className="ml-auto text-[11px]">
-                        Main campus
-                      </Badge>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </Card>
-          ) : null}
-
-          {university.internationalStudentSupport ? (
-            <Card>
-              <h2 className="text-lg font-semibold text-primary">International student support</h2>
-              <p className="mt-2 text-sm leading-relaxed text-muted">{university.internationalStudentSupport}</p>
-            </Card>
-          ) : null}
-
-          {scholarships.length > 0 ? (
-            <Card>
-              <h2 className="text-lg font-semibold text-primary">Scholarships at this university</h2>
-              {!isVerifiedEducationRecord(university.verificationStatus) ? <p className="mt-1 text-xs text-muted">{UNVERIFIED_SCHOLARSHIP_NOTE}</p> : null}
-              <div className="mt-3 space-y-3">
-                {scholarships.map((scholarship) => (
-                  <div key={scholarship.id} className="rounded-[var(--radius-control)] border border-border p-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-text">{scholarship.name}</p>
-                      {scholarship.awardAmountMinorUnits != null && scholarship.currencyCode ? (
-                        <Badge tone="success" className="text-[11px]">
-                          {formatMoney(scholarship.awardAmountMinorUnits, scholarship.currencyCode)}
-                        </Badge>
-                      ) : null}
-                    </div>
-                    {scholarship.eligibility ? <p className="mt-1.5 text-sm text-muted">{scholarship.eligibility}</p> : null}
-                    {scholarship.awardDescription ? <p className="mt-1 text-sm text-muted">{scholarship.awardDescription}</p> : null}
-                    <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted">
-                      {scholarship.deadline ? <span>Deadline: {formatDate(scholarship.deadline) ?? scholarship.deadline}</span> : null}
-                      {scholarship.internationalEligible != null ? (
-                        <span>{scholarship.internationalEligible ? "Open to international students" : "Domestic students only"}</span>
-                      ) : null}
-                      {scholarship.scholarshipUrl ? (
-                        <a href={scholarship.scholarshipUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-secondary-dark hover:text-primary">
-                          Details
-                          <ExternalLink aria-hidden="true" className="h-3 w-3" />
-                        </a>
-                      ) : null}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          ) : null}
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <DataStatusBadge verificationStatus={university.verificationStatus} freshnessBand={university.freshnessBand} />
         </div>
+        {!verified ? <div className="mt-3"><UnverifiedRecordNotice officialUrl={university.websiteUrl} officialLabel="Open the official university website" /></div> : null}
 
-        <div className="space-y-6">
-          <Card>
-            <h2 className="text-lg font-semibold text-primary">Courses</h2>
-            <p className="mt-2 text-sm text-muted">Browse courses offered at {university.name}.</p>
-            <LinkButton href={`/courses?universityId=${university.id}`} size="sm" variant="outline" className="mt-3">
-              View courses
-            </LinkButton>
-          </Card>
-
-          <Card>
-            <h2 className="text-lg font-semibold text-primary">Data source</h2>
-            <dl className="mt-3 space-y-3 text-sm">
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Verification status</dt>
-                <dd className="mt-1 text-text-soft">{verificationLabel(university.verificationStatus)}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted">{lastCheckedLabel(university.verificationStatus)}</dt>
-                <dd className="mt-1 text-text-soft">{lastVerifiedLabel ?? "Not available"}</dd>
-              </div>
-              {university.sourceUrl ? (
-                <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-muted">Source</dt>
-                  <dd className="mt-1">
-                    <a href={university.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-medium text-secondary-dark hover:text-primary">
-                      View source
-                      <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
-                    </a>
-                  </dd>
+        <section className="ud-pf-sec" aria-labelledby="ud-pf-overview">
+          <h2 className="ud-h2" id="ud-pf-overview">Overview</h2>
+          <div className="ud-pf-ov">
+            <div>
+              {university.summary ? <p>{university.summary}</p> : <p>An introduction has not been recorded for this university yet. Its official website is the best place to start.</p>}
+              {university.campusInfo ? <p>{university.campusInfo}</p> : null}
+              {university.internationalStudentSupport ? <p>{university.internationalStudentSupport}</p> : null}
+            </div>
+            <dl className="ud-fx">
+              {facts.map((fact) => (
+                <div key={fact.label}>
+                  <dt>{fact.label}</dt>
+                  <dd>{fact.value}</dd>
                 </div>
-              ) : null}
+              ))}
             </dl>
-            <p className="mt-4 text-xs text-muted">
-              Always confirm current fees, deadlines, and admission requirements directly with the institution
-              before you act on them.
+          </div>
+        </section>
+
+        {university.photos.length > 0 ? (
+          <section className="ud-pf-sec" aria-labelledby="ud-pf-gallery">
+            <h2 className="ud-h2" id="ud-pf-gallery">Campus gallery</h2>
+            <UniversityGallery photos={university.photos} universityName={university.name} />
+          </section>
+        ) : null}
+
+        {university.highlights.length > 0 ? (
+          <section className="ud-pf-sec" aria-labelledby="ud-pf-standout">
+            <h2 className="ud-h2" id="ud-pf-standout">What makes this university stand out?</h2>
+            <ul className="ud-so">
+              {university.highlights.map((highlight) => (
+                <li key={highlight.text} className="ud-sc">
+                  <i aria-hidden="true"><Star /></i>
+                  <p>{highlight.text}</p>
+                  <small>
+                    Source: <a href={highlight.sourceUrl} target="_blank" rel="noopener noreferrer">{highlight.sourceName}</a>
+                  </small>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {areas.length > 0 || university.courseCatalogueUrl ? (
+          <section className="ud-pf-sec" aria-labelledby="ud-pf-areas">
+            <h2 className="ud-h2" id="ud-pf-areas">Academic focus areas</h2>
+            <div className="ud-as">
+              <div>
+                {areas.length > 0 ? (
+                  <div className="ud-tgs">
+                    {areas.map((label) => (
+                      <span key={label} className="ud-tg">{label}</span>
+                    ))}
+                  </div>
+                ) : null}
+                <p className="ud-bnd">
+                  <Info aria-hidden="true" />
+                  <span>
+                    Study areas are grouped from the university&apos;s official programme catalogue and are a guide, not a full list.
+                    Programmes, entry requirements and deadlines are on the university&apos;s own pages.
+                  </span>
+                </p>
+              </div>
+              <div className="ud-rk">
+                <h3>Find a programme</h3>
+                <p className="ud-rk-src" style={{ marginTop: 0, fontSize: ".9rem" }}>
+                  Nextwise does not list individual courses for students. Use the university&apos;s official catalogue, or the official national portals.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {university.courseCatalogueUrl ? (
+                    <a href={university.courseCatalogueUrl} target="_blank" rel="noopener noreferrer" className="ud-btn" data-variant="navy">
+                      Official programme catalogue
+                      <ExternalLink aria-hidden="true" />
+                    </a>
+                  ) : null}
+                  <Link href="/courses" className="ud-btn" data-variant="line">Official course portals</Link>
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {rankings.length > 0 ? (
+          <section className="ud-pf-sec" aria-labelledby="ud-pf-rankings">
+            <h2 className="ud-h2" id="ud-pf-rankings">Rankings</h2>
+            {overallRankings.length > 0 ? <RankingGroup title="Overall international rankings" tag="University-wide" entries={overallRankings} /> : null}
+            {subjectRankings.length > 0 ? <RankingGroup title="Subject rankings" tag="One discipline each" entries={subjectRankings} /> : null}
+            <p className="ud-bnd">
+              <Info aria-hidden="true" />
+              <span>Rankings measure different things and change every year. A subject rank describes one discipline, not the whole university.</span>
             </p>
-          </Card>
+          </section>
+        ) : null}
+
+        {campuses.length > 0 ? (
+          <section className="ud-pf-sec" aria-labelledby="ud-pf-campuses">
+            <h2 className="ud-h2" id="ud-pf-campuses">Campus and location</h2>
+            <dl className="ud-fx" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))" }}>
+              {campuses.map((campus) => (
+                <div key={campus.id}>
+                  <dt>{campus.isMain ? "Main campus" : "Campus"}</dt>
+                  <dd>{campus.name}</dd>
+                  <dt style={{ marginTop: 6 }}>{[campus.city, campus.stateRegion, campus.countryName].filter(Boolean).join(", ") || "Location not recorded"}</dt>
+                </div>
+              ))}
+            </dl>
+          </section>
+        ) : null}
+
+        {scholarships.length > 0 ? (
+          <section className="ud-pf-sec" aria-labelledby="ud-pf-scholarships">
+            <h2 className="ud-h2" id="ud-pf-scholarships">Scholarships recorded for this university</h2>
+            {!verified ? <p className="ud-bnd"><Info aria-hidden="true" /><span>{UNVERIFIED_SCHOLARSHIP_NOTE}</span></p> : null}
+            <ul className="ud-list mt-4">
+              {scholarships.map((scholarship) => (
+                <li key={scholarship.id}>
+                  <div>
+                    <b>{scholarship.name}</b>
+                    <span>
+                      {scholarship.awardAmountMinorUnits != null && scholarship.currencyCode
+                        ? formatMoney(scholarship.awardAmountMinorUnits, scholarship.currencyCode)
+                        : scholarship.awardDescription ?? "Award not recorded"}
+                    </span>
+                  </div>
+                  {scholarship.scholarshipUrl ? (
+                    <a href={scholarship.scholarshipUrl} target="_blank" rel="noopener noreferrer" className="ud-btn" data-variant="line">
+                      Official details
+                      <ExternalLink aria-hidden="true" />
+                    </a>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        <section className="ud-pf-sec" aria-labelledby="ud-pf-next">
+          <h2 className="ud-h2" id="ud-pf-next">Your next steps</h2>
+          <div className="ud-next">
+            <Link href={guidanceHref}>
+              <b>Request Nextwise guidance <ArrowRight aria-hidden="true" /></b>
+              <span>Talk through this university and your shortlist in a free discovery session.</span>
+            </Link>
+            <Link href="/saved">
+              <b>Review your shortlist <ArrowRight aria-hidden="true" /></b>
+              <span>See every university you have saved, side by side, in your Studio.</span>
+            </Link>
+            <Link href="/courses">
+              <b>Search official course portals <ArrowRight aria-hidden="true" /></b>
+              <span>Find programmes and entry requirements on trusted national portals.</span>
+            </Link>
+          </div>
+        </section>
+
+        <GuidanceNotice className="mt-8">
+          Always confirm programmes, fees, deadlines and admission requirements on the university&apos;s own website before
+          you decide or apply.{university.sourceUrl ? " " : ""}
+          {university.sourceUrl ? (
+            <a href={university.sourceUrl} target="_blank" rel="noopener noreferrer" className="font-semibold underline">Source recorded for this profile</a>
+          ) : null}
+        </GuidanceNotice>
+
+        <nav className="ud-stk" aria-label={`Actions for ${university.name}`}>
+          <span className="ud-stk-name" aria-hidden="true">{university.name}</span>
+          {canSave ? <SaveButton tone="bar" /> : null}
+          {university.websiteUrl ? (
+            <a href={university.websiteUrl} target="_blank" rel="noopener noreferrer">
+              Official website
+              <ExternalLink aria-hidden="true" />
+            </a>
+          ) : null}
+          <Link href={guidanceHref} data-primary>Request guidance</Link>
+        </nav>
+      </div>
+    </div>
+  );
+
+  if (!canSave) return page;
+  return (
+    <SaveUniversityProvider universityId={university.id} slug={university.slug} name={university.name} initialSaved={savedIds.includes(university.id)}>
+      {page}
+    </SaveUniversityProvider>
+  );
+}
+
+function hostOf(url: string | null): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+}
+
+function RankingGroup({ title, tag, entries }: { title: string; tag: string; entries: UniversityRanking[] }) {
+  const sources = Array.from(new Map(entries.filter((entry) => entry.sourceUrl).map((entry) => [entry.sourceUrl as string, entry])).values());
+  return (
+    <div className="ud-rk">
+      <h3>
+        {title}
+        <span className="ud-tag">{tag}</span>
+      </h3>
+      {entries.map((entry) => (
+        <div key={`${entry.provider}-${entry.year}-${entry.category ?? "overall"}`} className="ud-rr">
+          <b>{/^[=#]/.test(entry.rank) ? entry.rank : `#${entry.rank}`}</b>
+          <span>{entry.category ?? "Overall"}</span>
+          <small>{entry.provider} · {entry.year}</small>
         </div>
-      </div>
-
-      <GuidanceNotice className="mt-8">
-        This page is a representative starter dataset entry, not an exhaustive or guaranteed-current record — see
-        the verification status and last-verified date above, and confirm anything time-sensitive directly with the
-        institution. Save this university to come back to it later at{" "}
-        <Link href="/saved" className="font-medium underline underline-offset-2">/saved</Link>.
-      </GuidanceNotice>
-
-      <div className="mt-6">
-        <Link href="/universities" className="text-sm font-semibold text-secondary-dark hover:text-primary">
-          ← Back to University Explorer
-        </Link>
-      </div>
-    </Section>
+      ))}
+      {sources.length > 0 ? (
+        <p className="ud-rk-src">
+          Source:{" "}
+          {sources.map((entry, index) => (
+            <span key={entry.sourceUrl}>
+              {index > 0 ? ", " : ""}
+              <a href={entry.sourceUrl as string} target="_blank" rel="noopener noreferrer">{hostOf(entry.sourceUrl)}</a>
+            </span>
+          ))}
+        </p>
+      ) : null}
+    </div>
   );
 }

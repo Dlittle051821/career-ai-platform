@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, ClipboardList, Contact, Signature, Wallet } from "lucide-react";
+import { ChevronLeft, ClipboardList, Contact, KeyRound, Signature, Wallet } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { AdminTable, Td } from "@/components/admin/AdminTable";
 import { StatusBadge } from "@/components/admin/StatusBadge";
@@ -26,7 +26,11 @@ import {
   setSectionProvenanceAction,
   setRecommendationVerificationAction,
   clearRecommendationVerificationAction,
+  grantUniversityAccessAction,
+  revokeUniversityAccessAction,
 } from "../actions";
+import { getStudentGrantOverview } from "@/lib/supabase/admin/university-access-grants";
+import { GrantAccessForm, GrantHistory, RevokeAccessForm } from "@/components/admin/students/UniversityAccessGrantCard";
 
 interface StudentDetailPageProps {
   params: Promise<{ id: string }>;
@@ -38,6 +42,12 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
   const { id } = await params;
   const [student, counsellorOptions, admin] = await Promise.all([getStudentDetail(id), listCounsellorOptions(), getCurrentAdmin()]);
   if (!student) notFound();
+
+  // UNI_V3 — only super_admin/admin may see or change university access grants.
+  const canManageGrants = admin?.role === "super_admin" || admin?.role === "admin";
+  const grantOverview = canManageGrants ? await getStudentGrantOverview(id) : null;
+  const activeGrant = grantOverview?.grants.find((grant) => grant.status === "active") ?? null;
+  const boundGrantAction = grantUniversityAccessAction.bind(null, id);
 
   const boundStatusAction = updateStudentStatusAction.bind(null, id);
   const boundAssignAction = assignCounsellorAction.bind(null, id);
@@ -250,6 +260,43 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
           </div>
         )}
       </Card>
+
+      {grantOverview ? (
+        <Card className="mb-6">
+          <div className="flex items-center gap-2">
+            <KeyRound aria-hidden="true" className="h-4 w-4 text-secondary-dark" />
+            <h2 className="text-base font-semibold text-primary">Verified university access</h2>
+          </div>
+          {!grantOverview.available ? (
+            <p className="mt-3 text-sm text-muted">
+              Access grants are not set up on this database yet. They become available once migration UNI_V3/0001 has been reviewed and applied.
+            </p>
+          ) : (
+            <div className="mt-3 grid gap-6 lg:grid-cols-2">
+              <div>
+                <p className="text-sm text-text-soft">
+                  {grantOverview.hasPaidAccess
+                    ? "This student already has Verified access through a paid purchase. A grant is not needed."
+                    : activeGrant
+                      ? "This student currently has Verified university access through the grant below."
+                      : "This student does not have Verified university access."}
+                </p>
+                {activeGrant ? (
+                  <RevokeAccessForm action={revokeUniversityAccessAction.bind(null, id, activeGrant.id)} />
+                ) : grantOverview.hasPaidAccess ? null : (
+                  <div className="mt-3">
+                    <GrantAccessForm action={boundGrantAction} studentUserId={id} studentName={student.fullName ?? student.email ?? "this student"} />
+                  </div>
+                )}
+              </div>
+              <div>
+                <h3 className="mb-2 text-sm font-semibold text-primary">Grant history</h3>
+                <GrantHistory grants={grantOverview.grants} />
+              </div>
+            </div>
+          )}
+        </Card>
+      ) : null}
 
       <Card>
         <h2 className="text-base font-semibold text-primary">Internal notes</h2>

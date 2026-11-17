@@ -14,7 +14,7 @@ import { lookupPublicCourseBySlugPairCached } from "@/lib/supabase/education/det
 export default async function CourseDetailLayout({ children, params }: { children: ReactNode; params: Promise<{ universitySlug: string; courseSlug: string }> }) {
   const { universitySlug, courseSlug } = await params;
   // University Discovery V3 — a student never learns whether a programme record exists: no lookup, and a redirect to /courses before anything is streamed.
-  if (!(await hasInternalCourseAccess())) redirect("/courses");
+  if (!(await hasInternalCourseAccess())) redirect("/courses?moved=course");
   const lookup = await lookupPublicCourseBySlugPairCached(universitySlug, courseSlug);
   if (lookup.status === "not_found") notFound();
   return children;

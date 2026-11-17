@@ -11,6 +11,10 @@ import { EmptyState } from "@/components/admin/EmptyState";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { MarkVerifiedForm } from "@/components/admin/education/MarkVerifiedForm";
 import { listProvenanceRecords } from "@/lib/supabase/admin/education-sources";
+import { listAllProviders } from "@/lib/supabase/admin/external-search";
+import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
+import { hasPermission } from "@/lib/admin/permissions";
+import { TrustedPortalsManager } from "@/components/admin/education/TrustedPortalsManager";
 import {
   DATA_QUALITY_STATUSES,
   EDUCATION_VERIFICATION_STATUSES,
@@ -73,6 +77,12 @@ export default async function AdminSourcesPage({ searchParams }: SourcesPageProp
 
   const result = await listProvenanceRecords({ entityType, verificationStatus, dataQualityStatus, sourceType, page });
 
+  // University Discovery V3 — trusted official portals are managed here too. Read and write each follow the
+  // existing "trusted-portals" permissions; an admin without the read permission simply does not get the section.
+  const admin = await getCurrentAdmin();
+  const canReadPortals = hasPermission(admin?.role, "trusted-portals:read");
+  const portals = canReadPortals ? await listAllProviders() : [];
+
   const activeFilters: Record<string, string> = {};
   if (entityTypeParam) activeFilters.entityType = entityTypeParam;
   if (verificationStatusParam) activeFilters.verificationStatus = verificationStatusParam;
@@ -91,6 +101,28 @@ export default async function AdminSourcesPage({ searchParams }: SourcesPageProp
           re-import data.
         </p>
       </div>
+
+      {canReadPortals ? (
+        <Card className="mb-6" id="trusted-portals">
+          <h2 className="text-lg font-semibold text-primary">Trusted official portals</h2>
+          <p className="mt-1 mb-3 max-w-2xl text-sm text-muted">
+            The official education portals students are sent to from the University and Course Explorers. A portal is
+            shown only when it is registered here and switched on.
+          </p>
+          <TrustedPortalsManager
+            canWrite={hasPermission(admin?.role, "trusted-portals:write")}
+            portals={portals.map((portal) => ({
+              id: portal.id,
+              displayName: portal.displayName,
+              countryCode: portal.countryCode,
+              officialDomain: portal.officialDomain,
+              baseUrl: portal.baseUrl,
+              active: portal.active,
+              lastVerifiedAt: portal.lastVerifiedAt,
+            }))}
+          />
+        </Card>
+      ) : null}
 
       <Card className="mb-6">
         <FilterBar basePath="/admin/education/sources" hasActiveFilters={hasActiveFilters}>

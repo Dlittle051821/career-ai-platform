@@ -1,5 +1,6 @@
 "use server";
 
+import { hasInternalCourseAccess } from "@/lib/supabase/education/university-access";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { saveItem, removeSavedItem } from "@/lib/supabase/education/saved-items";
@@ -17,6 +18,9 @@ import { startApplicationFromCourse } from "@/lib/supabase/education/application
  * data-access layer's result into this page's own state shape.
  */
 
+const COURSE_MOVED_PATH = "/courses?moved=course";
+const COURSE_MOVED_MESSAGE = "Course search has moved to official portals, so this action is no longer available.";
+
 function coursePath(universitySlug: string, courseSlug: string): string {
   return `/courses/${universitySlug}/${courseSlug}`;
 }
@@ -33,6 +37,8 @@ export async function toggleSaveCourseAction(
   courseSlug: string,
   nextSaved: boolean,
 ): Promise<ToggleSaveCourseResult> {
+  // University Discovery V3 — the internal course database is staff-only. A student can still REMOVE a course they saved earlier.
+  if (nextSaved && !(await hasInternalCourseAccess())) return { saved: false, error: COURSE_MOVED_MESSAGE };
   const result = nextSaved ? await saveItem("course", courseId) : await removeSavedItem("course", courseId);
 
   if (!result.success) {
@@ -55,6 +61,7 @@ export async function toggleIntakeInterestAction(
   courseSlug: string,
   nextInterested: boolean,
 ): Promise<ToggleIntakeInterestResult> {
+  if (nextInterested && !(await hasInternalCourseAccess())) return { interested: false, error: COURSE_MOVED_MESSAGE };
   const result = nextInterested ? await recordIntakeInterest(courseIntakeId) : await removeIntakeInterest(courseIntakeId);
 
   if (!result.success) {
@@ -82,6 +89,7 @@ export async function shareCourseFormAction(formData: FormData): Promise<void> {
   const message = typeof rawMessage === "string" && rawMessage.trim() ? rawMessage : undefined;
 
   if (!courseId) return;
+  if (!(await hasInternalCourseAccess())) redirect(COURSE_MOVED_PATH);
   await shareCourse(courseId, message);
   revalidatePath(coursePath(universitySlug, courseSlug));
 }
@@ -99,6 +107,10 @@ export async function startApplicationFormAction(formData: FormData): Promise<vo
   const universityId = String(formData.get("universityId") ?? "");
   const universitySlug = String(formData.get("universitySlug") ?? "");
   const courseSlug = String(formData.get("courseSlug") ?? "");
+
+  // University Discovery V3 — student course pages are retired, so an application can no longer be started from one.
+  // Existing applications are untouched and stay in /applications.
+  if (!(await hasInternalCourseAccess())) redirect(COURSE_MOVED_PATH);
 
   if (!courseId || !universityId) {
     redirect(`${coursePath(universitySlug, courseSlug)}?applyError=1`);

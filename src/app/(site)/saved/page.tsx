@@ -1,21 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Bookmark, MapPin } from "lucide-react";
-import { Section } from "@/components/layout/Section";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { LinkButton } from "@/components/ui/Button";
+import { ArrowRight, BookOpen, Building2, ExternalLink, Lock } from "lucide-react";
 import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
-import { humanizeEnumValue } from "@/components/sections/education/UniversityCard";
 import { DataStatusBadge } from "@/components/sections/education/DataStatusBadge";
 import { getCurrentUser } from "@/lib/supabase/profile";
-import { listSavedItems } from "@/lib/supabase/education/saved-items";
+import { listMySavedCourseLabels, listSavedItems } from "@/lib/supabase/education/saved-items";
 import { getUniversitiesByIds } from "@/lib/supabase/education/universities";
-import { getCoursesByIds } from "@/lib/supabase/education/courses";
-import { formatMoney } from "@/lib/admin/money";
+import { getUniversityAccess } from "@/lib/supabase/education/university-access";
+import { canUseUniversityDirectory } from "@/lib/education/university-discovery/access";
+import { getVerifiedOffer } from "@/lib/education/university-discovery/offer";
+import { UniversityDirectoryCard } from "@/components/sections/university-discovery/UniversityDirectoryCard";
+import { VerifiedAccessDialog } from "@/components/sections/university-discovery/VerifiedAccessDialog";
 import { removeSavedItemAction } from "./actions";
 import { RemoveSavedButton } from "./RemoveSavedButton";
+import "@/styles/university-discovery.css";
 
 export const metadata: Metadata = {
   title: "Saved",
@@ -25,166 +24,166 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// Comfortably above what any real student is expected to save — this is not
-// a pagination mechanism, just a safety cap on the batch lookup (see
-// getCoursesByIds's docblock for why the default cap of 4 is too low here).
-const SAVED_COURSES_LOOKUP_LIMIT = 100;
+interface SavedPageProps {
+  searchParams: Promise<{ tab?: string }>;
+}
 
 /**
- * The logged-in student's saved universities/courses. `/saved` is already
- * covered by PROTECTED_PATHS in src/lib/supabase/middleware.ts, so a
- * logged-out visitor is redirected before this ever renders — the redirect
- * below is defense in depth for the rare race right after logout, same
- * reasoning as src/app/(site)/profile/page.tsx's own comment.
+ * Saved Items (University Discovery V3): the signed-in student's own
+ * shortlist, with a Universities tab and a Courses tab.
+ *
+ * `/saved` is covered by PROTECTED_PATHS, and the redirect below is defence in
+ * depth. Every row comes from the student's own education_saved_items rows
+ * (RLS: auth.uid() = student_user_id), so one student can never see another's
+ * list. University records are resolved only when the student has Verified
+ * directory access; without it the page shows how many are saved and keeps
+ * them locked. Nothing is ever deleted by a change of access.
+ *
+ * Courses: the internal course database is staff-only, so courses saved
+ * earlier are listed by title with a link to the official page instead of an
+ * internal course page.
  */
-export default async function SavedPage() {
+export default async function SavedPage({ searchParams }: SavedPageProps) {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/saved");
+  const { tab } = await searchParams;
+  const activeTab = tab === "courses" ? "courses" : "universities";
 
-  const savedItems = await listSavedItems();
-  const savedUniversityIds = savedItems.filter((i) => i.entityType === "university").map((i) => i.entityId);
-  const savedCourseIds = savedItems.filter((i) => i.entityType === "course").map((i) => i.entityId);
+  const [access, savedItems] = await Promise.all([getUniversityAccess(), listSavedItems()]);
+  const savedUniversityIds = savedItems.filter((item) => item.entityType === "university").map((item) => item.entityId);
+  const savedCourseCount = savedItems.filter((item) => item.entityType === "course").length;
+  const hasAccess = canUseUniversityDirectory(access);
 
-  const [universities, courses] = await Promise.all([
-    getUniversitiesByIds(savedUniversityIds),
-    getCoursesByIds(savedCourseIds, SAVED_COURSES_LOOKUP_LIMIT),
+  const [universities, courseLabels] = await Promise.all([
+    hasAccess && activeTab === "universities" ? getUniversitiesByIds(savedUniversityIds) : Promise.resolve([]),
+    activeTab === "courses" && savedCourseCount > 0 ? listMySavedCourseLabels() : Promise.resolve([]),
   ]);
-
-  const hasNothingSaved = universities.length === 0 && courses.length === 0;
-  const unavailableCount = savedUniversityIds.length + savedCourseIds.length - universities.length - courses.length;
+  const unavailableUniversities = hasAccess && activeTab === "universities" ? savedUniversityIds.length - universities.length : 0;
 
   return (
-    <Section tone="muted" className="pt-10 sm:pt-14">
-      <div className="mb-8">
-        <p className="text-sm font-semibold uppercase tracking-wide text-secondary">Your account</p>
-        <h1 className="mt-2 text-3xl font-semibold text-primary balance sm:text-4xl">Saved</h1>
-        <p className="mt-2 max-w-2xl text-muted">
-          Universities and courses you&apos;ve bookmarked while browsing, all in one place.
+    <div className="ud">
+      <div className="ud-wrap ud-section" style={{ paddingTop: "7rem" }}>
+        <span className="ud-kicker" style={{ color: "var(--ud-blue)" }}>Your Studio</span>
+        <h1 className="ud-h2" style={{ fontSize: "clamp(1.9rem,1.4rem + 1.6vw,2.5rem)", marginTop: ".5rem" }}>Saved items</h1>
+        <p style={{ margin: ".9rem 0 0", maxWidth: 680, color: "var(--ud-muted)", lineHeight: 1.55 }}>
+          Your shortlist, kept on your account. Only you can see it.
         </p>
-      </div>
 
-      {hasNothingSaved ? (
-        <Card className="flex flex-col items-center gap-3 py-14 text-center">
-          <Bookmark aria-hidden="true" className="h-9 w-9 text-muted" />
-          <h2 className="text-base font-semibold text-primary">Nothing saved yet</h2>
-          <p className="max-w-sm text-sm text-muted">
-            Browse universities and courses and use the save button on any listing to keep it here for later.
-          </p>
-          <div className="mt-2 flex flex-wrap justify-center gap-3">
-            <LinkButton href="/universities" size="sm">
-              Browse universities
-            </LinkButton>
-            <LinkButton href="/courses" size="sm" variant="outline">
-              Browse courses
-            </LinkButton>
-          </div>
-        </Card>
-      ) : (
-        <div className="space-y-10">
-          {universities.length > 0 ? (
-            <div>
-              <h2 className="text-lg font-semibold text-primary">
-                Saved universities <span className="font-normal text-muted">({universities.length})</span>
-              </h2>
-              <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {universities.map((university) => (
-                  <Card key={university.id} as="article" className="flex h-full flex-col">
-                    <div className="flex items-start justify-between gap-3">
-                      <h3 className="text-lg font-semibold text-primary">{university.name}</h3>
+        <nav className="ud-tabs" aria-label="Saved items">
+          <Link href="/saved" aria-current={activeTab === "universities" ? "page" : undefined}>
+            <Building2 aria-hidden="true" style={{ width: 16, height: 16 }} />
+            Universities
+            {savedUniversityIds.length > 0 ? <em>{savedUniversityIds.length}</em> : null}
+          </Link>
+          <Link href="/saved?tab=courses" aria-current={activeTab === "courses" ? "page" : undefined}>
+            <BookOpen aria-hidden="true" style={{ width: 16, height: 16 }} />
+            Courses
+            {savedCourseCount > 0 ? <em>{savedCourseCount}</em> : null}
+          </Link>
+        </nav>
+
+        {activeTab === "universities" ? (
+          !hasAccess && savedUniversityIds.length > 0 ? (
+            <div className="ud-lockrow">
+              <i aria-hidden="true"><Lock /></i>
+              <div>
+                <b>Your shortlist of {savedUniversityIds.length} universit{savedUniversityIds.length === 1 ? "y is" : "ies are"} safe.</b>
+                <span>Nextwise Verified is not active on your account right now, so university profiles are locked. Nothing has been deleted, and your shortlist returns as soon as access is active again.</span>
+              </div>
+              <VerifiedAccessDialog accessState={access} offer={getVerifiedOffer()} returnTo="/saved" triggerLabel="See how to unlock" triggerVariant="coral" />
+            </div>
+          ) : savedUniversityIds.length === 0 ? (
+            <div className="ud-state">
+              <i aria-hidden="true"><Building2 /></i>
+              <h2>No universities saved yet</h2>
+              <p>
+                {hasAccess
+                  ? "Tap the heart on any university in the directory to add it to your shortlist."
+                  : "Saving universities is part of Nextwise Verified. You can explore every destination and its official portals for free."}
+              </p>
+              <Link href="/universities" className="ud-btn" data-variant="navy">
+                {hasAccess ? "Explore universities" : "Explore destinations"}
+                <ArrowRight aria-hidden="true" />
+              </Link>
+            </div>
+          ) : (
+            <>
+              <ul className="ud-uc-grid">
+                {universities.map((university, index) => (
+                  <li key={university.id}>
+                    <UniversityDirectoryCard university={university} saved index={index} removeLabel canSave={access !== "admin"} />
+                    <span className="sr-only">
                       <DataStatusBadge verificationStatus={university.verificationStatus} freshnessBand={university.freshnessBand} />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {unavailableUniversities > 0 ? (
+                <p className="ud-src" style={{ marginTop: 16 }}>
+                  {unavailableUniversities} saved universit{unavailableUniversities === 1 ? "y is" : "ies are"} not shown because the listing is no longer published. You can remove it by saving and un-saving it once it returns.
+                </p>
+              ) : null}
+            </>
+          )
+        ) : savedCourseCount === 0 ? (
+          <div className="ud-state">
+            <i aria-hidden="true"><BookOpen /></i>
+            <h2>No courses saved</h2>
+            <p>Course search now happens on official public portals, where programme details, fees and deadlines are always current.</p>
+            <Link href="/courses" className="ud-btn" data-variant="navy">
+              Explore official course portals
+              <ArrowRight aria-hidden="true" />
+            </Link>
+          </div>
+        ) : (
+          <>
+            <div className="ud-lockrow" style={{ marginBottom: "1rem" }}>
+              <i aria-hidden="true"><BookOpen /></i>
+              <div>
+                <b>Course search has moved to official portals.</b>
+                <span>The courses you saved earlier are kept below by title, each with a link to its official page. Nothing has been deleted.</span>
+              </div>
+              <Link href="/courses" className="ud-btn" data-variant="white">Official course portals</Link>
+            </div>
+            {courseLabels === null ? (
+              <p className="ud-src">
+                You have {savedCourseCount} saved course{savedCourseCount === 1 ? "" : "s"}. Their titles cannot be listed on this page yet; they remain on your account.
+              </p>
+            ) : (
+              <ul className="ud-list">
+                {courseLabels.map((course) => (
+                  <li key={course.courseId}>
+                    <div>
+                      <b>{course.courseName}</b>
+                      <span>{course.universityName}</span>
                     </div>
-                    {university.city || university.countryName ? (
-                      <p className="mt-1.5 flex items-center gap-1.5 text-sm text-muted">
-                        <MapPin aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
-                        {[university.city, university.countryName].filter(Boolean).join(", ")}
-                      </p>
-                    ) : null}
-                    {university.institutionType ? (
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        <Badge tone="info" className="text-[11px]">
-                          {humanizeEnumValue(university.institutionType)}
-                        </Badge>
-                      </div>
-                    ) : null}
-                    <div className="mt-5 flex flex-1 items-end justify-between gap-3">
-                      <Link
-                        href={`/universities/${university.slug}`}
-                        className="text-sm font-semibold text-secondary-dark transition-colors hover:text-primary"
-                      >
-                        View university
-                      </Link>
-                      <form action={removeSavedItemAction.bind(null, "university", university.id)}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                      {course.officialUrl ? (
+                        <a href={course.officialUrl} target="_blank" rel="noopener noreferrer" className="ud-btn" data-variant="line">
+                          Official page
+                          <ExternalLink aria-hidden="true" />
+                        </a>
+                      ) : null}
+                      <form action={removeSavedItemAction.bind(null, "course", course.courseId)}>
                         <RemoveSavedButton />
                       </form>
                     </div>
-                  </Card>
+                  </li>
                 ))}
-              </div>
-            </div>
-          ) : null}
+              </ul>
+            )}
+            {courseLabels !== null && courseLabels.length < savedCourseCount ? (
+              <p className="ud-src" style={{ marginTop: 12 }}>
+                {savedCourseCount - courseLabels.length} saved course{savedCourseCount - courseLabels.length === 1 ? " is" : "s are"} not listed because the record is no longer published. It remains on your account.
+              </p>
+            ) : null}
+          </>
+        )}
 
-          {courses.length > 0 ? (
-            <div>
-              <h2 className="text-lg font-semibold text-primary">
-                Saved courses <span className="font-normal text-muted">({courses.length})</span>
-              </h2>
-              <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {courses.map((course) => (
-                  <Card key={course.id} as="article" className="flex h-full flex-col">
-                    <h3 className="text-lg font-semibold text-primary">{course.name}</h3>
-                    <p className="mt-1 text-sm text-muted">
-                      {course.universityName}
-                      {course.city || course.countryName ? ` · ${[course.city, course.countryName].filter(Boolean).join(", ")}` : ""}
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {course.educationLevel ? (
-                        <Badge tone="info" className="text-[11px]">
-                          {humanizeEnumValue(course.educationLevel)}
-                        </Badge>
-                      ) : null}
-                      {course.deliveryMode ? (
-                        <Badge tone="neutral" className="text-[11px]">
-                          {humanizeEnumValue(course.deliveryMode)}
-                        </Badge>
-                      ) : null}
-                    </div>
-                    <p className="mt-3 flex-1 text-sm text-text-soft">
-                      {course.tuitionAmountMinorUnits != null
-                        ? formatMoney(course.tuitionAmountMinorUnits, course.tuitionCurrency)
-                        : "Tuition not available"}
-                      {course.durationText ? ` · ${course.durationText}` : ""}
-                    </p>
-                    <div className="mt-5 flex items-end justify-between gap-3">
-                      <Link
-                        href={`/courses/${course.universitySlug}/${course.slug}`}
-                        className="text-sm font-semibold text-secondary-dark transition-colors hover:text-primary"
-                      >
-                        View course
-                      </Link>
-                      <form action={removeSavedItemAction.bind(null, "course", course.id)}>
-                        <RemoveSavedButton />
-                      </form>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </div>
-      )}
-
-      {unavailableCount > 0 ? (
-        <p className="mt-6 text-sm text-muted">
-          {unavailableCount} saved item{unavailableCount === 1 ? "" : "s"} could not be shown — the listing may have since been
-          taken down or updated.
-        </p>
-      ) : null}
-
-      <GuidanceNotice className="mt-8">
-        This shows the current published details for what you&apos;ve saved from a representative starter dataset,
-        not an exhaustive worldwide database. Always confirm current fees, deadlines, and admission requirements
-        directly with the institution before you act on them.
-      </GuidanceNotice>
-    </Section>
+        <GuidanceNotice className="mt-8">
+          Always confirm programmes, fees, deadlines and admission requirements on the institution&apos;s own website before you decide or apply.
+        </GuidanceNotice>
+      </div>
+    </div>
   );
 }

@@ -558,6 +558,12 @@ export interface UniversitySearchFilters {
   countryIds?: string[];
   city?: string;
   studyModes?: string[];
+  /** UNI_V3 directory filters — each maps to one real column. */
+  stateRegion?: string;
+  ownershipType?: "public" | "private";
+  institutionCategory?: string;
+  studyArea?: string;
+  sort?: "verified" | "name" | "city" | "recent";
   page?: number;
   pageSize?: number;
 }

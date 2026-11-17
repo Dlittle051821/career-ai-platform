@@ -56,7 +56,7 @@ interface CompareCoursesPageProps {
  */
 export default async function CompareCoursesPage({ searchParams }: CompareCoursesPageProps) {
   // University Discovery V3 — course comparison reads internal programme records, so it is staff-only.
-  if (!(await hasInternalCourseAccess())) redirect("/courses");
+  if (!(await hasInternalCourseAccess())) redirect("/courses?moved=compare");
   const { ids } = await searchParams;
   const rawIds = (ids ?? "")
     .split(",")

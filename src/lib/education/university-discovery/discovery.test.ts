@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { EUROPE_COUNTRIES } from "@/data/europe-explorer";
 import { getOfficialResourceCopy, getUniversityDestination, OFFICIAL_RESOURCE_COPY, UNIVERSITY_DESTINATIONS } from "./destinations";
 import { getVerifiedOffer, VERIFIED_PLAN_SLUG } from "./offer";
-import { resolveView } from "@/components/sections/university-discovery/VerifiedAccessDialog";
+import { reconcileAccessState, resolveView, type DialogViewState } from "@/components/sections/university-discovery/VerifiedAccessDialog";
 import { containsUnsupportedPartnershipLanguage } from "@/lib/education/external-search/attribution";
 
 const read = (file: string) => readFileSync(path.join(process.cwd(), file), "utf8");
@@ -56,43 +56,97 @@ describe("University Discovery V3 — the single Nextwise Verified offer", () =>
   });
 });
 
-describe("University Discovery V3 — Verified dialog states reflect the real account", () => {
+describe("University Discovery V3 — Verified dialog: all eight states reflect the real account", () => {
   const offer = { planTitle: "Nextwise Verified", priceLabel: "₹1,999", checkoutHref: "/pricing/checkout/nextwise-verified", purchaseAvailable: true };
+  const closedOffer = { ...offer, purchaseAvailable: false };
   const next = encodeURIComponent("/universities?destination=germany");
+  const href = (state: DialogViewState, o = offer) => {
+    const primary = resolveView(state, o, next).primary;
+    return primary.kind === "link" ? primary.href : null;
+  };
 
-  it("anonymous: offer, account needed, return path preserved", () => {
+  it("1 anonymous: offer, account needed, return path preserved, no purchase link", () => {
     const view = resolveView("anonymous", offer, next);
     expect(view.showPrice).toBe(true);
-    expect(view.primaryLabel).toBe("Continue with Nextwise Verified");
-    expect(view.primaryHref).toBe(`/register?next=${next}`);
+    expect(href("anonymous")).toBe(`/register?next=${next}`);
     expect(view.status).toMatch(/account/i);
   });
 
-  it("signed in, not Verified: existing checkout when open; no purchase link when closed", () => {
-    expect(resolveView("signed_in_free", offer, next).primaryHref).toBe("/pricing/checkout/nextwise-verified");
-    const closed = resolveView("signed_in_free", { ...offer, purchaseAvailable: false }, next);
-    expect(closed.primaryHref).toBeNull();
+  it("2 signed in, not Verified: checkout only when open; otherwise a disabled action and no purchase link", () => {
+    expect(href("signed_in_free")).toBe("/pricing/checkout/nextwise-verified");
+    const closed = resolveView("signed_in_free", closedOffer, next);
+    expect(closed.primary.kind).toBe("unavailable");
     expect(closed.status).toMatch(/not open yet/i);
   });
 
-  it("payment pending: says so, shows no price and never claims success", () => {
+  it("3 payment pending: says so, shows no price and never claims success", () => {
     const view = resolveView("payment_pending", offer, next);
     expect(view.showPrice).toBe(false);
     expect(view.title).toMatch(/not complete/i);
-    expect(view.primaryHref).toBe("/payments");
+    expect(href("payment_pending")).toBe("/payments");
   });
 
-  it("Verified: no payment offer again", () => {
+  it("4 Verified: no payment offer again", () => {
     const view = resolveView("verified", offer, next);
     expect(view.showPrice).toBe(false);
-    expect(view.primaryLabel).toBe("Explore Universities");
+    expect(href("verified")).toBe("/universities");
   });
 
-  it("the dialog never shows a status badge that is not driven by accessState", () => {
+  it("5 session expired: asks to log in again with the return path; offers no access", () => {
+    const view = resolveView("session_expired", offer, next);
+    expect(view.title).toMatch(/session has ended/i);
+    expect(href("session_expired")).toBe(`/login?next=${next}`);
+    expect(view.showPrice).toBe(false);
+  });
+
+  it("6 payment failed: says the payment did not go through; no access, no success wording", () => {
+    const view = resolveView("payment_failed", offer, next);
+    expect(view.title).toMatch(/did not go through/i);
+    expect(href("payment_failed")).toBe("/payments");
+    expect(`${view.title} ${view.body} ${view.status}`).not.toMatch(/you're verified|is active|unlocked/i);
+  });
+
+  it("7 network or server error: a retry, never a link into the directory or checkout", () => {
+    const view = resolveView("error", offer, next);
+    expect(view.primary.kind).toBe("retry");
+    expect(view.title).toMatch(/couldn't check/i);
+  });
+
+  it("8 access granted by an admin: active, and states that no payment was taken", () => {
+    const view = resolveView("verified_by_grant", offer, next);
+    expect(href("verified_by_grant")).toBe("/universities");
+    expect(view.status).toMatch(/granted by the Nextwise team/i);
+    expect(view.showPrice).toBe(false);
+  });
+
+  it("only entitled states link into the directory; only an open checkout links to payment", () => {
+    const all: DialogViewState[] = ["anonymous", "signed_in_free", "payment_pending", "payment_failed", "verified", "verified_by_grant", "admin", "session_expired", "error"];
+    for (const state of all) {
+      const entitled = state === "verified" || state === "verified_by_grant" || state === "admin";
+      expect(href(state, closedOffer) === "/universities").toBe(entitled);
+      expect(href(state, closedOffer) ?? "").not.toContain("/pricing/checkout");
+    }
+    expect(all.filter((state) => (href(state) ?? "").includes("/pricing/checkout"))).toEqual(["signed_in_free"]);
+  });
+
+  it("a session that ended while the page was open is reported as expired, not as a new visitor", () => {
+    expect(reconcileAccessState("verified", "anonymous")).toBe("session_expired");
+    expect(reconcileAccessState("signed_in_free", "anonymous")).toBe("session_expired");
+    expect(reconcileAccessState("anonymous", "anonymous")).toBe("anonymous");
+    expect(reconcileAccessState("signed_in_free", "verified_by_grant")).toBe("verified_by_grant");
+    expect(reconcileAccessState("verified", "signed_in_free")).toBe("signed_in_free");
+  });
+
+  it("the dialog has no timed or hard-coded status, re-checks the account on the server and cannot wait forever", () => {
     const source = read("src/components/sections/university-discovery/VerifiedAccessDialog.tsx");
+    // No timers in the component: every status comes from the server's answer. The one deadline lives in withDeadline().
     expect(source).not.toMatch(/SIGNED IN|ENTITLEMENT ACTIVE|setTimeout|setInterval/);
+    expect(source).toContain("withDeadline(refreshUniversityAccessAction(), CHECK_TIMEOUT_MS)");
     expect(source).toContain("<dialog");
     expect(source).toContain("aria-labelledby");
+    const action = read("src/app/(site)/universities/access-actions.ts");
+    expect(action).toMatch(/export async function refreshUniversityAccessAction\(\)/); // no caller-supplied identity
+    expect(action).toContain("getUniversityAccess()");
   });
 });
 
@@ -113,9 +167,13 @@ describe("University Discovery V3 — pages decide access on the server before a
 
   it("student-facing course detail and comparison routes redirect before any programme lookup", () => {
     const detail = read("src/app/(site)/courses/[universitySlug]/[courseSlug]/page.tsx");
-    expect(detail.indexOf('redirect("/courses")')).toBeLessThan(detail.indexOf("const courseLookup ="));
+    const redirectAt = detail.indexOf('redirect("/courses?moved=course")');
+    expect(redirectAt).toBeGreaterThan(-1);
+    expect(redirectAt).toBeLessThan(detail.indexOf("const courseLookup ="));
     const compare = read("src/app/(site)/courses/compare/page.tsx");
-    expect(compare.indexOf('redirect("/courses")')).toBeLessThan(compare.indexOf("await getCoursesByIds("));
+    const compareRedirect = compare.indexOf('redirect("/courses?moved=compare")');
+    expect(compareRedirect).toBeGreaterThan(-1);
+    expect(compareRedirect).toBeLessThan(compare.indexOf("await getCoursesByIds("));
   });
 
   it("official portals leave through the validated /go redirect, never a raw URL", () => {

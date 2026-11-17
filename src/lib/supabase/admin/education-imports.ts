@@ -1,4 +1,5 @@
 import "server-only";
+import { INSTITUTION_CATEGORIES, STUDY_AREAS } from "@/lib/education/university-discovery/directory";
 import { createClient } from "../server";
 import { requireAdminPermission } from "../admin-auth";
 import { recordAuditLog } from "./audit";
@@ -349,6 +350,29 @@ function validateUniversityRow(record: Record<string, string>, ctx: ImportContex
   const lastVerifiedAt = parseDateCell(record, "last_verified_at", warnings);
   const foundingYear = parseIntCell(record, "founding_year", warnings, 1000, 2100);
 
+  // UNI_V3 — three optional enrichment columns (proposed migration UNI_V3/0002). They are written ONLY when the
+  // file actually has the column, so a file in the original template still imports on a database without them.
+  const v3Fields: Record<string, unknown> = {};
+  if ("institution_category" in record) {
+    const category = (record.institution_category ?? "").trim();
+    if (category && !INSTITUTION_CATEGORIES.some((entry) => entry.value === category)) {
+      errors.push(err("institution_category", `"${category}" is not a recognised institution category.`));
+    } else {
+      v3Fields.institution_category = category || null;
+    }
+  }
+  if ("study_areas" in record) {
+    const areas = parseListCell(record, "study_areas");
+    const unknown = areas.filter((area) => !STUDY_AREAS.some((entry) => entry.value === area));
+    if (unknown.length > 0) errors.push(err("study_areas", `Unrecognised study area(s): ${unknown.join(", ")}.`));
+    else v3Fields.study_areas = areas;
+  }
+  if ("course_catalogue_url" in record) {
+    const catalogueUrl = parseUrlCell(record, "course_catalogue_url", warnings);
+    if (catalogueUrl && !catalogueUrl.startsWith("https://")) errors.push(err("course_catalogue_url", "The course catalogue link must start with https://."));
+    else v3Fields.course_catalogue_url = catalogueUrl;
+  }
+
   if (errors.length > 0) {
     return { errors, warnings, writeFields: null, table: "universities", businessKey: null };
   }
@@ -359,6 +383,7 @@ function validateUniversityRow(record: Record<string, string>, ctx: ImportContex
     table: "universities",
     businessKey: `slug:${slug.toLowerCase()}`,
     writeFields: {
+      ...v3Fields,
       name,
       slug,
       country_id: countryId,

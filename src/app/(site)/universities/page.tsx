@@ -2,24 +2,19 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { publicPageMetadata } from "@/config/seo";
 import Link from "next/link";
-import { Section } from "@/components/layout/Section";
 import { PageHero } from "@/components/sections/PageHero";
-import { Card } from "@/components/ui/Card";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidanceNotice } from "@/components/ui/GuidanceNotice";
-import { UniversityCard } from "@/components/sections/education/UniversityCard";
-import { UniversityFilterBar } from "@/components/sections/education/UniversityFilterBar";
 import { Pagination } from "@/components/sections/education/Pagination";
-import { TrustedExternalSearchCard } from "@/components/sections/education/TrustedExternalSearchCard";
-import { searchUniversities } from "@/lib/supabase/education/universities";
-import { listActiveCountries } from "@/lib/supabase/education/countries";
+import { listDirectoryFacets, searchUniversities } from "@/lib/supabase/education/universities";
+import { listSavedEntityIds } from "@/lib/supabase/education/saved-items";
+import { DIRECTORY_PAGE_SIZE, directoryHref, hasActiveDirectoryFilters, parseDirectoryFilters } from "@/lib/education/university-discovery/directory";
+import { UniversityDirectoryCard } from "@/components/sections/university-discovery/UniversityDirectoryCard";
+import { DirectoryFilterBar } from "@/components/sections/university-discovery/DirectoryFilterBar";
 import { getTrustedSearchResults } from "@/lib/supabase/education/external-search";
-import { isLaunchCountryCode, LAUNCH_COUNTRY_CODES, type LaunchCountryCode } from "@/lib/education/external-search/launch-countries";
-import { LaunchCountryDiscovery } from "@/components/sections/education/LaunchCountryDiscovery";
 import { resolveListEmptyState } from "@/lib/ui/list-state";
-import { GeometricBackdrop } from "@/components/graphics/GeometricBackdrop";
 import UniversitiesLoading from "./list-skeleton";
-import { LockOpen } from "lucide-react";
+import { Building2, CircleAlert, SearchX } from "lucide-react";
+import { DirectoryHero } from "@/components/sections/university-discovery/DirectoryHero";
 import { getUniversityAccess } from "@/lib/supabase/education/university-access";
 import { canUseUniversityDirectory } from "@/lib/education/university-discovery/access";
 import { getUniversityDestination } from "@/lib/education/university-discovery/destinations";
@@ -36,13 +31,8 @@ export const metadata: Metadata = publicPageMetadata(
   "Explore universities by destination and study level. Review available profiles, discover courses and use trusted sources to research your shortlist.",
 );
 
-function toStringArray(value: string | string[] | undefined): string[] {
-  if (!value) return [];
-  return Array.isArray(value) ? value : [value];
-}
-
 interface UniversitiesPageProps {
-  searchParams: Promise<{ q?: string; country?: string | string[]; city?: string; studyMode?: string | string[]; page?: string; destination?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 /**
@@ -77,7 +67,7 @@ async function UniversitiesPageContent({ searchParams }: UniversitiesPageProps) 
   // `searchUniversities` is ever called for them.
   const access = await getUniversityAccess();
   if (!canUseUniversityDirectory(access)) {
-    const destination = getUniversityDestination(params.destination);
+    const destination = getUniversityDestination(typeof params.destination === "string" ? params.destination : undefined);
     const trusted = destination
       ? await getTrustedSearchResults({ destinationCountryCode: destination.code, canonicalSubjectId: null, canonicalSubjectLabel: null, degreeLevel: null })
       : null;
@@ -97,181 +87,96 @@ async function UniversitiesPageContent({ searchParams }: UniversitiesPageProps) 
       </div>
     );
   }
-  const query = params.q?.trim() ?? "";
-  const countryIds = toStringArray(params.country);
-  const city = params.city?.trim() ?? "";
-  const studyModes = toStringArray(params.studyMode);
-  const parsedPage = params.page ? Number.parseInt(params.page, 10) : 1;
-  const page = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
-
-  const [countries, results] = await Promise.all([
-    listActiveCountries(),
+  const filters = parseDirectoryFilters(params);
+  const canSave = access !== "admin";
+  const [facets, results, savedIds] = await Promise.all([
+    listDirectoryFacets(filters.country || undefined),
     searchUniversities({
-      q: query || undefined,
-      countryIds: countryIds.length > 0 ? countryIds : undefined,
-      city: city || undefined,
-      studyModes: studyModes.length > 0 ? studyModes : undefined,
-      page,
+      q: filters.q || undefined,
+      countryIds: filters.country ? [filters.country] : undefined,
+      stateRegion: filters.state || undefined,
+      city: filters.city || undefined,
+      institutionCategory: filters.category || undefined,
+      ownershipType: filters.ownership || undefined,
+      studyArea: filters.area || undefined,
+      sort: filters.sort,
+      page: filters.page,
+      pageSize: DIRECTORY_PAGE_SIZE,
     }),
+    canSave ? listSavedEntityIds("university") : Promise.resolve([] as string[]),
   ]);
+  const saved = new Set(savedIds);
+  const filtered = hasActiveDirectoryFilters(filters);
+  const emptyState = resolveListEmptyState({ itemCount: results.items.length, hasActiveFilters: filtered, error: results.error });
 
-  const activeFiltersForPagination: Record<string, string | string[]> = {};
-  if (query) activeFiltersForPagination.q = query;
-  if (countryIds.length > 0) activeFiltersForPagination.country = countryIds;
-  if (city) activeFiltersForPagination.city = city;
-  if (studyModes.length > 0) activeFiltersForPagination.studyMode = studyModes;
-
-  const hasActiveFilters = query || countryIds.length > 0 || city || studyModes.length > 0;
-
-  // UX07 — genuinely distinct empty/filtered/error copy instead of the
-  // old collapsed "couldn't be loaded" message for every zero-result case.
-  // See src/lib/ui/list-state.ts (UX06G) — already built and tested for
-  // exactly this, previously wired into no public list page at all.
-  const emptyState = resolveListEmptyState({ itemCount: results.items.length, hasActiveFilters: Boolean(hasActiveFilters), error: results.error });
-
-  // UX07 — when the visitor has narrowed to exactly one country, offer the
-  // trusted official source(s) for that country alongside NextWise's own
-  // (currently partial) catalogue — reuses the SAME Trusted Global Course
-  // Search infrastructure /courses already uses (getTrustedSearchResults,
-  // TrustedExternalSearchCard, listActiveProvidersForDestination), keyed by
-  // that country's real ISO code. No new provider table, no invented
-  // sources: a country with no activated provider simply shows nothing here.
-  const singleSelectedCountry = countryIds.length === 1 ? countries.find((c) => c.id === countryIds[0]) ?? null : null;
-  const trustedSearch = singleSelectedCountry
-    ? await getTrustedSearchResults({ destinationCountryCode: singleSelectedCountry.isoAlpha2, canonicalSubjectId: null, canonicalSubjectLabel: null, degreeLevel: null })
-    : null;
-
-  // M20C — LaunchCountryDiscovery's quick-select strip, reusing THIS page's
-  // existing `country` checkbox param (the one and only "which country"
-  // signal /universities already has — see singleSelectedCountry above),
-  // rather than introducing a second, independent `destination` param the
-  // way /courses has. Selecting a chip sets `country` to exactly that one
-  // launch country's real public.countries id (replacing any other
-  // country checkboxes); "All countries" clears it. `q`/`city`/`studyMode`
-  // are always preserved. `selectedLaunchCode` mirrors singleSelectedCountry
-  // but only when that single country IS one of the Tier 1 launch countries —
-  // never re-derives launch-country membership, only asks M20A's own
-  // `isLaunchCountryCode`.
-  const selectedLaunchCode: LaunchCountryCode | null =
-    singleSelectedCountry && isLaunchCountryCode(singleSelectedCountry.isoAlpha2) ? singleSelectedCountry.isoAlpha2 : null;
-  // A launch country this page cannot link to today because no active
-  // public.countries row exists for it — rendered as an honest disabled
-  // chip rather than a silently-broken link. Computed from data already
-  // fetched above; never fabricated.
-  const unavailableLaunchCodes = LAUNCH_COUNTRY_CODES.filter((code) => !countries.some((c) => c.isoAlpha2 === code));
-  function buildCountryHref(code: LaunchCountryCode | null): string {
-    const next: Record<string, string | string[]> = {};
-    if (query) next.q = query;
-    if (city) next.city = city;
-    if (studyModes.length > 0) next.studyMode = studyModes;
-    if (code) {
-      const match = countries.find((c) => c.isoAlpha2 === code);
-      if (match) next.country = match.id;
-    }
-    const qs = new URLSearchParams();
-    for (const [key, value] of Object.entries(next)) {
-      if (Array.isArray(value)) value.forEach((v) => qs.append(key, v));
-      else qs.set(key, value);
-    }
-    return qs.toString() ? `/universities?${qs.toString()}` : "/universities";
+  const paginationParams: Record<string, string> = {};
+  for (const key of ["q", "country", "state", "city", "category", "ownership", "area"] as const) {
+    if (filters[key]) paginationParams[key] = filters[key];
   }
+  if (filters.sort !== "verified") paginationParams.sort = filters.sort;
+
+  const firstShown = (results.page - 1) * results.pageSize + 1;
+  const lastShown = firstShown + results.items.length - 1;
 
   return (
-    <>
-    <PageHero
-      size="compact"
-      fadeTo="muted"
-      eyebrow="Nextwise University Directory"
-      title="Your university discovery starts here."
-      description="Explore universities across your preferred destinations and build your personal university shortlist."
-    >
-      <span className="ud ud-unlocked" style={{ background: "#fff" }}>
-        <i aria-hidden="true"><LockOpen /></i>
-        <span><b>Directory unlocked</b>{access === "admin" ? "Staff access" : "Nextwise Verified · entitlement active"}</span>
-      </span>
-    </PageHero>
-    <Section tone="muted" className="relative overflow-hidden pt-6 sm:pt-6 lg:pt-8">
-      <GeometricBackdrop variant="grid" />
+    <div className="ud">
+      <DirectoryHero access={access} canSave={canSave} savedCount={savedIds.length} />
 
-      <LaunchCountryDiscovery selectedCode={selectedLaunchCode} buildHref={buildCountryHref} unavailableCodes={unavailableLaunchCodes} className="mb-6" />
-
-      <Card className="mb-8">
-        <UniversityFilterBar query={query} countryIds={countryIds} city={city} studyModes={studyModes} countries={countries} />
-      </Card>
-
-      {emptyState !== "has_results" ? (
-        <EmptyState
-          tone={emptyState === "error" ? "error" : emptyState === "filtered_empty" ? "filtered" : "empty"}
-          title={
-            emptyState === "error"
-              ? "We couldn't load universities right now"
-              : emptyState === "filtered_empty"
-                ? "No universities match these filters"
-                : "We're still expanding this university catalogue"
-          }
-          description={
-            emptyState === "error"
-              ? "Something went wrong loading the university dataset. Please try again in a moment."
-              : emptyState === "filtered_empty"
-                ? "Try a broader search term, or clear a filter — this dataset covers a growing but limited set of institutions, not every university worldwide."
-                : "New institutions are added over time. In the meantime, the trusted external sources below (when shown for your selected country) can help you keep exploring."
-          }
-          action={
-            emptyState === "filtered_empty" ? (
-              <Link href="/universities" className="text-sm font-semibold text-secondary-dark hover:text-primary">
-                Clear all filters
-              </Link>
-            ) : undefined
-          }
+      <div className="ud-wrap ud-section" style={{ paddingTop: 0 }}>
+        <DirectoryFilterBar
+          key={JSON.stringify(filters)}
+          filters={filters}
+          countries={facets.countries.map((country) => ({ id: country.id, name: country.name }))}
+          states={facets.states}
+          enriched={results.enriched}
         />
-      ) : (
-        <>
-          <p className="mb-4 text-sm text-muted">
-            {results.total} universit{results.total === 1 ? "y" : "ies"} found
-          </p>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {results.items.map((university) => (
-              <UniversityCard key={university.id} university={university} />
-            ))}
+
+        {emptyState === "error" ? (
+          <div className="ud-state" data-tone="error" role="alert" style={{ marginTop: "1.5rem" }}>
+            <i aria-hidden="true"><CircleAlert /></i>
+            <h2>We couldn&apos;t load universities right now</h2>
+            <p>Something went wrong on our side while loading the directory. Your account and saved universities are not affected.</p>
+            <Link href={directoryHref(filters, { page: filters.page })} className="ud-btn" data-variant="navy">Try again</Link>
           </div>
-          <Pagination page={results.page} pageSize={results.pageSize} total={results.total} basePath="/universities" searchParams={activeFiltersForPagination} />
-        </>
-      )}
-
-      {singleSelectedCountry && trustedSearch ? (
-        <div className="mt-10">
-          <h2 className="mb-1 text-lg font-semibold text-primary">Trusted official source for {singleSelectedCountry.name}</h2>
-          <p className="mb-4 max-w-2xl text-sm text-muted">
-            NextWise&apos;s own catalogue for {singleSelectedCountry.name} currently includes {results.total} matching
-            universit{results.total === 1 ? "y" : "ies"} — a starter dataset, not an exhaustive one. Continue on the
-            country&apos;s own official study portal to see options beyond this starter dataset.
-          </p>
-          {trustedSearch.results.length > 0 ? (
-            <div className="grid gap-5 sm:grid-cols-2">
-              {trustedSearch.results.map((result) => (
-                <TrustedExternalSearchCard key={result.providerId} result={result} />
+        ) : emptyState === "filtered_empty" ? (
+          <div className="ud-state" style={{ marginTop: "1.5rem" }}>
+            <i aria-hidden="true"><SearchX /></i>
+            <h2>No universities match these filters</h2>
+            <p>Try a broader search or remove a filter. The directory covers a growing set of institutions, not every university worldwide.</p>
+            <Link href="/universities" className="ud-btn" data-variant="navy">Clear all filters</Link>
+          </div>
+        ) : emptyState !== "has_results" ? (
+          <div className="ud-state" style={{ marginTop: "1.5rem" }}>
+            <i aria-hidden="true"><Building2 /></i>
+            <h2>The directory is being prepared</h2>
+            <p>No universities have been published yet. In the meantime, the official portals for each destination are a reliable place to start.</p>
+            <Link href="/courses" className="ud-btn" data-variant="navy">Explore official course portals</Link>
+          </div>
+        ) : (
+          <>
+            <p className="ud-count" aria-live="polite">
+              <span>
+                Showing <b>{firstShown}–{lastShown}</b> of <b>{results.total}</b> universit{results.total === 1 ? "y" : "ies"}
+              </span>
+              <span>Photographs carry their author and licence. Records not yet verified by Nextwise are marked.</span>
+            </p>
+            <ul className="ud-uc-grid">
+              {results.items.map((university, index) => (
+                <li key={university.id}>
+                  <UniversityDirectoryCard university={university} saved={saved.has(university.id)} index={index} canSave={canSave} />
+                </li>
               ))}
-            </div>
-          ) : (
-            // M20C — an explicit, honest empty state instead of this whole
-            // section silently vanishing: a country is selected, but no
-            // trusted official portal is active for it in our system yet
-            // (covers both "never seeded" and "seeded but currently
-            // inactive" — RLS/active-filtering means both look identical
-            // from here, and neither is misrepresented as a failure).
-            <Card className="text-sm text-muted">
-              No trusted official portal is currently activated for {singleSelectedCountry.name} in our system yet.
-            </Card>
-          )}
-        </div>
-      ) : null}
+            </ul>
+            <Pagination page={results.page} pageSize={results.pageSize} total={results.total} basePath="/universities" searchParams={paginationParams} />
+          </>
+        )}
 
-      <GuidanceNotice className="mt-8">
-        This is a representative starter dataset, not an exhaustive worldwide database — new universities are added
-        over time, and coverage varies by country. Each result shows whether Nextwise has verified it; always confirm
-        current fees, deadlines, and admission requirements directly with the institution before you act on them.
-      </GuidanceNotice>
-    </Section>
-    </>
+        <GuidanceNotice className="mt-8">
+          This directory is a growing dataset, not an exhaustive list of every university. Always confirm programmes, fees,
+          deadlines and admission requirements on the university&apos;s own website before you decide or apply. Course
+          search continues on <Link href="/courses" className="font-semibold underline">official public portals</Link>.
+        </GuidanceNotice>
+      </div>
+    </div>
   );
 }

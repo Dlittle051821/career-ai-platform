@@ -1,11 +1,16 @@
--- UNI_V3 / 0001 rollback — restores the original 0006 public read policies verbatim and removes the UNI_V3 ones.
--- STATUS: PROPOSED. Not applied anywhere. Not yet run against any database.
+-- UNI_V3 / 0001 rollback — restores the original 0006 read policies verbatim and removes the UNI_V3 access objects.
+-- STATUS: PROPOSED. Tested only on a disposable local database.
+-- NOTE: public.university_access_grants is deliberately NOT dropped (it is an audit record). After this rollback
+--       it is inert: nothing reads it. Drop it by hand only if you are sure the history is not needed.
 
 begin;
 
 drop policy if exists "Verified students can read published active universities" on public.universities;
 drop policy if exists "Verified students can read campuses of published active universities" on public.campuses;
 drop policy if exists "Verified students can read university scholarships" on public.scholarships;
+
+grant select on public.universities, public.campuses, public.scholarships, public.courses,
+  public.course_intakes, public.course_tuition_fees, public.course_admission_requirements to anon;
 
 drop policy if exists "Public can read published active universities" on public.universities;
 create policy "Public can read published active universities"
@@ -81,6 +86,13 @@ create policy "Public can read active scholarships of published records"
     )
   );
 
+drop function if exists public.get_my_saved_course_labels();
+drop function if exists public.get_my_application_labels();
 drop function if exists public.has_university_directory_access();
+drop function if exists public.grant_university_access(uuid, text, timestamptz);
+drop function if exists public.revoke_university_access(uuid, text);
 
 commit;
+
+-- Ask the API layer to re-read the schema so the change is visible at once.
+notify pgrst, 'reload schema';

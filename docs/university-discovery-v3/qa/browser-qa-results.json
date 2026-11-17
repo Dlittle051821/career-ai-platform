@@ -1,0 +1,769 @@
+{
+ "ranAt": "2026-11-17T19:34:18.802Z",
+ "total": 127,
+ "failed": 0,
+ "results": [
+  {
+   "group": "anonymous",
+   "name": "/universities shows six destinations, no directory cards",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "anonymous",
+   "name": "Germany shows official portals incl. Hochschulkompass and Study in Germany",
+   "pass": true,
+   "detail": "Study in Germany,Hochschulkompass"
+  },
+  {
+   "group": "anonymous",
+   "name": "portal links leave through the validated /go redirect",
+   "pass": true,
+   "detail": "/go/course-search/provider/d4087af5-92ac-4713-9c70-c2b514d2949c,/go/course-search/provider/3cc53a5a-98e3-46a5-bed3-98dcaae71297"
+  },
+  {
+   "group": "anonymous",
+   "name": "dialog state is anonymous",
+   "pass": true,
+   "detail": "{\"state\":\"anonymous\",\"title\":\"Unlock your next step with Nextwise Verified.\",\"links\":[\"/register?next=%2Funiversities%3Fdestination%3Dgermany\",\"/book-counselling\"],\"disabled\":false,\"price\":\"₹1,999\",\"f"
+  },
+  {
+   "group": "anonymous",
+   "name": "dialog offers no directory link and no checkout link",
+   "pass": true,
+   "detail": "/register?next=%2Funiversities%3Fdestination%3Dgermany,/book-counselling"
+  },
+  {
+   "group": "anonymous",
+   "name": "dialog price is ₹1,999 (never ₹2,358)",
+   "pass": true,
+   "detail": "₹1,999"
+  },
+  {
+   "group": "anonymous",
+   "name": "focus moves into the dialog",
+   "pass": true,
+   "detail": "ud-dialog-close"
+  },
+  {
+   "group": "anonymous",
+   "name": "Escape closes the dialog and returns focus to its trigger",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "anonymous",
+   "name": "university profile URL shows the locked preview (HTTP 200, no record)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "anonymous",
+   "name": "an unknown slug looks identical (existence is not revealed)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "anonymous",
+   "name": "directory filters in the URL return nothing",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "anonymous",
+   "name": "course comparison redirects with an explanation",
+   "pass": true,
+   "detail": "http://127.0.0.1:3100/courses?moved=compare"
+  },
+  {
+   "group": "anonymous",
+   "name": "course detail redirects with an explanation",
+   "pass": true,
+   "detail": "http://127.0.0.1:3100/courses?moved=course"
+  },
+  {
+   "group": "anonymous",
+   "name": "sitemap lists no university or course record",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "anonymous",
+   "name": "no university record in any HTML or RSC payload",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "anonymous",
+   "name": "no console or page errors",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "anonymous",
+   "name": "/saved redirects to login with the return path",
+   "pass": true,
+   "detail": "http://127.0.0.1:3100/login?next=%2Fsaved"
+  },
+  {
+   "group": "anonymous",
+   "name": "/admin redirects to login",
+   "pass": true,
+   "detail": "http://127.0.0.1:3100/login?next=%2Fadmin%2Fstudents"
+  },
+  {
+   "group": "free",
+   "name": "/universities shows six destinations, no directory cards",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "free",
+   "name": "Germany shows official portals incl. Hochschulkompass and Study in Germany",
+   "pass": true,
+   "detail": "Study in Germany,Hochschulkompass"
+  },
+  {
+   "group": "free",
+   "name": "portal links leave through the validated /go redirect",
+   "pass": true,
+   "detail": "/go/course-search/provider/d4087af5-92ac-4713-9c70-c2b514d2949c,/go/course-search/provider/3cc53a5a-98e3-46a5-bed3-98dcaae71297"
+  },
+  {
+   "group": "free",
+   "name": "dialog state is signed_in_free",
+   "pass": true,
+   "detail": "{\"state\":\"signed_in_free\",\"title\":\"Unlock your next step with Nextwise Verified.\",\"links\":[\"/book-counselling\"],\"disabled\":true,\"price\":\"₹1,999\",\"focus\":\"ud-dialog-close\"}"
+  },
+  {
+   "group": "free",
+   "name": "dialog offers no directory link and no checkout link",
+   "pass": true,
+   "detail": "/book-counselling"
+  },
+  {
+   "group": "free",
+   "name": "dialog price is ₹1,999 (never ₹2,358)",
+   "pass": true,
+   "detail": "₹1,999"
+  },
+  {
+   "group": "free",
+   "name": "purchase action is disabled",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "free",
+   "name": "focus moves into the dialog",
+   "pass": true,
+   "detail": "ud-dialog-close"
+  },
+  {
+   "group": "free",
+   "name": "Escape closes the dialog and returns focus to its trigger",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "free",
+   "name": "university profile URL shows the locked preview (HTTP 200, no record)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "free",
+   "name": "an unknown slug looks identical (existence is not revealed)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "free",
+   "name": "directory filters in the URL return nothing",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "free",
+   "name": "course comparison redirects with an explanation",
+   "pass": true,
+   "detail": "http://127.0.0.1:3100/courses?moved=compare"
+  },
+  {
+   "group": "free",
+   "name": "course detail redirects with an explanation",
+   "pass": true,
+   "detail": "http://127.0.0.1:3100/courses?moved=course"
+  },
+  {
+   "group": "free",
+   "name": "sitemap lists no university or course record",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "free",
+   "name": "no university record in any HTML or RSC payload",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "free",
+   "name": "no console or page errors",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "free",
+   "name": "/saved: shortlist kept but locked, no record shown",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "free",
+   "name": "saved courses: title kept with official link, not a dead internal page",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "free",
+   "name": "existing application still shows its course and university",
+   "pass": true,
+   "detail": "http://127.0.0.1:3100/applications"
+  },
+  {
+   "group": "free",
+   "name": "Studio shows the locked saved-universities panel",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "free",
+   "name": "a student cannot open the admin console",
+   "pass": true,
+   "detail": "http://127.0.0.1:3100/admin/students"
+  },
+  {
+   "group": "expired session",
+   "name": "dialog says the session has ended and offers login with the return path",
+   "pass": true,
+   "detail": "{\"state\":\"session_expired\",\"title\":\"Your session has ended.\",\"links\":[\"/login?next=%2Funiversities%3Fdestination%3Dgermany\",\"/book-counselling\"],\"disabled\":false,\"price\":null,\"focus\":\"ud-dialog-close\""
+  },
+  {
+   "group": "expired session",
+   "name": "a protected page sends the visitor to login",
+   "pass": true,
+   "detail": "http://127.0.0.1:3100/login?next=%2Fsaved"
+  },
+  {
+   "group": "network error",
+   "name": "dialog reports the failure with a retry, not a loading state",
+   "pass": true,
+   "detail": "{\"state\":\"error\",\"title\":\"We couldn't check your account just now.\",\"links\":[\"/book-counselling\"],\"disabled\":false,\"price\":null,\"focus\":\"ud-dialog-close\"}"
+  },
+  {
+   "group": "network error",
+   "name": "Try again recovers to the real state",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "pending",
+   "name": "/universities shows six destinations, no directory cards",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "pending",
+   "name": "Germany shows official portals incl. Hochschulkompass and Study in Germany",
+   "pass": true,
+   "detail": "Study in Germany,Hochschulkompass"
+  },
+  {
+   "group": "pending",
+   "name": "portal links leave through the validated /go redirect",
+   "pass": true,
+   "detail": "/go/course-search/provider/d4087af5-92ac-4713-9c70-c2b514d2949c,/go/course-search/provider/3cc53a5a-98e3-46a5-bed3-98dcaae71297"
+  },
+  {
+   "group": "pending",
+   "name": "dialog state is payment_pending",
+   "pass": true,
+   "detail": "{\"state\":\"payment_pending\",\"title\":\"Your Verified payment is not complete yet.\",\"links\":[\"/payments\",\"/book-counselling\"],\"disabled\":false,\"price\":null,\"focus\":\"ud-dialog-close\"}"
+  },
+  {
+   "group": "pending",
+   "name": "dialog offers no directory link and no checkout link",
+   "pass": true,
+   "detail": "/payments,/book-counselling"
+  },
+  {
+   "group": "pending",
+   "name": "focus moves into the dialog",
+   "pass": true,
+   "detail": "ud-dialog-close"
+  },
+  {
+   "group": "pending",
+   "name": "Escape closes the dialog and returns focus to its trigger",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "pending",
+   "name": "university profile URL shows the locked preview (HTTP 200, no record)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "pending",
+   "name": "an unknown slug looks identical (existence is not revealed)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "pending",
+   "name": "directory filters in the URL return nothing",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "pending",
+   "name": "course comparison redirects with an explanation",
+   "pass": true,
+   "detail": "http://127.0.0.1:3100/courses?moved=compare"
+  },
+  {
+   "group": "pending",
+   "name": "course detail redirects with an explanation",
+   "pass": true,
+   "detail": "http://127.0.0.1:3100/courses?moved=course"
+  },
+  {
+   "group": "pending",
+   "name": "sitemap lists no university or course record",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "pending",
+   "name": "no university record in any HTML or RSC payload",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "pending",
+   "name": "no console or page errors",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "failed",
+   "name": "/universities shows six destinations, no directory cards",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "failed",
+   "name": "Germany shows official portals incl. Hochschulkompass and Study in Germany",
+   "pass": true,
+   "detail": "Study in Germany,Hochschulkompass"
+  },
+  {
+   "group": "failed",
+   "name": "portal links leave through the validated /go redirect",
+   "pass": true,
+   "detail": "/go/course-search/provider/d4087af5-92ac-4713-9c70-c2b514d2949c,/go/course-search/provider/3cc53a5a-98e3-46a5-bed3-98dcaae71297"
+  },
+  {
+   "group": "failed",
+   "name": "dialog state is payment_failed",
+   "pass": true,
+   "detail": "{\"state\":\"payment_failed\",\"title\":\"Your last Verified payment did not go through.\",\"links\":[\"/payments\",\"/book-counselling\"],\"disabled\":false,\"price\":null,\"focus\":\"ud-dialog-close\"}"
+  },
+  {
+   "group": "failed",
+   "name": "dialog offers no directory link and no checkout link",
+   "pass": true,
+   "detail": "/payments,/book-counselling"
+  },
+  {
+   "group": "failed",
+   "name": "focus moves into the dialog",
+   "pass": true,
+   "detail": "ud-dialog-close"
+  },
+  {
+   "group": "failed",
+   "name": "Escape closes the dialog and returns focus to its trigger",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "failed",
+   "name": "university profile URL shows the locked preview (HTTP 200, no record)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "failed",
+   "name": "an unknown slug looks identical (existence is not revealed)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "failed",
+   "name": "directory filters in the URL return nothing",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "failed",
+   "name": "course comparison redirects with an explanation",
+   "pass": true,
+   "detail": "http://127.0.0.1:3100/courses?moved=compare"
+  },
+  {
+   "group": "failed",
+   "name": "course detail redirects with an explanation",
+   "pass": true,
+   "detail": "http://127.0.0.1:3100/courses?moved=course"
+  },
+  {
+   "group": "failed",
+   "name": "sitemap lists no university or course record",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "failed",
+   "name": "no university record in any HTML or RSC payload",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "failed",
+   "name": "no console or page errors",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "directory shows 12 photo-led cards of 239",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "verified records with photographs come first",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "every photograph shows its credit",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "state filter: Nordrhein-Westfalen",
+   "pass": true,
+   "detail": "36"
+  },
+  {
+   "group": "verified",
+   "name": "adding Hochschule/UAS narrows the result",
+   "pass": true,
+   "detail": "15"
+  },
+  {
+   "group": "verified",
+   "name": "every card in the result is a Hochschule in NRW",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "adding study area narrows again",
+   "pass": true,
+   "detail": "14"
+  },
+  {
+   "group": "verified",
+   "name": "active filters are shown as removable chips",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "browser Back restores the previous filter set",
+   "pass": true,
+   "detail": "http://127.0.0.1:3100/universities?q=&country=&state=Nordrhein-Westfalen&city=&category=university_of_applied_sciences&ownership=&area=&sort=verified"
+  },
+  {
+   "group": "verified",
+   "name": "browser Forward re-applies it",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "search by name finds Köln institutions",
+   "pass": true,
+   "detail": "5"
+  },
+  {
+   "group": "verified",
+   "name": "city filter: Aachen",
+   "pass": true,
+   "detail": "2"
+  },
+  {
+   "group": "verified",
+   "name": "a filter with no match shows the empty state with a clear action",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "crafted filter values are ignored, not applied",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "pagination: page 2 shows 13–24",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "a page past the end shows a state, not an error",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "saving turns the heart and the Save button to the saved state together",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "the saved state and count persist after reload",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "Saved items lists it with thumbnail and details",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "Studio shows the saved university with quick access",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "removing empties the list and shows the empty state",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "profile: hero photo with credit, category, location",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "profile: gallery of 5 photographs, each credited",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "gallery: choosing a thumbnail changes the main photograph and its credit",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "profile: highlight carries its source link",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "profile: rankings name provider and year and are labelled as subject rankings",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "profile: sticky actions present (save, official website, guidance)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "profile: saving in the hero also updates the sticky bar",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "profile without rankings shows none (nothing invented)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "unverified profile: marked as not verified, neutral hero, no rankings or highlights",
+   "pass": true,
+   "detail": "http://127.0.0.1:3100/universities/hochschule-duesseldorf"
+  },
+  {
+   "group": "verified",
+   "name": "a draft university answers 404",
+   "pass": true,
+   "detail": "404"
+  },
+  {
+   "group": "verified",
+   "name": "an unknown university answers 404",
+   "pass": true,
+   "detail": "404"
+  },
+  {
+   "group": "verified",
+   "name": "Course Explorer shows official portals only, even when Verified",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "course comparison is not available to a Verified student",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "verified",
+   "name": "no console or page errors",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "admin grant",
+   "name": "before the grant the student sees no directory",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "admin",
+   "name": "admin sees the directory as staff, without student save controls",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "admin",
+   "name": "admin university management still loads",
+   "pass": true,
+   "detail": "http://127.0.0.1:3100/admin/universities"
+  },
+  {
+   "group": "admin",
+   "name": "admin course management still loads",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "admin",
+   "name": "trusted sources page lists Hochschulkompass and Study in Germany",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "admin",
+   "name": "admin keeps the internal course list",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "admin grant",
+   "name": "student page shows the access card with scope wording",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "admin grant",
+   "name": "granting without a reason is refused in the browser",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "admin grant",
+   "name": "grant recorded with reason, time and granted-by",
+   "pass": true,
+   "detail": "Active\nGranted 17 Nov 2026, 8:34 pm by QA admin\n\nQA browser test: paid offline, receipt QA-0002\n\nScope: university directory · No expiry\n\nRevoked\nGranted 17 Nov 2026, 8:32 pm by QA admin\n\nQA browser t"
+  },
+  {
+   "group": "admin grant",
+   "name": "the student now sees the directory, labelled as granted by the team",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "admin grant",
+   "name": "dialog state: access granted by admin",
+   "pass": true,
+   "detail": "{\"state\":\"verified_by_grant\",\"title\":\"Your Verified access is active.\",\"links\":[\"/universities\",\"/book-counselling\"],\"disabled\":false,\"price\":null,\"focus\":\"ud-dialog-close\"}"
+  },
+  {
+   "group": "admin grant",
+   "name": "revocation recorded with reason and revoked-by",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "admin grant",
+   "name": "after revocation the student is locked out again",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "admin grant",
+   "name": "and profiles are locked again",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "admin grant",
+   "name": "the shortlist made while Verified is kept and shown as locked",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "admin grant",
+   "name": "audit log shows the grant and the revocation",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "admin",
+   "name": "no console or page errors",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "group": "counsellor",
+   "name": "a counsellor does not get the grant controls",
+   "pass": true,
+   "detail": ""
+  }
+ ]
+}

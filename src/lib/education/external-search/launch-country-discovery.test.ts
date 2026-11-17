@@ -23,6 +23,7 @@ const UNIVERSITIES_PAGE_PATH = path.join(__dirname, "..", "..", "..", "app", "(s
 const componentSource = readFileSync(COMPONENT_PATH, "utf8");
 const coursesPageSource = readFileSync(COURSES_PAGE_PATH, "utf8");
 const universitiesPageSource = readFileSync(UNIVERSITIES_PAGE_PATH, "utf8");
+const freeDiscoverySource = readFileSync(path.join(__dirname, "..", "..", "..", "components", "sections", "university-discovery", "FreeDiscovery.tsx"), "utf8");
 
 describe("LaunchCountryDiscovery — single source of truth, no re-derived country list", () => {
   it("imports LAUNCH_COUNTRY_CODES/LAUNCH_COUNTRY_NAMES from M20A's registry rather than declaring its own list", () => {
@@ -46,7 +47,10 @@ describe("LaunchCountryDiscovery — single source of truth, no re-derived count
 
   it("both pages derive their selected/unavailable launch-country state from isLaunchCountryCode, never a hand-rolled equality chain", () => {
     expect(coursesPageSource).toContain("isLaunchCountryCode(destinationCode)");
-    expect(universitiesPageSource).toContain("isLaunchCountryCode(singleSelectedCountry.isoAlpha2)");
+    // University Discovery V3 (owner-approved replacement of the M20C strip on /universities): the destination is
+    // resolved by the shared approved-destination config, never a hand-rolled equality chain.
+    expect(universitiesPageSource).toContain("getUniversityDestination(");
+    expect(universitiesPageSource).not.toMatch(/=== "DE"|=== "IE"|=== "NL"/);
   });
 });
 
@@ -89,29 +93,29 @@ describe("LaunchCountryDiscovery — query-param preservation and per-page indep
     expect(searchCoursesCallMatch?.[0]).not.toContain("destinationCode");
   });
 
-  it("/universities reuses the EXISTING `country` checkbox param (never a second, independent `destination` param) — buildCountryHref sets `next.country`, not `next.destination`", () => {
-    expect(universitiesPageSource).toMatch(/function buildCountryHref\(code: LaunchCountryCode \| null\)/);
-    expect(universitiesPageSource).toContain("next.country = match.id");
-    expect(universitiesPageSource).not.toContain("next.destination");
+  // University Discovery V3 — the three M20C assertions about /universities' buildCountryHref and
+  // unavailableLaunchCodes described the launch-country strip above the old public directory. The owner-approved
+  // V3 brief replaces that page: free visitors pick a destination (`destination` param, public portals only) and
+  // the Verified directory filters by `country`. The two params never mix.
+  it("/universities keeps the public destination choice and the Verified directory country filter apart", () => {
+    expect(universitiesPageSource).toContain("params.destination");
+    expect(universitiesPageSource).toContain("parseDirectoryFilters(params)");
+    const gate = universitiesPageSource.indexOf("if (!canUseUniversityDirectory(access))");
+    expect(gate).toBeGreaterThan(-1);
+    expect(universitiesPageSource.indexOf("parseDirectoryFilters(params)")).toBeGreaterThan(gate);
   });
 
-  it("/universities' buildCountryHref preserves q/city/studyMode", () => {
-    const fnMatch = universitiesPageSource.match(/function buildCountryHref\(code: LaunchCountryCode \| null\): string \{[\s\S]*?\n  \}/);
-    expect(fnMatch).not.toBeNull();
-    const fnBody = fnMatch?.[0] ?? "";
-    expect(fnBody).toContain("if (query) next.q = query");
-    expect(fnBody).toContain("if (city) next.city = city");
-    expect(fnBody).toContain("if (studyModes.length > 0) next.studyMode = studyModes");
-  });
-
-  it("neither page computes unavailable/selected state by fabricating availability — /universities derives unavailableLaunchCodes only from countries it actually fetched", () => {
-    expect(universitiesPageSource).toMatch(/const unavailableLaunchCodes = LAUNCH_COUNTRY_CODES\.filter\(\(code\) => !countries\.some\(\(c\) => c\.isoAlpha2 === code\)\)/);
+  it("/universities never fabricates availability — portals come only from the trusted-source registry", () => {
+    expect(universitiesPageSource).toContain("getTrustedSearchResults(");
+    expect(universitiesPageSource).toContain("resources={trusted?.results ?? []}");
   });
 });
 
 describe("LaunchCountryDiscovery — honest empty states (no silent vanish, no fabricated numbers)", () => {
   it("/universities shows an explicit message when a launch (or any) country is selected but no trusted portal is active for it — the section no longer disappears silently", () => {
-    expect(universitiesPageSource).toContain("No trusted official portal is currently activated for");
+    // V3: the message lives in the shared FreeDiscovery section the page renders.
+    expect(universitiesPageSource).toContain("<FreeDiscovery");
+    expect(freeDiscoverySource).toMatch(/No trusted official portal|no official portal/i);
     // Before M20C this whole section only rendered when results existed —
     // confirm the stale all-or-nothing condition is gone.
     expect(universitiesPageSource).not.toMatch(/singleSelectedCountry && trustedSearch && trustedSearch\.results\.length > 0/);
@@ -151,12 +155,13 @@ describe("LaunchCountryDiscovery — preserved pre-existing behavior (regression
 
   it("/universities still renders its own Pagination, UniversityFilterBar, and GuidanceNotice", () => {
     expect(universitiesPageSource).toContain("<Pagination");
-    expect(universitiesPageSource).toContain("<UniversityFilterBar");
+    expect(universitiesPageSource).toContain("<DirectoryFilterBar"); // V3 replacement of UniversityFilterBar
     expect(universitiesPageSource).toContain("<GuidanceNotice");
   });
 
   it("both pages still fetch countries via listActiveCountries() — M20C added no new country-fetching path", () => {
     expect(coursesPageSource).toContain("listActiveCountries()");
-    expect(universitiesPageSource).toContain("listActiveCountries()");
+    // V3: the directory reads its country options through the access-checked facets reader.
+    expect(universitiesPageSource).toContain("listDirectoryFacets(");
   });
 });
