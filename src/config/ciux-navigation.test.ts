@@ -97,9 +97,9 @@ describe("CIUX-01 navigation (NAV_GROUPS)", () => {
   const groupHrefs = NAV_GROUPS.flatMap((g) => g.links.map((l) => l.href));
   const headerHrefs = [...HEADER_LEADING_LINKS.map((l) => l.href), ...groupHrefs, ...HEADER_DIRECT_LINKS.map((l) => l.href), DISCOVERY_SESSION_CTA.href];
 
-  it("has the three V5 groups in order: Career Options, Free Tools, Destination", () => {
+  it("has the two menus in order: Career Options, Destination (Free Tools is a plain link to /tools)", () => {
     // Career Explorer V5 (approved): Home | Career Options | Universities | Free Tools | Destination.
-    expect(NAV_GROUPS.map((g) => g.id)).toEqual(["careers", "tools", "destination"]);
+    expect(NAV_GROUPS.map((g) => g.id)).toEqual(["careers", "destination"]);
   });
 
   it("every header and footer link points at a page that exists", () => {

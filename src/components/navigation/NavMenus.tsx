@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, ChevronDown, Compass, Sparkles } from "lucide-react";
-import { DISCOVERY_SESSION_CTA, HEADER_NAV, HEADER_NAV_HREFS, navHrefPath, type HeaderNavLink, type NavGroupId } from "@/config/site";
+import { ChevronDown, Compass, Sparkles } from "lucide-react";
+import { HEADER_NAV, HEADER_NAV_HREFS, navHrefPath, type HeaderNavLink, type NavGroupId } from "@/config/site";
 import { resolveActiveNavHref } from "@/lib/navigation/active-nav";
 
 /**
@@ -170,15 +170,6 @@ export function NavMenus() {
                       );
                     })}
                   </ul>
-                  {group.layout === "list" && group.id === "tools" ? (
-                    <Link href={DISCOVERY_SESSION_CTA.href} className="nwh-book" onClick={() => setOpenId(null)}>
-                      <span>
-                        {DISCOVERY_SESSION_CTA.label}
-                        <span className="nwh-link-desc">{DISCOVERY_SESSION_CTA.description}</span>
-                      </span>
-                      <ArrowRight aria-hidden="true" />
-                    </Link>
-                  ) : null}
                 </div>
               </div>
             </li>

@@ -1,5 +1,6 @@
 import type { NavLink } from "@/types";
 import { CONTACT_PEOPLE, OFFICIAL_CONTACT } from "./contact";
+import { FREE_TOOLS_PATH } from "./upcoming-tools";
 
 /**
  * Single source of truth for brand identity and site-wide constants.
@@ -175,7 +176,7 @@ function findNav(href: string): NavLink {
  * the navigation must never advertise a feature that does not work (CIUX-01
  * backlog: CIUX-06).
  */
-export type NavGroupId = "careers" | "tools" | "destination";
+export type NavGroupId = "careers" | "destination";
 
 /**
  * Career Explorer V5 — a header link may carry an access badge ("Free",
@@ -196,7 +197,7 @@ export type NavGroup = {
   summary: string;
   /** "feature" = two large rows with badges (Career Options); "list" = compact rows. */
   layout: "feature" | "list";
-  /** Whether the trigger shows a chevron. V5 draws "Free Tools" without one; it still opens its menu. */
+  /** Whether the trigger shows a chevron. */
   chevron: boolean;
   links: HeaderNavLink[];
 };
@@ -205,6 +206,8 @@ export type NavGroup = {
  * Career Explorer V5 (approved, locked) — the primary navigation is exactly
  *
  *   Home | Career Options ▾ | Universities | Free Tools | Destination ▾
+ *
+ * Free Tools is a plain link to the Coming Soon catalogue (/tools).
  *
  * CAREER_OPTIONS_GROUP keeps the two career products apart: Career Explorer
  * (/careers) is the free public catalogue; Career Intelligence (/career) is
@@ -234,20 +237,12 @@ export const CAREER_OPTIONS_GROUP: NavGroup = {
   ],
 };
 
-/** The existing free tools, unchanged — every route already exists. */
-export const FREE_TOOLS_GROUP: NavGroup = {
-  id: "tools",
-  label: "Free Tools",
-  summary: "Free to use, no payment needed.",
-  layout: "list",
-  chevron: false,
-  links: [
-    { ...findNav("/career-discovery"), description: "A guided look at your interests and strengths." },
-    { ...findNav("/compare"), description: "Put two or more careers side by side." },
-    { label: "Compare Courses", href: "/courses/compare", description: "Compare courses on fees, duration and entry." },
-    { ...findNav("/study-options"), description: "India or abroad: an honest side-by-side." },
-  ],
-};
+/**
+ * Free Tools is one link to the Coming Soon catalogue (/tools). The planned
+ * tools themselves live only in src/config/upcoming-tools.ts and are listed
+ * nowhere in the navigation — there is no menu of tools to keep in step.
+ */
+export const FREE_TOOLS_NAV_LINK: NavLink = { label: "Free Tools", href: FREE_TOOLS_PATH, description: "Planned free tools for students — coming soon." };
 
 /**
  * The six supported study destinations (src/data/europe-explorer.ts). Each
@@ -270,7 +265,7 @@ export const DESTINATION_GROUP: NavGroup = {
   ],
 };
 
-export const NAV_GROUPS: NavGroup[] = [CAREER_OPTIONS_GROUP, FREE_TOOLS_GROUP, DESTINATION_GROUP];
+export const NAV_GROUPS: NavGroup[] = [CAREER_OPTIONS_GROUP, DESTINATION_GROUP];
 
 /**
  * The header, in order. The desktop menus and the phone menu both render
@@ -282,7 +277,7 @@ export const HEADER_NAV: HeaderNavItem[] = [
   { kind: "link", link: HOME_NAV_LINK },
   { kind: "group", group: CAREER_OPTIONS_GROUP },
   { kind: "link", link: findNav("/universities") },
-  { kind: "group", group: FREE_TOOLS_GROUP },
+  { kind: "link", link: FREE_TOOLS_NAV_LINK },
   { kind: "group", group: DESTINATION_GROUP },
 ];
 
@@ -296,7 +291,7 @@ export function navHrefPath(href: string): string {
 export const HEADER_LEADING_LINKS: NavLink[] = [HOME_NAV_LINK];
 
 /** Direct (non-dropdown) header links other than Home. */
-export const HEADER_DIRECT_LINKS: NavLink[] = [findNav("/universities")];
+export const HEADER_DIRECT_LINKS: NavLink[] = [findNav("/universities"), FREE_TOOLS_NAV_LINK];
 
 /** Every header destination path, in header order (for one active-place resolution). */
 export const HEADER_NAV_HREFS: string[] = [
@@ -328,13 +323,13 @@ export const FOOTER_NAV: Record<string, NavLink[]> = {
     findNav("/universities"),
     findNav("/courses"),
     { ...findNav("/abroad"), label: "Nextwise Abroad" },
-  ],
-  "Free tools": [
+    // Existing, working features (formerly listed under "Free tools"). They stay reachable here; the
+    // "Free tools" heading now holds only the Coming Soon catalogue.
     findNav("/career-discovery"),
     findNav("/compare"),
-    { label: "Compare Courses", href: "/courses/compare" },
     findNav("/study-options"),
   ],
+  "Free tools": [{ label: "Free Tools (coming soon)", href: FREE_TOOLS_PATH }],
   Nextwise: [
     findNav("/how-it-works"),
     findNav("/pricing"),

@@ -1,4 +1,5 @@
 import "server-only";
+import { canAccessCareerIntelligence } from "@/lib/supabase/career-intelligence-access";
 import { createClient } from "../server";
 import type { RecommendationDraftContent } from "@/lib/recommendations/drafts";
 
@@ -86,6 +87,9 @@ interface MyRecommendationReportContentRow {
 
 /** The full content of one of the student's own RELEASED reports. Returns `null` for a report that isn't theirs, isn't released, or doesn't exist — never an error that would distinguish the three (anti-enumeration), matching the RPC's own documented behaviour. */
 export async function getMyRecommendationReportContent(draftId: string): Promise<MyRecommendationReportContent | null> {
+  // Career Intelligence gate, enforced in the data layer as well as on the page: a direct call without paid
+  // access gets the same null as a report that does not exist.
+  if (!(await canAccessCareerIntelligence())) return null;
   const supabase = await createClient();
   const {
     data: { user },

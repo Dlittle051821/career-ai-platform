@@ -31,6 +31,8 @@ import { cn } from "@/lib/utils";
 interface CareerRecommendationProps {
   hasProfileData: boolean;
   topResult: RecommendationResult | null;
+  /** True when the server found no paid Career Intelligence access: no match was computed and none is shown. */
+  locked?: boolean;
 }
 
 export function RecommendedForYou({ career, courseHref, universityHref }: { career: CareerRecommendationProps; courseHref: string; universityHref: string }) {
@@ -76,7 +78,26 @@ export function RecommendedForYou({ career, courseHref, universityHref }: { care
   );
 }
 
-function CareerCard({ hasProfileData, topResult }: CareerRecommendationProps) {
+function CareerCard({ hasProfileData, topResult, locked = false }: CareerRecommendationProps) {
+  if (hasProfileData && locked) {
+    return (
+      <div className="flex flex-col rounded-2xl border border-border bg-primary/[0.03] p-4">
+        <div className="flex items-center gap-2">
+          <Badge tone="neutral">Career</Badge>
+        </div>
+        <div className="mt-3 flex flex-1 flex-col items-center justify-center gap-2 py-4 text-center">
+          <Image src="/dashboard/compass.png" alt="" aria-hidden="true" width={56} height={56} className="opacity-60" />
+          <p className="text-sm font-semibold text-text">Your career profile is ready.</p>
+          <p className="text-sm text-muted">Your answers are saved. Personalised career matches are part of Career Intelligence.</p>
+        </div>
+        <Link href="/career/access?from=dashboard" className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary-light">
+          Unlock Career Intelligence
+          <ArrowRight aria-hidden="true" className="h-4 w-4" />
+        </Link>
+      </div>
+    );
+  }
+
   if (!hasProfileData) {
     return (
       <div className="flex flex-col rounded-2xl border border-border bg-primary/[0.03] p-4">

@@ -16,6 +16,7 @@ import { getCoursesByIds } from "@/lib/supabase/education/courses";
 import { getMyActiveDiscoverySession } from "@/lib/supabase/discovery-sessions/book";
 import { getCareersForMatching } from "@/lib/supabase/careers";
 import { getRecommendations, hasMinimumProfileDataForRecommendations } from "@/lib/recommendations";
+import { requireCareerIntelligence } from "@/lib/supabase/career-intelligence-access";
 import { getMyRecommendationReadiness } from "@/lib/supabase/recommendation-readiness";
 import { getNextBestAction } from "@/lib/dashboard/next-best-action";
 import { RECOMMENDATION_TYPE_LABELS, RECOMMENDATION_TYPES } from "@/types/recommendation-readiness";
@@ -122,6 +123,12 @@ export default async function RecommendationsPage() {
       </div>
     );
   }
+
+  // Career Intelligence gate. The assessment (the profile above) is free and its answers are saved; the
+  // personalised matches below are paid. The check runs on the server BEFORE the career library is loaded or
+  // anything is scored, so a student without access is sent to the upgrade screen and no match, band or
+  // explanation is ever computed for, or sent to, their browser.
+  await requireCareerIntelligence("recommendations");
 
   const careers = await getCareersForMatching();
 

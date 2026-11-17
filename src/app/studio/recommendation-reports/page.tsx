@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { ChevronLeft, FileCheck2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { getCurrentUser } from "@/lib/supabase/profile";
+import { requireCareerIntelligence } from "@/lib/supabase/career-intelligence-access";
 import { loadMyRecommendationReports } from "@/lib/supabase/education/recommendation-reports";
 import { UnavailableNotice } from "@/components/ui/UnavailableNotice";
 
@@ -26,6 +27,8 @@ export const metadata: Metadata = {
 export default async function RecommendationReportsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/studio/recommendation-reports");
+  // Career Intelligence gate: personalised reports are paid output. Checked before any report is read.
+  await requireCareerIntelligence("report");
 
   const { reports, unavailable } = await loadMyRecommendationReports();
 

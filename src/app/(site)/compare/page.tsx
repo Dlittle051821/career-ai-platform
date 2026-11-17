@@ -9,7 +9,7 @@ import { COMPARE_PARAM_KEYS, buildCompareHref, readCompareSlugs } from "@/lib/ca
 import { getCareerPhoto } from "@/lib/career-explorer/photos";
 import { MAX_COMPARE_CAREERS, MIN_COMPARE_CAREERS, careerDetailToMatchProfile } from "@/lib/careers/compare";
 import { educationLevelLabel, fieldLabel, skillLabel } from "@/lib/careers/labels";
-import { getMyProductEntitlements } from "@/lib/products/entitlements";
+import { canAccessCareerIntelligence } from "@/lib/supabase/career-intelligence-access";
 import { MATCH_BAND_LABELS, getRecommendations, hasMinimumProfileDataForRecommendations } from "@/lib/recommendations";
 import { trackEvent } from "@/lib/supabase/analytics/track";
 import { getCareerBySlug, getCareerOptionsForComparison } from "@/lib/supabase/careers";
@@ -84,8 +84,8 @@ function educationCell(career: CareerDetail) {
  * record; nothing is scored or ranked and a gap is shown as a gap.
  *
  * Personal fit is the one part that is not free. It appears only when the
- * server confirms a paid Career entitlement (getMyProductEntitlements —
- * paid invoices only) and the student's own profile has enough data; then
+ * single Career Intelligence resolver (canAccessCareerIntelligence — paid
+ * invoices only) says yes and the student's own profile has enough data; then
  * it shows the existing recommendation engine's band, never a new score.
  * Everyone else sees the Nextwise Verified entry instead.
  */
@@ -102,8 +102,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
 
   let fit: Map<string, string> | null = null;
   if (ready) {
-    const entitlements = await getMyProductEntitlements();
-    if (entitlements.hasCareerEntitlement) {
+    if (await canAccessCareerIntelligence()) {
       const snapshot = await getStudentProfileSnapshot();
       if (snapshot && hasMinimumProfileDataForRecommendations(snapshot)) {
         const profiles = careers.map(careerDetailToMatchProfile);
@@ -163,7 +162,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
               node: band ? (
                 band
               ) : (
-                <Link href="/career/access" className="ce-locked">
+                <Link href="/career/access?from=compare" className="ce-locked">
                   <Lock aria-hidden="true" />
                   Career Intelligence · Nextwise Verified
                 </Link>

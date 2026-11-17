@@ -8,12 +8,14 @@ const groupOf = (href: string | null) => NAV_GROUPS.find((g) => g.links.some((l)
 describe("CIUX-01B resolveActiveNavHref — one active place in the header", () => {
   it.each([
     // Career Explorer V5 header: Home | Career Options | Universities | Free Tools | Destination
-    ["/courses/compare", "/courses/compare", "tools"],
+    ["/courses/compare", null, null],
+    ["/tools", "/tools", "direct"],
+    ["/tools/cgpa-to-gpa", "/tools", "direct"],
     ["/courses", null, null],
     ["/careers/ai-engineer", "/careers", "careers"],
     ["/career", "/career", "careers"],
     ["/career/access", "/career", "careers"],
-    ["/career-discovery", "/career-discovery", "tools"],
+    ["/career-discovery", null, null],
     ["/universities/tu-munich", "/universities", "direct"],
     ["/study-europe", "/study-europe", "destination"],
     ["/how-it-works", null, null],

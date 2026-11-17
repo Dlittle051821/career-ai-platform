@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { EUROPE_COUNTRIES } from "@/data/europe-explorer";
 import { resolveActiveNavHref } from "@/lib/navigation/active-nav";
-import { CAREER_OPTIONS_GROUP, DESTINATION_GROUP, FREE_TOOLS_GROUP, HEADER_NAV, HEADER_NAV_HREFS, NAV_GROUPS, SAVED_NAV_LINK, navHrefPath } from "./site";
+import { CAREER_OPTIONS_GROUP, DESTINATION_GROUP, FREE_TOOLS_NAV_LINK, HEADER_NAV, HEADER_NAV_HREFS, NAV_GROUPS, SAVED_NAV_LINK, navHrefPath } from "./site";
 
 const APP = path.resolve(import.meta.dirname, "../app");
 const read = (rel: string) => readFileSync(path.resolve(import.meta.dirname, "..", rel), "utf8");
@@ -16,7 +16,7 @@ const routeExists = (href: string) => {
 describe("Career Explorer V5 — global navigation (approved, locked)", () => {
   it("is exactly Home | Career Options | Universities | Free Tools | Destination", () => {
     expect(HEADER_NAV.map((i) => (i.kind === "link" ? i.link.label : i.group.label))).toEqual(["Home", "Career Options", "Universities", "Free Tools", "Destination"]);
-    expect(HEADER_NAV.map((i) => i.kind)).toEqual(["link", "group", "link", "group", "group"]);
+    expect(HEADER_NAV.map((i) => i.kind)).toEqual(["link", "group", "link", "link", "group"]);
   });
 
   it('labels the destination menu "Destination", not "Choose Your Destination"', () => {
@@ -36,8 +36,10 @@ describe("Career Explorer V5 — global navigation (approved, locked)", () => {
     expect(DESTINATION_GROUP.links.map((l) => l.flag)).toEqual(EUROPE_COUNTRIES.map((c) => c.code.toLowerCase()));
   });
 
-  it("Free Tools keeps the four existing tools and adds none", () => {
-    expect(FREE_TOOLS_GROUP.links.map((l) => l.href)).toEqual(["/career-discovery", "/compare", "/courses/compare", "/study-options"]);
+  it("Free Tools is one link to the Coming Soon catalogue, not a menu of tools", () => {
+    expect(FREE_TOOLS_NAV_LINK).toMatchObject({ label: "Free Tools", href: "/tools" });
+    expect(HEADER_NAV.filter((i) => i.kind === "link").map((i) => (i.kind === "link" ? i.link.href : ""))).toContain("/tools");
+    expect(NAV_GROUPS.map((g) => g.id)).not.toContain("tools");
   });
 
   it("every header destination is a route that exists", () => {
@@ -50,7 +52,8 @@ describe("Career Explorer V5 — global navigation (approved, locked)", () => {
     expect(resolveActiveNavHref("/career/access", HEADER_NAV_HREFS)).toBe("/career");
     expect(resolveActiveNavHref("/study-europe", HEADER_NAV_HREFS)).toBe("/study-europe");
     expect(resolveActiveNavHref("/universities/some-university", HEADER_NAV_HREFS)).toBe("/universities");
-    expect(resolveActiveNavHref("/courses/compare", HEADER_NAV_HREFS)).toBe("/courses/compare");
+    expect(resolveActiveNavHref("/tools", HEADER_NAV_HREFS)).toBe("/tools");
+    expect(resolveActiveNavHref("/courses/compare", HEADER_NAV_HREFS)).toBeNull();
     expect(new Set(HEADER_NAV_HREFS).size).toBe(HEADER_NAV_HREFS.length);
   });
 
@@ -58,7 +61,7 @@ describe("Career Explorer V5 — global navigation (approved, locked)", () => {
     for (const rel of ["components/navigation/NavMenus.tsx", "components/navigation/MobileNavGroups.tsx"]) {
       expect(read(rel), rel).toContain("HEADER_NAV.map(");
     }
-    expect(NAV_GROUPS).toEqual([CAREER_OPTIONS_GROUP, FREE_TOOLS_GROUP, DESTINATION_GROUP]);
+    expect(NAV_GROUPS).toEqual([CAREER_OPTIONS_GROUP, DESTINATION_GROUP]);
   });
 
   it("menus stay keyboard- and touch-operable disclosures", () => {

@@ -20,6 +20,7 @@ import { listMyRecommendationReports } from "@/lib/supabase/education/recommenda
 import { getMyRecommendationReadiness } from "@/lib/supabase/recommendation-readiness";
 import { getCareersForMatching } from "@/lib/supabase/careers";
 import { getRecommendations, hasMinimumProfileDataForRecommendations } from "@/lib/recommendations";
+import { canAccessCareerIntelligence } from "@/lib/supabase/career-intelligence-access";
 import { getNextBestAction } from "@/lib/dashboard/next-best-action";
 import { StudentJourneyOverview } from "@/components/dashboard/StudentJourneyOverview";
 import { NextBestActionCard } from "@/components/dashboard/NextBestActionCard";
@@ -104,8 +105,11 @@ export default async function StudioHubPage() {
   // Only run when the profile has enough data to be worth matching, to
   // avoid an unnecessary careers-catalogue fetch for a brand-new account.
   const hasProfileDataForRecommendations = studentSnapshot ? hasMinimumProfileDataForRecommendations(studentSnapshot) : false;
+  // Career Intelligence gate: matches are scored only for a student whose paid access the server has just
+  // confirmed. Without it nothing is computed here, so nothing personalised can reach the page or its payload.
+  const careerIntelligenceUnlocked = await canAccessCareerIntelligence();
   const careerRecommendationResults =
-    studentSnapshot && hasProfileDataForRecommendations
+    studentSnapshot && hasProfileDataForRecommendations && careerIntelligenceUnlocked
       ? (await getRecommendations(studentSnapshot, await getCareersForMatching())).results
       : [];
   const hasUsableCareerRecommendations = careerRecommendationResults.length > 0;

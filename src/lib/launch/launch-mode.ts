@@ -86,6 +86,7 @@ export const PUBLIC_EXACT_PATHS: readonly string[] = [
   "/",
   "/how-it-works",
   "/career",
+  "/tools", // Free Tools, Coming Soon: the catalogue of planned tools (information only)
   "/career/access", // Career Explorer V5: the Nextwise Verified access screen (explains and routes; sells nothing itself)
   "/careers",
   "/career-discovery",
@@ -119,6 +120,8 @@ export const PUBLIC_EXACT_PATHS: readonly string[] = [
  */
 export const PUBLIC_PATTERNS: readonly RegExp[] = [
   /^\/careers\/[^/]+$/,
+  // Any retired or guessed tool address redirects to the /tools catalogue.
+  /^\/tools\/.+$/,
   /^\/universities\/[^/]+$/,
   /^\/courses\/[^/]+\/[^/]+$/,
   // Outbound links to official course-search portals (anonymous click log, RLS-limited insert).

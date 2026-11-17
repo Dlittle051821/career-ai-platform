@@ -15,6 +15,7 @@ import { getMyActiveDiscoverySession } from "@/lib/supabase/discovery-sessions/b
 import { getMyRecommendationReadiness } from "@/lib/supabase/recommendation-readiness";
 import { getCareersForMatching } from "@/lib/supabase/careers";
 import { getRecommendations, hasMinimumProfileDataForRecommendations } from "@/lib/recommendations";
+import { canAccessCareerIntelligence } from "@/lib/supabase/career-intelligence-access";
 import { getNextBestAction } from "@/lib/dashboard/next-best-action";
 import { computeJourneyProgress } from "@/lib/dashboard/journey-progress";
 import { getImportantDates } from "@/lib/dashboard/important-dates";
@@ -91,8 +92,11 @@ export default async function DashboardPage() {
   // each other, or with /recommendations (src/app/recommendations/page.tsx),
   // which computes its own `results` from the exact same
   // getRecommendations() call.
+  // Career Intelligence gate: matches are scored only for a student whose paid access the server has just
+  // confirmed. Without it nothing is computed here, so nothing personalised can reach the page or its payload.
+  const careerIntelligenceUnlocked = await canAccessCareerIntelligence();
   const careerRecommendationResults =
-    studentSnapshot && hasProfileDataForRecommendations
+    studentSnapshot && hasProfileDataForRecommendations && careerIntelligenceUnlocked
       ? (await getRecommendations(studentSnapshot, await getCareersForMatching())).results
       : [];
   const topCareerRecommendation = careerRecommendationResults[0] ?? null;
@@ -160,7 +164,7 @@ export default async function DashboardPage() {
       </div>
 
       <RecommendedForYou
-        career={{ hasProfileData: hasProfileDataForRecommendations, topResult: topCareerRecommendation }}
+        career={{ hasProfileData: hasProfileDataForRecommendations, topResult: topCareerRecommendation, locked: !careerIntelligenceUnlocked }}
         courseHref="/courses"
         universityHref="/universities"
       />
