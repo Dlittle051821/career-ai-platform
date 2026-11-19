@@ -1766,6 +1766,10 @@ export interface Database {
       };
       // Milestone 8 — see 0005_payments_billing.sql for full documentation
       // of each function's authorization/verification behavior.
+      create_pricing_quote: {
+        Args: { p_plan_slug: string; p_additional_universities: number };
+        Returns: Json;
+      };
       next_invoice_number: {
         Args: Record<string, never>;
         Returns: string;
@@ -2688,6 +2692,51 @@ export interface Database {
       };
 
       /** Career Explorer V5 — a student's own saved careers (supabase/migrations-proposed/CE_V5_career_saved_items.sql). */
+      // NW-PRICING-V3 (proposed migration supabase/migrations-proposed/NW_PRICING_V3/0001_three_plan_catalogue.sql)
+      pricing_plan_addons: {
+        Row: {
+          id: string;
+          plan_version_id: string;
+          addon_key: string;
+          public_label: string;
+          included_quantity: number;
+          unit_amount_minor_units: number;
+          currency: string;
+          max_additional_quantity: number | null;
+          tax_status: string;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      pricing_quotes: {
+        Row: {
+          id: string;
+          student_user_id: string;
+          plan_id: string;
+          plan_version_id: string;
+          addon_id: string | null;
+          plan_slug_at_quote: string;
+          plan_name_at_quote: string;
+          currency: string;
+          base_amount_minor_units: number;
+          included_universities: number | null;
+          additional_universities: number;
+          addon_unit_amount_minor_units: number | null;
+          addon_amount_minor_units: number;
+          total_amount_minor_units: number;
+          plan_tax_status: string;
+          addon_tax_status: string | null;
+          status: string;
+          expires_at: string;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+
       career_saved_items: {
         Row: { id: string; student_user_id: string; career_id: string; created_at: string };
         Insert: { id?: string; student_user_id: string; career_id: string; created_at?: string };

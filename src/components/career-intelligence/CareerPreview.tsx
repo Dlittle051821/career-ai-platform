@@ -28,6 +28,8 @@ interface CareerPreviewProps {
   glance: Glance | null;
   status: PreviewStatus;
   verified: UnlockPlan & { inclusions: string[] };
+  /** Other plans that include Career Intelligence, from the live catalogue. */
+  alsoIncludedIn: string;
   purchasesOpen: boolean;
 }
 
@@ -38,7 +40,7 @@ interface CareerPreviewProps {
  * student's own answers; the locked cards are generic descriptions, so no
  * report content exists on the page to be revealed.
  */
-export function CareerPreview({ signedIn, teaser: serverTeaser, glance: serverGlance, status, verified, purchasesOpen }: CareerPreviewProps) {
+export function CareerPreview({ signedIn, teaser: serverTeaser, glance: serverGlance, status, verified, alsoIncludedIn, purchasesOpen }: CareerPreviewProps) {
   const local = useGuestProgress();
   const guestAnswers = !signedIn && local && isAssessmentComplete(local.answers) ? local.answers : null;
   const guestKey = guestAnswers ? JSON.stringify(guestAnswers) : "";
@@ -256,7 +258,7 @@ export function CareerPreview({ signedIn, teaser: serverTeaser, glance: serverGl
                 </li>
               ))}
             </ul>
-            <p style={{ margin: "14px 0 0", fontSize: 13, color: "var(--muted)" }}>Also included in Nextwise Essential and the Study Abroad Plus and Premium plans.</p>
+            <p style={{ margin: "14px 0 0", fontSize: 13, color: "var(--muted)" }}>Also included in {alsoIncludedIn}.</p>
           </aside>
         </div>
       </section>

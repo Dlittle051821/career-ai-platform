@@ -69,7 +69,7 @@ export const CAREER_PRICING_CATEGORIES: readonly PricingCategory[] = [
   "class_12_counselling",
 ];
 
-export const ABROAD_PRICING_CATEGORIES: readonly PricingCategory[] = ["bachelor_abroad", "master_abroad"];
+export const ABROAD_PRICING_CATEGORIES: readonly PricingCategory[] = ["bachelor_abroad", "master_abroad", "study_abroad"];
 
 /** Pure lookup — which product a given pricing category belongs to. Exhaustive over `PRICING_CATEGORIES` (see the module-level test for a regression guard if a new category is ever added without updating this function). */
 export function productForCategory(category: PricingCategory): ProductId {

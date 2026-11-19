@@ -6,6 +6,8 @@ import { isPaidCheckoutEnabled } from "@/lib/payments/launch-mode";
 import { NEXTWISE_VERIFIED } from "@/lib/payments/checkout-charge-guard";
 import { isVersionCurrentlyEffective, visibleInclusionsInOrder } from "@/lib/pricing/plan-versions";
 import { listPublicPricingPlans } from "@/lib/supabase/pricing/public-plans";
+import { getV3Catalogue, type V3PublicPlan } from "@/lib/pricing/v3/catalogue";
+import { V3_PLAN_SLUGS } from "@/lib/pricing/v3/quote";
 
 /**
  * Career Intelligence V2 — the plans that include Career Intelligence, read
@@ -36,6 +38,10 @@ export interface CiAbroadPlans {
 
 export interface CiPlanCatalogue {
   verified: CiPlan;
+  /** NW-PRICING-V3: Study Abroad Lite and Premium, when the three-plan catalogue is live (then essential/abroad are empty). */
+  studyAbroad: { lite: CiPlan; premium: CiPlan } | null;
+  /** Names of the other plans that include Career Intelligence, for the preview's "also included in" line. */
+  alsoIncludedIn: string;
   essential: CiPlan | null;
   abroad: CiAbroadPlans;
   /** False when the live catalogue could not be read; only the approved Verified figures are shown then. */
@@ -56,6 +62,33 @@ export function purchasesAreOpen(): boolean {
 }
 
 export async function getCareerIntelligencePlans(): Promise<CiPlanCatalogue> {
+  const v3 = await getV3Catalogue().catch(() => ({ available: false, plans: [] as V3PublicPlan[] }));
+  if (v3.available) {
+    const toCi = (p: V3PublicPlan): CiPlan => ({
+      slug: p.slug,
+      name: p.name,
+      price: p.slug === NEXTWISE_VERIFIED.slug ? VERIFIED_PRICE_TEXT : wholeMoney(p.amountMinorUnits, p.currency),
+      priceNote: p.slug === NEXTWISE_VERIFIED.slug ? "final price, GST included" : `package price, ${p.universityAddon?.includedQuantity ?? 0} universities included`,
+      description: p.description,
+      inclusions: (p.inclusions.filter((i) => i.highlight).length > 0 ? p.inclusions.filter((i) => i.highlight) : p.inclusions).map((i) => i.title).slice(0, 4),
+    });
+    const get = (slug: string) => v3.plans.find((p) => p.slug === slug && planHasCapability(p.slug, "career_intelligence"));
+    const verifiedV3 = get(V3_PLAN_SLUGS.verified);
+    const lite = get(V3_PLAN_SLUGS.lite);
+    const premium = get(V3_PLAN_SLUGS.premium);
+    if (verifiedV3 && lite && premium) {
+      return {
+        verified: toCi(verifiedV3),
+        studyAbroad: { lite: toCi(lite), premium: toCi(premium) },
+        alsoIncludedIn: `${lite.name} and ${premium.name}`,
+        essential: null,
+        abroad: { bachelor: { plus: null, premium: null }, master: { plus: null, premium: null } },
+        catalogueAvailable: true,
+        purchasesOpen: purchasesAreOpen(),
+      };
+    }
+  }
+
   const items = await listPublicPricingPlans().catch(() => []);
   const eligible = items.filter((i) => i.version && isVersionCurrentlyEffective(i.version) && planHasCapability(i.plan.slug, "career_intelligence"));
 
@@ -92,6 +125,8 @@ export async function getCareerIntelligencePlans(): Promise<CiPlanCatalogue> {
 
   return {
     verified,
+    studyAbroad: null,
+    alsoIncludedIn: "Nextwise Essential and the Study Abroad Plus and Premium plans",
     essential: toPlan("nextwise-essential"),
     abroad,
     catalogueAvailable: eligible.length > 0,

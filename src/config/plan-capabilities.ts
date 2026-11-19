@@ -18,6 +18,12 @@
  *   nextwise-essential "Everything in Nextwise Verified".
  *   abroad plans       included by the owner's access rule (17 Nov 2026 brief):
  *                      paid Abroad / Bachelor Abroad / Master Abroad plans qualify.
+ *   study-abroad-lite / study-abroad-premium
+ *                      NW-PRICING-V3 (₹44,999 / ₹74,999): the two Study Abroad
+ *                      packages include Career Intelligence.
+ *
+ * Retired plans stay listed: students who bought them keep what they paid for
+ * (the catalogue migration retires plans; it never removes entitlements).
  *
  * Holding a plan is necessary, not sufficient: access also needs a confirmed
  * payment (src/lib/career-intelligence/access.ts).
@@ -33,6 +39,8 @@ export const PLAN_CAPABILITIES: Readonly<Record<string, readonly Capability[]>> 
   "master-abroad-plus": ["career_intelligence"],
   "bachelor-abroad-premium": ["career_intelligence"],
   "master-abroad-premium": ["career_intelligence"],
+  "study-abroad-lite": ["career_intelligence"],
+  "study-abroad-premium": ["career_intelligence"],
 });
 
 /** True only for a slug listed above with that capability. Unknown slugs get nothing. */

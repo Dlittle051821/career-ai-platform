@@ -267,7 +267,8 @@ describe("Career Intelligence V2 — paid report and entitlement", () => {
   it("only plans with the capability are offered; Nextwise Explore is not", () => {
     expect(planHasCapability("nextwise-explore", "career_intelligence")).toBe(false);
     expect(Object.keys(PLAN_CAPABILITIES).filter((slug) => planHasCapability(slug, "career_intelligence")).sort()).toEqual(
-      ["bachelor-abroad-plus", "bachelor-abroad-premium", "master-abroad-plus", "master-abroad-premium", "nextwise-essential", "nextwise-verified"].sort(),
+      // NW-PRICING-V3 adds Study Abroad Lite and Premium; the retired plans keep the capability for their buyers
+      ["bachelor-abroad-plus", "bachelor-abroad-premium", "master-abroad-plus", "master-abroad-premium", "nextwise-essential", "nextwise-verified", "study-abroad-lite", "study-abroad-premium"].sort(),
     );
   });
 

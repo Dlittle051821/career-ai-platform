@@ -12,9 +12,17 @@ const read = (rel: string) => readFileSync(path.join(SRC, rel), "utf8");
 const code = (rel: string) => read(rel).replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "").replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
 const student = (statuses: (string | null)[], extra: object = {}) => resolveCareerIntelligenceAccess({ isSignedIn: true, isStaff: false, qualifyingInvoiceStatuses: statuses, ...extra });
 
+// NW-PRICING-V3 adds two plans (proposed migration NW_PRICING_V3/0001). The PR01 plans stay in the
+// capability table so students who bought them keep their access after they are retired from sale.
+const V3_NEW_PLANS = [
+  { slug: "study-abroad-lite", amountMinorUnits: 4_499_900 },
+  { slug: "study-abroad-premium", amountMinorUnits: 7_499_900 },
+];
+const ALL_PLANS = [...PR01_ACTIVE_CATALOG.map((p) => ({ slug: p.slug, amountMinorUnits: p.amountMinorUnits })), ...V3_NEW_PLANS];
+
 describe("Career Intelligence — plan capability mapping", () => {
-  it("every plan in the active catalogue is listed explicitly, and nothing else is", () => {
-    expect(Object.keys(PLAN_CAPABILITIES).sort()).toEqual(PR01_ACTIVE_CATALOG.map((p) => p.slug).sort());
+  it("every plan ever sold in the current or the previous catalogue is listed explicitly, and nothing else is", () => {
+    expect(Object.keys(PLAN_CAPABILITIES).sort()).toEqual(ALL_PLANS.map((p) => p.slug).sort());
   });
 
   it("the free plan and every plan that costs nothing unlock nothing", () => {
@@ -25,7 +33,7 @@ describe("Career Intelligence — plan capability mapping", () => {
   it("Nextwise Verified at ₹1,999 is the minimum qualifying plan", () => {
     expect(CAREER_INTELLIGENCE_MINIMUM_PLAN_SLUG).toBe(NEXTWISE_VERIFIED.slug);
     expect(NEXTWISE_VERIFIED.payableMinorUnits).toBe(199_900);
-    const qualifying = PR01_ACTIVE_CATALOG.filter((p) => planHasCapability(p.slug, "career_intelligence"));
+    const qualifying = ALL_PLANS.filter((p) => planHasCapability(p.slug, "career_intelligence"));
     expect(Math.min(...qualifying.map((p) => p.amountMinorUnits))).toBe(199_900);
     expect(qualifying.map((p) => p.slug)).toEqual(plansWithCapability("career_intelligence"));
   });

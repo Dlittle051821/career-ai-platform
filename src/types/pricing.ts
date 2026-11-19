@@ -16,6 +16,8 @@ export const PRICING_CATEGORIES = [
   "class_12_counselling",
   "bachelor_abroad",
   "master_abroad",
+  // NW-PRICING-V3: Nextwise Study Abroad Lite and Premium (not tied to a degree level).
+  "study_abroad",
 ] as const;
 export type PricingCategory = (typeof PRICING_CATEGORIES)[number];
 
@@ -28,6 +30,7 @@ export const PRICING_CATEGORY_LABELS: Record<PricingCategory, string> = {
   class_12_counselling: "Class 12 Counselling",
   bachelor_abroad: "Bachelor Abroad",
   master_abroad: "Master Abroad",
+  study_abroad: "Study Abroad",
 };
 
 export interface PricingPlan {

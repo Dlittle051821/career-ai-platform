@@ -37,7 +37,7 @@ export default async function CareerPreviewPage() {
   if (access === "anonymous") {
     return (
       <CiShell>
-        <CareerPreview signedIn={false} teaser={null} glance={null} status="none" verified={verified} purchasesOpen={plans.purchasesOpen} />
+        <CareerPreview signedIn={false} teaser={null} glance={null} status="none" verified={verified} alsoIncludedIn={plans.alsoIncludedIn} purchasesOpen={plans.purchasesOpen} />
       </CiShell>
     );
   }
@@ -57,7 +57,7 @@ export default async function CareerPreviewPage() {
   return (
     <CiShell>
       <GuestAnswersTransfer />
-      <CareerPreview signedIn teaser={teaser} glance={glanceFromAnswers(answers)} status={status} verified={verified} purchasesOpen={plans.purchasesOpen} />
+      <CareerPreview signedIn teaser={teaser} glance={glanceFromAnswers(answers)} status={status} verified={verified} alsoIncludedIn={plans.alsoIncludedIn} purchasesOpen={plans.purchasesOpen} />
     </CiShell>
   );
 }

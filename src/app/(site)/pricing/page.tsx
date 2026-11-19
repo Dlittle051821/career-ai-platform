@@ -14,6 +14,11 @@ import { isVersionCurrentlyEffective } from "@/lib/pricing/plan-versions";
 import { PRICING_FAQS } from "@/data/faqs";
 import { BRAND_NAME } from "@/config/site";
 import { isPaidCheckoutEnabled } from "@/lib/payments/launch-mode";
+import { PricingV3Page } from "@/components/pricing-v3/PricingV3Page";
+import { getV3Catalogue } from "@/lib/pricing/v3/catalogue";
+import { V3_PLAN_SLUGS, isV3PlanSlug, parseAdditionalUniversities } from "@/lib/pricing/v3/quote";
+import { purchasesAreOpen } from "@/lib/career-intelligence/plans";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = publicPageMetadata(
   "/pricing",
@@ -30,7 +35,30 @@ const MANDATORY_TERMS = [
   "Appointment cancellation and rescheduling follow the published appointment policy.",
 ];
 
-export default async function PricingPage() {
+/**
+ * NW-PRICING-V3: once the three-plan catalogue migration has been applied, the
+ * page shows the new three-plan experience; until then (and if the catalogue
+ * can't be read) it shows the existing catalogue exactly as before.
+ */
+export default async function PricingPage({ searchParams }: { searchParams: Promise<{ plan?: string; extra?: string }> }) {
+  const v3 = await getV3Catalogue();
+  if (v3.available) {
+    const { plan, extra } = await searchParams;
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const initialPlan = isV3PlanSlug(plan) ? plan : null;
+    const initialExtra = initialPlan && initialPlan !== V3_PLAN_SLUGS.verified ? (parseAdditionalUniversities(extra ?? "0") ?? 0) : 0;
+    await Promise.allSettled(v3.plans.map((p) => recordPricingAnalyticsEvent({ eventType: "plan_view", planId: p.planId })));
+    return (
+      <PricingV3Page plans={v3.plans} signedIn={Boolean(user)} purchasesOpen={purchasesAreOpen()} initialPlan={initialPlan} initialExtra={initialExtra} />
+    );
+  }
+  return <LegacyPricingPage />;
+}
+
+async function LegacyPricingPage() {
   const plans = await listPublicPricingPlans();
   const paidCheckoutEnabled = isPaidCheckoutEnabled();
 

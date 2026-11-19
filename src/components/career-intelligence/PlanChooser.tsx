@@ -14,6 +14,8 @@ type Tier = "plus" | "premium";
 const SUITS: Record<string, string> = {
   verified: "You want your full Career Intelligence report and a clear next step, without committing to admissions support yet.",
   essential: "You plan to study in India and want help from shortlist to admission.",
+  lite: "You want to study abroad and need structured support applying to up to five universities.",
+  premium: "You want deeper strategy, scholarship and interview support, and up to ten universities.",
 };
 
 /**
@@ -64,6 +66,12 @@ export function PlanChooser({ catalogue, signedIn, assessmentCompleteOnAccount, 
             primary
             onChoose={setChosen}
           />
+          {catalogue.studyAbroad ? (
+            <>
+              <PlanCard id="lite" plan={catalogue.studyAbroad.lite} category="Study abroad" suits={SUITS.lite} cta={`Choose ${catalogue.studyAbroad.lite.name.replace("Nextwise ", "")}`} onChoose={setChosen} />
+              <PlanCard id="premium" plan={catalogue.studyAbroad.premium} category="Study abroad" suits={SUITS.premium} cta={`Choose ${catalogue.studyAbroad.premium.name.replace("Nextwise ", "")}`} onChoose={setChosen} />
+            </>
+          ) : null}
           {catalogue.essential ? <PlanCard id="essential" plan={catalogue.essential} category="Study in India" suits={SUITS.essential} cta="Choose This Plan" onChoose={setChosen} /> : null}
           {abroadAny ? (
             <PlanCard
