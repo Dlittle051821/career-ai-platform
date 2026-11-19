@@ -589,3 +589,15 @@ header.nwh .nwh-menu .nwh-link-desc { display: block; margin-top: 3px; font-size
 @media (max-width: 699.98px), (max-aspect-ratio: 86/100) {
   header.nwh > .nwh-actions .nwh-saved { display: none; }
 }
+
+/* Career Intelligence V2: Pricing is a sixth header item. Between the phone breakpoint and 960 px the capsule
+   would otherwise run into the account buttons, so there only, the pills are drawn narrower and the capsule
+   sits a little left of centre. Nothing changes at 960 px and wider, or in the phone menu. */
+@media (min-width: 700px) and (max-width: 959.98px) and (min-aspect-ratio: 86/100) {
+  header.nwh .nwh-nav { transform: translateX(calc(-50% - 40px)); }
+  header.nwh .nwh-nav .nwh-pill { padding: 0 11px; }
+}
+@media (min-width: 700px) and (max-width: 799.98px) and (min-aspect-ratio: 86/100) {
+  header.nwh .nwh-nav { transform: translateX(calc(-50% - 62px)); }
+  header.nwh .nwh-nav .nwh-pill { padding: 0 7px; }
+}

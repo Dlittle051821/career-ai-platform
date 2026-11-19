@@ -88,6 +88,11 @@ export const PUBLIC_EXACT_PATHS: readonly string[] = [
   "/career",
   "/tools", // Free Tools, Coming Soon: the catalogue of planned tools (information only)
   "/career/access", // Career Explorer V5: the Nextwise Verified access screen (explains and routes; sells nothing itself)
+  // Career Intelligence V2: the free assessment, its completion screen, the free preview and the plan choice (no account needed)
+  "/career/assessment",
+  "/career/assessment/complete",
+  "/career/preview",
+  "/career/plans",
   "/careers",
   "/career-discovery",
   "/compare",
@@ -152,6 +157,7 @@ export const ACCOUNT_ENTRY_PREFIXES: readonly string[] = [
   "/pricing/checkout",
   "/agreements",
   "/studio",
+  "/career/report", // Career Intelligence V2: the paid report needs an account
 ];
 
 export const ACCOUNTS_CLOSED_REDIRECT = "/book-counselling";

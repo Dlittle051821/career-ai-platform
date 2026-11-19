@@ -101,7 +101,9 @@ function appRoutes(): string[] {
 
 describe("every route in the app is classified on purpose", () => {
   const PUBLIC = new Set([
-    "/", "/about", "/abroad", "/book-counselling", "/career", "/career/access", "/career-discovery", "/careers", "/careers/photo-credits", "/careers/x",
+    "/", "/about", "/abroad", "/book-counselling", "/career", "/career/access", "/career-discovery",
+    // Career Intelligence V2: the free assessment, completion, preview and plan choice
+    "/career/assessment", "/career/assessment/complete", "/career/preview", "/career/plans", "/careers", "/careers/photo-credits", "/careers/x",
     "/compare", "/contact", "/courses", "/courses/compare", "/courses/x/x", "/how-it-works", "/parents",
     "/pricing", "/privacy", "/refund-policy", "/study-europe", "/study-options", "/terms", "/tools", "/tools/x", "/trust",
     "/universities", "/universities/x", "/go/course-search/x", "/go/course-search/provider/x",

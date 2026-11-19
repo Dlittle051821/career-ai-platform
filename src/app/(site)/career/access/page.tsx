@@ -22,13 +22,14 @@ export const metadata: Metadata = {
 
 const RESULTS_HREF = "/recommendations";
 const STUDIO_HREF = "/studio";
-const ASSESSMENT_HREF = "/profile/onboarding";
+// Career Intelligence V2: the free assessment now has its own eight-section flow.
+const ASSESSMENT_HREF = "/career/assessment";
 
 /** Whole rupees, no decimals: the amount the student pays in total, GST included. */
 const money = (minor: number, currency: string) => formatMoney(minor, currency).replace(/\.00$/, "");
 
 const STATE_LINE: Record<Exclude<CareerIntelligenceAccessState, "active" | "staff">, string> = {
-  anonymous: "Log in or create a free account to take the assessment. You only need a plan to see your results.",
+  anonymous: "The assessment is free and needs no account to start. You only need a plan to see your full results.",
   free: "Career Intelligence is not active on this account yet.",
   payment_pending: "A payment for an eligible plan has been started but not confirmed. Results unlock only once the payment is confirmed.",
   expired: "Your Career Intelligence access has ended. Your answers are still saved.",
@@ -161,7 +162,7 @@ export default async function CareerIntelligenceAccessPage() {
                 <ArrowRight aria-hidden="true" />
               </Link>
             ) : !signedIn ? (
-              <Link href={AUTH_LINKS.signup.href} className="ce-btn" data-variant="primary" data-block="">
+              <Link href={ASSESSMENT_HREF} className="ce-btn" data-variant="primary" data-block="">
                 Start the free assessment
                 <ArrowRight aria-hidden="true" />
               </Link>
@@ -171,7 +172,7 @@ export default async function CareerIntelligenceAccessPage() {
                 <ArrowRight aria-hidden="true" />
               </Link>
             ) : purchasesOpen ? (
-              <Link href="/pricing" className="ce-btn" data-variant="primary" data-block="">
+              <Link href="/career/plans" className="ce-btn" data-variant="primary" data-block="">
                 See eligible plans — from {verifiedPrice}
                 <ArrowRight aria-hidden="true" />
               </Link>
@@ -190,6 +191,11 @@ export default async function CareerIntelligenceAccessPage() {
                 Already have a plan? <Link href={`${AUTH_LINKS.login.href}?next=${encodeURIComponent(RESULTS_HREF)}`}>Log in to view your results</Link>
               </p>
             )}
+            {!unlocked && signedIn && assessmentComplete ? (
+              <p className="ce-plan-alt">
+                <Link href="/career/preview">See your free preview</Link>: one recommendation from your answers.
+              </p>
+            ) : null}
             {!unlocked && purchasesOpen ? (
               <p className="ce-plan-alt">
                 Prefer to talk first? <Link href={DISCOVERY_SESSION_CTA.href}>Book a free discovery session</Link>

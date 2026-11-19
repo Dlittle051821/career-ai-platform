@@ -30,6 +30,10 @@ import { getUniversityAccess } from "@/lib/supabase/education/university-access"
 import { getVerifiedOffer } from "@/lib/education/university-discovery/offer";
 import "@/styles/university-discovery.css";
 import { DiscoverySessionCard } from "@/components/dashboard/DiscoverySessionCard";
+import { StudioCareerIntelligencePanel } from "@/components/career-intelligence/StudioCareerIntelligencePanel";
+import { completedSectionKeys, answersFromSnapshot } from "@/lib/career-intelligence/assessment/model";
+import { getCareerIntelligenceAccess } from "@/lib/supabase/career-intelligence-access";
+import { listSavedCareerIds } from "@/lib/supabase/career-explorer";
 
 export const metadata: Metadata = {
   title: "Studio",
@@ -113,6 +117,9 @@ export default async function StudioHubPage() {
       ? (await getRecommendations(studentSnapshot, await getCareersForMatching())).results
       : [];
   const hasUsableCareerRecommendations = careerRecommendationResults.length > 0;
+  // Career Intelligence V2 entry points (report / assessment / saved careers): the same live resolver, no scoring here.
+  const [careerIntelligenceAccess, savedCareerIds] = await Promise.all([getCareerIntelligenceAccess(), listSavedCareerIds().catch(() => [] as string[])]);
+  const assessmentSectionsDone = studentSnapshot ? completedSectionKeys(answersFromSnapshot(studentSnapshot)).length : 0;
 
   const nextBestAction = getNextBestAction({
     profileStatus: studentCompletion.status,
@@ -175,6 +182,8 @@ export default async function StudioHubPage() {
           </Card>
         </Link>
       </div>
+
+      <StudioCareerIntelligencePanel access={careerIntelligenceAccess} sectionsDone={assessmentSectionsDone} savedCareerCount={savedCareerIds.length} />
 
       <StudentJourneyOverview
         profilePercent={studentCompletion.percent}

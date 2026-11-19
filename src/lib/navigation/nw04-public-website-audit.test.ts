@@ -75,10 +75,10 @@ describe("NW04.2 — homepage: new sections exist and are wired in without touch
 });
 
 describe("NW04.3/NW04.4 — ProductSubNav is shared, not duplicated, and both product pages use it", () => {
-  it("/career and /abroad both import the one shared ProductSubNav component", () => {
-    const career = read("app/(site)/career/page.tsx");
+  // Career Intelligence V2 replaced /career's hero with the approved dark-blue entry screen, which has no sub-nav row;
+  // /abroad keeps the shared component.
+  it("/abroad imports the one shared ProductSubNav component", () => {
     const abroad = read("app/(site)/abroad/page.tsx");
-    expect(career).toContain('from "@/components/sections/ProductSubNav"');
     expect(abroad).toContain('from "@/components/sections/ProductSubNav"');
   });
 

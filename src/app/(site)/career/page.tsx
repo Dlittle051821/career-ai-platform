@@ -5,13 +5,24 @@ import { ArrowRight, Compass, GraduationCap, MessageCircle, Sparkles, Target } f
 import { Section } from "@/components/layout/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
-import { PageHero } from "@/components/sections/PageHero";
 import { CTASection } from "@/components/sections/CTASection";
-import { ProductSubNav } from "@/components/sections/ProductSubNav";
+import { Check } from "lucide-react";
+import { CiShell, Journey } from "@/components/career-intelligence/CiShell";
+import { CareerEntryActions, type EntryProgress } from "@/components/career-intelligence/CareerEntryActions";
+import { GuestAnswersTransfer } from "@/components/career-intelligence/GuestAnswersTransfer";
+import { canViewCareerIntelligence } from "@/lib/career-intelligence/access";
+import { ASSESSMENT_SECTIONS, answersFromSnapshot, completedSectionKeys, hasAnyAnswer, isAssessmentComplete } from "@/lib/career-intelligence/assessment/model";
+import { getCareerIntelligenceAccess } from "@/lib/supabase/career-intelligence-access";
+import { getStudentProfileSnapshot } from "@/lib/supabase/student-profile";
 
 /**
+ * Career Intelligence V2 — the entry screen (approved design): the dark-blue
+ * hero with Start Free Assessment, the journey indicator and the "What the
+ * assessment covers" card. The state shown (start, resume, preview, open
+ * report) comes from the server for a signed-in student and from this
+ * device for a guest. The NW03.2 "Explore your path" links below it are kept.
+ *
  * NW03.2 — Career Intelligence product landing page.
  *
  * This is a lightweight, additive entry point into the existing Career
@@ -73,34 +84,64 @@ const CAREER_LINKS = [
   },
 ] as const;
 
-// NW04.3 — the in-product quick-nav row (see ProductSubNav.tsx's own
-// docblock). Every href is a real, pre-existing route except the last,
-// which anchors to this page's own "Where to start" grid below — never a
-// fabricated /resources route.
-const CAREER_SUBNAV = [
-  { label: "Overview", href: "/career" },
-  { label: "Careers", href: "/careers" },
-  { label: "Courses", href: "/courses" },
-  { label: "Colleges", href: "/universities" },
-  { label: "Assessments", href: "/career-discovery" },
-  { label: "Resources", href: "/career#explore" },
-] as const;
 
-export default function CareerProductPage() {
+export default async function CareerProductPage() {
+  const access = await getCareerIntelligenceAccess();
+  const signedIn = access !== "anonymous";
+  let progress: EntryProgress = { kind: "new" };
+  if (canViewCareerIntelligence(access)) {
+    progress = { kind: "unlocked" };
+  } else if (signedIn) {
+    const snapshot = await getStudentProfileSnapshot();
+    const answers = snapshot ? answersFromSnapshot(snapshot) : null;
+    if (answers && isAssessmentComplete(answers)) progress = { kind: "complete" };
+    else if (answers && hasAnyAnswer(answers)) progress = { kind: "partial", done: completedSectionKeys(answers).length };
+  }
+
   return (
     <>
-      <ProductSubNav items={CAREER_SUBNAV} activeHref="/career" />
-      <PageHero
-        eyebrow="Career Intelligence"
-        title="Discover multiple possibilities for your future"
-        description="Explore careers, courses and colleges, and get recommendations tailored to your profile — usable fully on its own, with no study-abroad purchase required."
-        breadcrumbs={[{ label: "Home", href: "/" }, { label: "Career Intelligence" }]}
-      >
-        <Badge tone="info">
-          <Sparkles aria-hidden="true" className="h-3.5 w-3.5" />
-          Works standalone — study abroad is a separate, optional path
-        </Badge>
-      </PageHero>
+      <CiShell navy>
+        {signedIn ? <GuestAnswersTransfer /> : null}
+        <section className="entry on-navy" aria-labelledby="ci-entry-title">
+          <div className="wrap entry-grid">
+            <div>
+              <span className="eyebrow">Career Intelligence</span>
+              <h1 id="ci-entry-title" className="display">
+                Understand yourself. Discover what comes next.
+              </h1>
+              <p className="lede">
+                Explore your interests, strengths and ambitions through a guided assessment. Complete it for free. Unlock your personalised career
+                recommendations when you’re ready.
+              </p>
+              <CareerEntryActions server={progress} signedIn={signedIn} />
+              <Journey />
+            </div>
+            <aside className="entry-card" aria-labelledby="ci-entry-card">
+              <h2 id="ci-entry-card">What the assessment covers</h2>
+              <ul className="sec">
+                {ASSESSMENT_SECTIONS.map((section) => (
+                  <li key={section.key}>
+                    <Check className="icon" aria-hidden="true" />
+                    {section.rail}
+                  </li>
+                ))}
+              </ul>
+              <div className="meta">
+                <span>
+                  <b>About 10 minutes</b>
+                </span>
+                <span>
+                  <b>Free</b> to complete
+                </span>
+                <span>Save and finish later</span>
+              </div>
+              <p style={{ margin: "14px 0 0", fontSize: 13.5, color: "var(--muted)" }}>
+                Career Explorer stays free. Career Intelligence is guidance, not a guarantee of admission, employment or pay.
+              </p>
+            </aside>
+          </div>
+        </section>
+      </CiShell>
 
       <Section tone="surface" id="explore">
         <SectionHeading

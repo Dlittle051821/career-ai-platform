@@ -14,9 +14,10 @@ const routeExists = (href: string) => {
 };
 
 describe("Career Explorer V5 — global navigation (approved, locked)", () => {
-  it("is exactly Home | Career Options | Universities | Free Tools | Destination", () => {
-    expect(HEADER_NAV.map((i) => (i.kind === "link" ? i.link.label : i.group.label))).toEqual(["Home", "Career Options", "Universities", "Free Tools", "Destination"]);
-    expect(HEADER_NAV.map((i) => i.kind)).toEqual(["link", "group", "link", "link", "group"]);
+  // Career Intelligence V2 (approved) adds Pricing as the last item, after Destination.
+  it("is exactly Home | Career Options | Universities | Free Tools | Destination | Pricing", () => {
+    expect(HEADER_NAV.map((i) => (i.kind === "link" ? i.link.label : i.group.label))).toEqual(["Home", "Career Options", "Universities", "Free Tools", "Destination", "Pricing"]);
+    expect(HEADER_NAV.map((i) => i.kind)).toEqual(["link", "group", "link", "link", "group", "link"]);
   });
 
   it('labels the destination menu "Destination", not "Choose Your Destination"', () => {
@@ -28,7 +29,8 @@ describe("Career Explorer V5 — global navigation (approved, locked)", () => {
     const [explorer, intelligence] = CAREER_OPTIONS_GROUP.links;
     expect(CAREER_OPTIONS_GROUP.links).toHaveLength(2);
     expect(explorer).toMatchObject({ label: "Career Explorer", href: "/careers", badge: { label: "Free", tone: "free" } });
-    expect(intelligence).toMatchObject({ label: "Career Intelligence", href: "/career", badge: { label: "Nextwise Verified", tone: "verified" } });
+    // Career Intelligence V2: the assessment is free, so the menu says so; the report stays paid.
+    expect(intelligence).toMatchObject({ label: "Career Intelligence", href: "/career", badge: { label: "Free assessment", tone: "free" } });
   });
 
   it("Destination lists the six supported countries, in the supported-country order, as sections of /study-europe", () => {

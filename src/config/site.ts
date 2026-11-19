@@ -230,8 +230,8 @@ export const CAREER_OPTIONS_GROUP: NavGroup = {
     {
       label: "Career Intelligence",
       href: "/career",
-      description: "Discover your strengths through a personalized career assessment.",
-      badge: { label: "Nextwise Verified", tone: "verified" },
+      description: "Take the guided assessment free. Unlock your personalised report when you're ready.",
+      badge: { label: "Free assessment", tone: "free" },
       icon: "intelligence",
     },
   ],
@@ -279,6 +279,8 @@ export const HEADER_NAV: HeaderNavItem[] = [
   { kind: "link", link: findNav("/universities") },
   { kind: "link", link: FREE_TOOLS_NAV_LINK },
   { kind: "group", group: DESTINATION_GROUP },
+  // Career Intelligence V2: Pricing is the last header item, after Destination (desktop and phone menu).
+  { kind: "link", link: findNav("/pricing") },
 ];
 
 /** A header href without its #section, for matching against the current pathname. */
@@ -291,7 +293,7 @@ export function navHrefPath(href: string): string {
 export const HEADER_LEADING_LINKS: NavLink[] = [HOME_NAV_LINK];
 
 /** Direct (non-dropdown) header links other than Home. */
-export const HEADER_DIRECT_LINKS: NavLink[] = [findNav("/universities"), FREE_TOOLS_NAV_LINK];
+export const HEADER_DIRECT_LINKS: NavLink[] = [findNav("/universities"), FREE_TOOLS_NAV_LINK, findNav("/pricing")];
 
 /** Every header destination path, in header order (for one active-place resolution). */
 export const HEADER_NAV_HREFS: string[] = [
