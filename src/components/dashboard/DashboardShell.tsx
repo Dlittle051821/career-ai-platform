@@ -53,6 +53,8 @@ interface NavItem {
  */
 const NAV_ITEMS: NavItem[] = [
   { label: "Studio", href: "/studio", icon: LayoutGrid },
+  // NW-PAYMENT-V1 — the purchased package, its services and documents
+  { label: "My Plan & Services", href: "/studio/plan", icon: Sparkles },
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "My Profile", href: "/profile", icon: UserRound },
   { label: "Recommendations", href: "/recommendations", icon: Sparkles },
@@ -65,6 +67,7 @@ const NAV_ITEMS: NavItem[] = [
 
 function isActive(pathname: string, href: string): boolean {
   if (href === "/dashboard") return pathname === "/dashboard";
+  if (href === "/studio") return pathname === "/studio" || (pathname.startsWith("/studio/") && !pathname.startsWith("/studio/plan"));
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

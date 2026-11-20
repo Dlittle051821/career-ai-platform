@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { isUpiCheckoutOpen } from "@/lib/payments/upi/config";
+import { isV3PlanSlug } from "@/lib/pricing/v3/quote";
 import { Info, ShieldCheck } from "lucide-react";
 import { LinkButton } from "@/components/ui/Button";
 import { DISCOVERY_SESSION_BOOKING_PATH, isPaidCheckoutEnabled, PAID_CHECKOUT_PAUSED_MESSAGE, PAID_CHECKOUT_PAUSED_TITLE } from "@/lib/payments/launch-mode";
@@ -30,6 +32,9 @@ export const metadata: Metadata = { title: "Confirm your plan" };
  */
 export default async function PricingCheckoutPage({ params }: PricingCheckoutPageProps) {
   const { slug } = await params;
+  // NW-PAYMENT-V1: the three-plan packages are bought only through UPI checkout, which prices them
+  // tax-inclusive from the quote; the older purchase path here must not issue a second kind of invoice.
+  if (isUpiCheckoutOpen() && isV3PlanSlug(slug)) redirect(`/checkout/start?plan=${slug}`);
   const item = await getPublicPricingPlanBySlug(slug);
   if (!item || !item.version || !isVersionCurrentlyEffective(item.version)) notFound();
   const { plan, version, offer, inclusions } = item;

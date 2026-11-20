@@ -18,6 +18,7 @@ import { PricingV3Page } from "@/components/pricing-v3/PricingV3Page";
 import { getV3Catalogue } from "@/lib/pricing/v3/catalogue";
 import { V3_PLAN_SLUGS, isV3PlanSlug, parseAdditionalUniversities } from "@/lib/pricing/v3/quote";
 import { purchasesAreOpen } from "@/lib/career-intelligence/plans";
+import { isUpiCheckoutOpen } from "@/lib/payments/upi/config";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = publicPageMetadata(
@@ -52,7 +53,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
     const initialExtra = initialPlan && initialPlan !== V3_PLAN_SLUGS.verified ? (parseAdditionalUniversities(extra ?? "0") ?? 0) : 0;
     await Promise.allSettled(v3.plans.map((p) => recordPricingAnalyticsEvent({ eventType: "plan_view", planId: p.planId })));
     return (
-      <PricingV3Page plans={v3.plans} signedIn={Boolean(user)} purchasesOpen={purchasesAreOpen()} initialPlan={initialPlan} initialExtra={initialExtra} />
+      <PricingV3Page plans={v3.plans} signedIn={Boolean(user)} purchasesOpen={purchasesAreOpen()} upiCheckoutOpen={isUpiCheckoutOpen()} initialPlan={initialPlan} initialExtra={initialExtra} />
     );
   }
   return <LegacyPricingPage />;

@@ -29,6 +29,10 @@ import { SavedUniversitiesPanel } from "@/components/sections/university-discove
 import { getUniversityAccess } from "@/lib/supabase/education/university-access";
 import { getVerifiedOffer } from "@/lib/education/university-discovery/offer";
 import "@/styles/university-discovery.css";
+import "@/styles/payment-v1.css";
+import { getMyPlanOverview } from "@/lib/payments/upi/my-plan";
+import { MyPlanCards, PlanPendingBanner } from "@/components/payment-v1/MyPlan";
+import { v54Grotesk } from "@/components/sections/home/v54/fonts";
 import { DiscoverySessionCard } from "@/components/dashboard/DiscoverySessionCard";
 import { StudioCareerIntelligencePanel } from "@/components/career-intelligence/StudioCareerIntelligencePanel";
 import { completedSectionKeys, answersFromSnapshot } from "@/lib/career-intelligence/assessment/model";
@@ -72,7 +76,7 @@ export const metadata: Metadata = {
  * "avoid expensive repeated queries" instruction.
  */
 export default async function StudioHubPage() {
-  const [profile, entitlements] = await Promise.all([getCurrentProfile(), getMyProductEntitlements()]);
+  const [profile, entitlements, myPlan] = await Promise.all([getCurrentProfile(), getMyProductEntitlements(), getMyPlanOverview().catch(() => null)]);
   const firstName = firstNameFrom(profile);
 
   const [studentSnapshot, invoices, agreements, savedItems, applications, activeDiscoverySession, recommendationReadiness, recommendationReports] = await Promise.all([
@@ -142,6 +146,21 @@ export default async function StudioHubPage() {
           Nextwise runs two independent workspaces. Pick one — you can always switch, and using one never requires the other.
         </p>
       </div>
+
+      {myPlan ? (
+        <div className={`nwp-plan ${v54Grotesk.variable}`}>
+          <PlanPendingBanner plan={myPlan} />
+          <h2 className="nws-h2" style={{ marginTop: 0 }}>
+            My plan
+          </h2>
+          <MyPlanCards plan={myPlan} />
+          <p className="nws-sub" style={{ marginTop: 10 }}>
+            <Link className="nws-link" href="/studio/plan" id="nws-view-services">
+              View my plan and services <ArrowRight aria-hidden="true" />
+            </Link>
+          </p>
+        </div>
+      ) : null}
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Link href="/studio/career" className="group block">

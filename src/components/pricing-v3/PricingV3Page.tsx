@@ -9,7 +9,7 @@ import "@/styles/pricing-v3.css";
  * NW-PRICING-V3.1 page. No introductory hero: the three packages and their prices start
  * directly under the site navigation. The page heading is for screen readers only.
  */
-export function PricingV3Page(props: { plans: V3PublicPlan[]; signedIn: boolean; purchasesOpen: boolean; initialPlan: V3PlanSlug | null; initialExtra: number }) {
+export function PricingV3Page(props: { plans: V3PublicPlan[]; signedIn: boolean; purchasesOpen: boolean; upiCheckoutOpen?: boolean; initialPlan: V3PlanSlug | null; initialExtra: number }) {
   return (
     <>
       <div className={`pv3 ${v54Grotesk.variable}`}>

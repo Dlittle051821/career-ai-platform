@@ -6,7 +6,7 @@ import { Section } from "@/components/layout/Section";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { PayButton } from "@/components/payments/PayButton";
-import { getMyInvoiceById, getMyRefundsForInvoice } from "@/lib/supabase/payments/student-invoices";
+import { getMyInvoiceById, getMyRefundsForInvoice, listMyReceiptTransactions } from "@/lib/supabase/payments/student-invoices";
 import { formatMoney } from "@/lib/admin/money";
 import { isPaidCheckoutEnabled, OPEN_INVOICE_PAYMENT_PAUSED_MESSAGE } from "@/lib/payments/launch-mode";
 import { INVOICE_STATUS_LABELS, PAYABLE_INVOICE_STATUSES, REFUND_STATUS_LABELS, ACTIVE_REFUND_STATUSES } from "@/types/payments";
@@ -29,7 +29,7 @@ const STATUS_TONE: Record<string, "neutral" | "success" | "warning" | "error" | 
 
 export default async function PaymentDetailPage({ params }: PaymentDetailPageProps) {
   const { invoiceId } = await params;
-  const [invoice, refunds] = await Promise.all([getMyInvoiceById(invoiceId), getMyRefundsForInvoice(invoiceId)]);
+  const [invoice, refunds, receipts] = await Promise.all([getMyInvoiceById(invoiceId), getMyRefundsForInvoice(invoiceId), listMyReceiptTransactions(invoiceId)]);
   if (!invoice) notFound();
 
   const isPayable = PAYABLE_INVOICE_STATUSES.includes(invoice.status) && invoice.dueMinorUnits > 0;
@@ -109,6 +109,26 @@ export default async function PaymentDetailPage({ params }: PaymentDetailPagePro
                     </div>
                     {r.status === "rejected" && r.rejectionReason ? <p className="mt-1.5 text-xs text-muted">{r.rejectionReason}</p> : null}
                     <p className="mt-1 text-xs text-muted">Requested {new Date(r.createdAt).toLocaleDateString("en-IN")}</p>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          ) : null}
+
+          {receipts.length > 0 ? (
+            <Card>
+              <h2 className="mb-3 text-base font-semibold text-primary">Payment receipts</h2>
+              <ul className="space-y-2">
+                {receipts.map((r) => (
+                  <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                    <span className="text-text-soft">
+                      {formatMoney(r.amountMinorUnits, r.currency)} · {r.methodCategory === "upi" ? "UPI" : (r.methodCategory ?? "Payment")}
+                      {r.capturedAt ? ` · ${new Date(r.capturedAt).toLocaleDateString("en-IN")}` : ""}
+                    </span>
+                    <a href={`/payments/${invoice.id}/receipts/${r.id}`} className="inline-flex items-center gap-1.5 font-semibold text-secondary-dark hover:text-primary" id={`receipt-${r.id}`}>
+                      <Download aria-hidden="true" className="h-4 w-4" />
+                      Download receipt
+                    </a>
                   </li>
                 ))}
               </ul>

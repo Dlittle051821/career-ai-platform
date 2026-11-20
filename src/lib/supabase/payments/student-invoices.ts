@@ -57,16 +57,23 @@ async function getCapturedRefundedTotals(supabase: Awaited<ReturnType<typeof cre
   const { data: attempts } = await supabase.from("payment_attempts").select("id").eq("invoice_id", invoiceId);
   const attemptIds = (attempts ?? []).map((a) => a.id);
   let capturedTotalMinorUnits = 0;
+  let reviewTxnIds = new Set<string>();
   if (attemptIds.length > 0) {
+    // NW-PAYMENT-V1: money held for finance review (a duplicate payment, or a
+    // payment to a superseded checkout) is not part of what this invoice was paid
+    // with — it is refunded separately — so it is left out here, exactly as
+    // recompute_invoice_status() leaves it out.
     const { data: txns } = await supabase
       .from("payment_transactions")
-      .select("amount_minor_units")
+      .select("id, amount_minor_units, review_reason")
       .in("payment_attempt_id", attemptIds)
       .in("status", ["captured", "refunded", "partially_refunded"]);
-    capturedTotalMinorUnits = (txns ?? []).reduce((sum, t) => sum + t.amount_minor_units, 0);
+    const counted = (txns ?? []).filter((t) => !t.review_reason);
+    capturedTotalMinorUnits = counted.reduce((sum, t) => sum + t.amount_minor_units, 0);
+    reviewTxnIds = new Set((txns ?? []).filter((t) => t.review_reason).map((t) => t.id));
   }
-  const { data: refunds } = await supabase.from("refunds").select("amount_minor_units").eq("invoice_id", invoiceId).eq("status", "processed");
-  const refundedTotalMinorUnits = (refunds ?? []).reduce((sum, r) => sum + r.amount_minor_units, 0);
+  const { data: refunds } = await supabase.from("refunds").select("amount_minor_units, payment_transaction_id").eq("invoice_id", invoiceId).eq("status", "processed");
+  const refundedTotalMinorUnits = (refunds ?? []).filter((r) => !reviewTxnIds.has(r.payment_transaction_id)).reduce((sum, r) => sum + r.amount_minor_units, 0);
   return { capturedTotalMinorUnits, refundedTotalMinorUnits };
 }
 
@@ -208,6 +215,8 @@ export async function getMyPaymentTransaction(invoiceId: string, transactionId: 
   }
   const { data: attempt } = await supabase.from("payment_attempts").select("invoice_id").eq("id", txn.payment_attempt_id).maybeSingle();
   if (!attempt || attempt.invoice_id !== invoiceId) return null;
+  // NW-PAYMENT-V1: no student receipt for money held for finance review (it settles nothing and is refunded)
+  if (txn.review_reason) return null;
 
   return {
     id: txn.id,
@@ -274,4 +283,28 @@ export async function getMyRefundsForInvoice(invoiceId: string): Promise<Refund[
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }));
+}
+
+/**
+ * NW-PAYMENT-V1 — the payments a student can download a receipt for on one of
+ * their invoices: captured (or later refunded) payments that actually paid
+ * the invoice. Money held for finance review is excluded.
+ */
+export async function listMyReceiptTransactions(invoiceId: string): Promise<Array<{ id: string; amountMinorUnits: number; currency: string; capturedAt: string | null; methodCategory: string | null; providerPaymentId: string | null }>> {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  const supabase = await createClient();
+  const { data: invoice } = await supabase.from("invoices").select("id").eq("id", invoiceId).eq("student_user_id", user.id).neq("status", "draft").maybeSingle();
+  if (!invoice) return [];
+  const { data: attempts } = await supabase.from("payment_attempts").select("id").eq("invoice_id", invoiceId);
+  const ids = (attempts ?? []).map((a) => a.id);
+  if (ids.length === 0) return [];
+  const { data: txns } = await supabase
+    .from("payment_transactions")
+    .select("id, amount_minor_units, currency, captured_at, method_category, provider_payment_id, review_reason, status")
+    .in("payment_attempt_id", ids)
+    .in("status", ["captured", "refunded", "partially_refunded"]);
+  return (txns ?? [])
+    .filter((t) => !t.review_reason)
+    .map((t) => ({ id: t.id, amountMinorUnits: t.amount_minor_units, currency: t.currency, capturedAt: t.captured_at, methodCategory: t.method_category, providerPaymentId: t.provider_payment_id }));
 }

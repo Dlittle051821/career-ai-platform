@@ -1408,6 +1408,9 @@ type InvoicesRow = {
   // Milestone 10 — additive, nullable (0007_nextwise_pricing_offers.sql PART 6).
   pricing_plan_id: string | null;
   pricing_offer_id: string | null;
+  // NW-PAYMENT-V1
+  pricing_quote_id?: string | null;
+  settled_transaction_id?: string | null;
 };
 
 type InvoiceLineItemsRow = {
@@ -1436,6 +1439,13 @@ type PaymentAttemptsRow = {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  // NW-PAYMENT-V1 (0001_upi_checkout.sql) — null on every legacy attempt
+  channel?: "upi_qr" | "upi_checkout" | null;
+  provider_qr_id?: string | null;
+  qr_image_url?: string | null;
+  expires_at?: string | null;
+  closed_at?: string | null;
+  close_reason?: string | null;
 };
 
 type PaymentTransactionsRow = {
@@ -1454,6 +1464,8 @@ type PaymentTransactionsRow = {
   recorded_by: string | null;
   created_at: string;
   updated_at: string;
+  // NW-PAYMENT-V1 — set on money held for finance review (never a student receipt)
+  review_reason?: "duplicate_payment" | "payment_on_inactive_invoice" | null;
 };
 
 type RefundsRow = {
@@ -1666,6 +1678,11 @@ type PricingPurchasesRow = {
   session_count_at_purchase: number | null;
   inclusions_at_purchase: Json;
   presentation_limits_at_purchase: Json;
+  // NW-PAYMENT-V1 — null on every legacy purchase
+  pricing_quote_id?: string | null;
+  included_universities_at_purchase?: number | null;
+  additional_universities_at_purchase?: number | null;
+  total_universities_at_purchase?: number | null;
 };
 
 type PricingAnalyticsEventsRow = {
@@ -1768,6 +1785,27 @@ export interface Database {
       // of each function's authorization/verification behavior.
       create_pricing_quote: {
         Args: { p_plan_slug: string; p_additional_universities: number };
+        Returns: Json;
+      };
+      // NW-PAYMENT-V1 — supabase/migrations-proposed/NW_PAYMENT_V1/0001_upi_checkout.sql
+      start_quote_checkout: {
+        Args: { p_quote_id: string };
+        Returns: Json;
+      };
+      prepare_upi_attempt: {
+        Args: { p_invoice_id: string; p_channel: string };
+        Returns: Json;
+      };
+      apply_upi_gateway_record: {
+        Args: { p_payload: string; p_signature: string };
+        Returns: Json;
+      };
+      upi_attempts_to_reconcile: {
+        Args: { p_payload: string; p_signature: string };
+        Returns: Json;
+      };
+      get_quote_checkout_state: {
+        Args: { p_quote_id: string };
         Returns: Json;
       };
       next_invoice_number: {

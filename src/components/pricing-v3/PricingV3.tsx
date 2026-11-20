@@ -49,6 +49,8 @@ interface PricingV3Props {
   plans: V3PublicPlan[];
   signedIn: boolean;
   purchasesOpen: boolean;
+  /** NW-PAYMENT-V1: online UPI checkout is open (server-side gate, see src/lib/payments/upi/config.ts). */
+  upiCheckoutOpen?: boolean;
   initialPlan: V3PlanSlug | null;
   initialExtra: number;
 }
@@ -83,6 +85,7 @@ export function PricingV3({
   plans,
   signedIn,
   purchasesOpen,
+  upiCheckoutOpen = false,
   initialPlan,
   initialExtra,
 }: PricingV3Props) {
@@ -271,6 +274,8 @@ export function PricingV3({
     ? `/pricing?plan=${selected}${extra > 0 ? `&extra=${extra}` : ""}#your-package`
     : "/pricing";
   const checkoutAllowed = purchasesOpen && extra === 0;
+  // NW-PAYMENT-V1: the package (with any additional universities) goes to UPI checkout; the server prices it again
+  const upiCheckoutHref = selected ? `/checkout/start?plan=${selected}${extra > 0 ? `&extra=${extra}` : ""}` : "/pricing";
 
   return (
     <div className="pv3-body">
@@ -466,7 +471,16 @@ export function PricingV3({
                     <span className="pv3-checking">Confirming the price…</span>
                   )}
                 </p>
-                {checkoutAllowed ? (
+                {upiCheckoutOpen ? (
+                  <Link
+                    className="btn btn-primary"
+                    href={upiCheckoutHref}
+                    id="pv3-checkout"
+                  >
+                    Continue to secure checkout{" "}
+                    <ArrowRight className="icon" aria-hidden="true" />
+                  </Link>
+                ) : checkoutAllowed ? (
                   <Link
                     className="btn btn-primary"
                     href={`/pricing/checkout/${plan.slug}`}
@@ -519,7 +533,9 @@ export function PricingV3({
                   </p>
                 ) : null}
                 <p className="pv3-note">
-                  {purchasesOpen
+                  {upiCheckoutOpen
+                    ? "Pay securely by UPI on the next page. You review the order before anything is charged."
+                    : purchasesOpen
                     ? extra > 0
                       ? "Packages with additional universities are confirmed with a counsellor before payment."
                       : "You review the order before anything is charged."

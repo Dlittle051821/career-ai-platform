@@ -71,6 +71,8 @@ export interface InvoiceBillingSnapshot {
   businessAddress: string | null;
   gstin: string | null;
   gstRegisteredAtIssuance: boolean;
+  /** NW-PAYMENT-V1 — `test` when issued from a Razorpay test-mode payment (no real money). */
+  paymentMode?: "test" | "live";
 }
 
 export interface Invoice {

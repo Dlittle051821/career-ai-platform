@@ -4,6 +4,9 @@ import { redirect } from "next/navigation";
 import { purchasePricingPlan, PricingCheckoutError } from "@/lib/supabase/pricing/checkout";
 import { recordPricingAnalyticsEvent } from "@/lib/supabase/pricing/analytics";
 import { isPaidCheckoutEnabled, PAID_CHECKOUT_PAUSED_MESSAGE } from "@/lib/payments/launch-mode";
+import { isUpiCheckoutOpen } from "@/lib/payments/upi/config";
+import { V3_PLAN_ORDER } from "@/lib/pricing/v3/quote";
+import { createClient } from "@/lib/supabase/server";
 
 export interface ConfirmPurchaseResult {
   error: string | null;
@@ -28,6 +31,12 @@ export async function confirmPricingPurchaseAction(planId: string, offerId: stri
   // purchase_pricing_plan() call, so no purchase and no invoice, even when
   // the action is invoked directly rather than from the page.
   if (!isPaidCheckoutEnabled()) return { error: PAID_CHECKOUT_PAUSED_MESSAGE };
+  // NW-PAYMENT-V1: while UPI checkout is open, the three-plan packages are bought only through it.
+  if (isUpiCheckoutOpen()) {
+    const supabase = await createClient();
+    const { data: plan } = await supabase.from("pricing_plans").select("slug").eq("id", planId).maybeSingle();
+    if (plan && (V3_PLAN_ORDER as readonly string[]).includes(plan.slug)) return { error: "Please use secure checkout from the Pricing page for this package." };
+  }
   let invoiceId: string;
   try {
     await recordPricingAnalyticsEvent({ eventType: "checkout_started", planId, offerId });
