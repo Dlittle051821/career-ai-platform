@@ -190,3 +190,40 @@ describe("NW-PRICING-V3 — content", () => {
     for (const s of ["nextwise-essential", "bachelor-abroad-plus", "", "__proto__", 1, null]) expect(isV3PlanSlug(s)).toBe(false);
   });
 });
+
+describe("NW-PRICING-V3.1 — visual refinement keeps the business rules", () => {
+  const ui = () => code("src/components/pricing-v3/PricingV3.tsx");
+  const page = () => code("src/components/pricing-v3/PricingV3Page.tsx");
+  const css = () => code("src/styles/pricing-v3.css");
+
+  it("the introductory hero is gone: the packages start under the navigation", () => {
+    expect(page()).not.toMatch(/pv3-hero|The right guidance\. At the right stage\./);
+    expect(page()).toContain('<h1 className="sr">');
+    expect(css()).not.toMatch(/\.pv3-hero\b/);
+    expect(css()).not.toMatch(/body:has\(\.pv3\) header/);
+  });
+
+  it("phones and tablets get a three-price overview that selects a package", () => {
+    expect(ui()).toContain('aria-label="Choose a package"');
+    expect(ui()).toContain("pickFromOverview");
+    expect(css()).toMatch(/@media \(max-width:1060px\)\{\s*\.pv3 \.pv3-overview\{display:block/);
+  });
+
+  it("animated prices never write an in-between amount into state, and respect reduced motion", () => {
+    expect(ui()).toContain("data-amount={minor}");
+    expect(ui()).toMatch(/<span className="sr">\{formatInr\(minor\)\}<\/span>/);
+    expect(ui()).toContain('reducedMotion() ? 0 : PRICE_TWEEN_MS');
+    expect(css()).toContain("@media (prefers-reduced-motion: reduce)");
+  });
+
+  it("uses the site's real coral token and changes no shared token", () => {
+    expect(css()).toContain("--action:#FF4D6D");
+    expect(css()).not.toMatch(/(^|\n)\s*:root\s*\{/);
+  });
+
+  it("the quote logic, server check and checkout guard are untouched", () => {
+    expect(ui()).toContain("computePackageQuote");
+    expect(ui()).toContain("quotePackage(selected, extra, false)");
+    expect(ui()).toContain("const checkoutAllowed = purchasesOpen && extra === 0;");
+  });
+});
