@@ -13,7 +13,7 @@ import { ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Plans that include Career Intelligence",
-  description: "Nextwise plans that include the full Career Intelligence report: Nextwise Verified, Nextwise Essential and the Study Abroad plans.",
+  description: "Nextwise plans that include the full Career Intelligence report: Nextwise Verified and the Nextwise Study Abroad plans.",
   alternates: { canonical: "/career/plans" },
   robots: { index: false, follow: true },
 };

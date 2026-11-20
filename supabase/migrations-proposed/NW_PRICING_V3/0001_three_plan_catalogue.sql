@@ -186,6 +186,8 @@ declare
 begin
   if v_uid is null then raise exception 'You must be signed in to save a package.'; end if;
   if v_extra < 0 then raise exception 'The number of additional universities cannot be negative.'; end if;
+  -- same hard ceiling as the application (ADDITIONAL_UNIVERSITIES_HARD_CEILING in src/lib/pricing/v3/quote.ts)
+  if v_extra > 100 then raise exception 'That is more additional universities than one package can include. Please talk to a counsellor.'; end if;
 
   select * into v_plan from public.pricing_plans where slug = p_plan_slug and is_active = true;
   if not found then raise exception 'This package is not currently offered.'; end if;
